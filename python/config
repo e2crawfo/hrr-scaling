@@ -1,0 +1,3 @@
+[Directories]
+input_dir: ../wordnetData
+output_dir: ../data
