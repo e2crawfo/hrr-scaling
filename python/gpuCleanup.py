@@ -1,5 +1,4 @@
 from ctypes import *
-#ypu are the worst
 import numpy
 import matplotlib.pylab as plt
 import copy

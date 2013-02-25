@@ -256,7 +256,7 @@ class AssociativeMemoryTester(object):
                     if startFromParent:
                         result = self.findAllParents(target, rtype, True, word, True, stat_depth=stat_depth)[0]
                     else:
-                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth)
+                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth, *args, **kwargs)
                         target_matches = result[4]
                         second_matches = result[5]
                         sizes = result[6]
@@ -287,7 +287,7 @@ class AssociativeMemoryTester(object):
                     if startFromParent:
                         result = self.findAllParents(target, rtype, True, word, True, stat_depth=stat_depth)[0]
                     else:
-                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth)
+                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth, *args, **kwargs)
                         target_matches = result[4]
                         second_matches = result[5]
                         sizes = result[6]
@@ -325,7 +325,7 @@ class AssociativeMemoryTester(object):
                     if startFromParent:
                         result = self.findAllParents(target, rtype, True, word, True, stat_depth = stat_depth)[0]
                     else:
-                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth)
+                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth, *args, **kwargs)
                         target_matches = result[4]
                         second_matches = result[5]
                         sizes = result[6]
@@ -379,7 +379,7 @@ class AssociativeMemoryTester(object):
 
 
 
-  def findAllParents(self, word, rtype=isA_symbols, useHRR=False, target=None, findChildren=False, stat_depth = 0):
+  def findAllParents(self, word, rtype=isA_symbols, useHRR=False, target=None, findChildren=False, stat_depth = 0, *arg, **kwargs):
 
         print >> self.hierarchical_results_file, "In find all parents, useHRR=", useHRR
 
@@ -398,6 +398,10 @@ class AssociativeMemoryTester(object):
 
         layerB = []
         parents = set()
+
+        relation_stats = {} 
+        if "relation_stats" in kwargs:
+          relation_stats = kwargs["relation_stats"]	
 
         target_matches = [[] for i in range(stat_depth)]
         second_matches = [[] for i in range(stat_depth)]
@@ -450,6 +454,13 @@ class AssociativeMemoryTester(object):
                       target_matches[level].append(target_match)
                       second_matches[level].append(second_match)
                       sizes[level].append(size)
+
+                      index = len([r[1] for r in self.corpus[word_key] if r[0] in vocab_symbols])
+                      if relation_stats:
+                        relation_stats[index][0].append(target_match)
+                        relation_stats[index][1].append(second_matche)
+                        relation_stats[index][2].append(size)
+                        relation_stats[index][3] += 1
                   else:
                     [largest, size] = self.getStats(results, None, self.hierarchical_results_file)
 
@@ -660,7 +671,7 @@ class AssociativeMemoryTester(object):
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, ["score", "target dot product", "largest non-target dot product", "norm", "exactGoal"], dataFunc=dataFunc, *args, **kwargs)
 
 
-  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None):
+  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None, *args, **kwargs):
 
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
@@ -671,13 +682,13 @@ class AssociativeMemoryTester(object):
     strings = [i for l in strings for i in l]
     strings = ["score", "negInitialVecSize", "negLargestDotProduct", "negSizes"] + strings
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, strings, file_open_func, dataFunc=dataFunc)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, strings, file_open_func, dataFunc=dataFunc, *args, **kwargs)
 
-  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None):
+  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None, *args, **kwargs):
 
     self.openSentenceResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, ["score", "target dot product", "largest non-target dot product", "norm"], dataFunc=dataFunc)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, ["score", "target dot product", "largest non-target dot product", "norm"], dataFunc=dataFunc, *args, **kwargs)
 
 
 #Run a series of bootstrap runs, then combine the success rate from each

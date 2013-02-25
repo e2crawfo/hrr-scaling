@@ -133,9 +133,15 @@ if len(relation_indices) > 0:
 if len(words) > 0:
   kwargs["planned_words"] = words
 
+
+
+
 largest_degree = 10000
 relation_stats = dict(zip(range(largest_degree), [[[],[],[],0] for i in range(largest_degree)]))
 kwargs["relation_stats"] = relation_stats
+
+
+
 
 #associator = AssociativeMemory(idVectors, structuredVectors, 0.3)
 associator = NeuralAssociativeMemory(idVectors, structuredVectors, output_dir = output_dir, probes=probes)
@@ -146,7 +152,11 @@ def dataDisplay(associator):
   #associator.drawCombinedGraph()
   pass
 
-tester.runBootstrap_jump(1, 5, dataFunc = dataDisplay, **kwargs)
-#tester.runBootstrap_jump(1, num_words, dataFunc = dataDisplay, **kwargs)
+tester.runBootstrap_hierarchical(1, 5, dataFunc = dataDisplay, **kwargs)
+
+#For paper:
+#tester.runBootstrap_jump(20, 100, dataFunc = dataDisplay, **kwargs)
+#tester.runBootstrap_hierarchical(20, 20, dataFunc = dataDisplay, **kwargs)
+#tester.runBootstrap_sentence(20, 30, dataFunc = dataDisplay)
 
 
