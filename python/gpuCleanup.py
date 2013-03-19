@@ -113,9 +113,11 @@ class GPUCleanup(nef.ArrayNode):
 
       c_returnSpikes = convert_to_carray(returnSpikes, c_int, 1)
 
-      self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), c_int(self.dimensions), 
-                                     c_int(int(auto)), c_index_vectors, c_result_vectors, c_float(tau), c_encoder, c_decoder, 
-                                     c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), c_float(t_rc), c_returnSpikes) 
+      self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), 
+                                     c_int(self.dimensions), c_int(int(auto)), c_index_vectors, 
+                                     c_result_vectors, c_float(tau), c_encoder, c_decoder, 
+                                     c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), 
+                                     c_float(t_rc), c_returnSpikes) 
 
       self.mode='gpu_cleanup'
 
@@ -136,7 +138,8 @@ class GPUCleanup(nef.ArrayNode):
       self._c_output = convert_to_carray(numpy.zeros(self.dimensions), c_float, 1)
       self._c_spikes = convert_to_carray(numpy.zeros(self.numItemsReturningSpikes * self.numNeuronsPerItem), c_float, 1)
 
-      self.libNeuralCleanupGPU.step(self._c_input, self._c_output, self._c_spikes, c_float(self.elapsed_time), c_float(self.elapsed_time + self.dt))
+      self.libNeuralCleanupGPU.step(self._c_input, self._c_output, self._c_spikes, 
+                                    c_float(self.elapsed_time), c_float(self.elapsed_time + self.dt))
 
       #make sure output is NOT scaled by dt_over_tau,
       #we let that happen in the termination of results node

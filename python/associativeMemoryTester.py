@@ -52,11 +52,11 @@ class AssociativeMemoryTester(object):
   def loadVocab(self, filename):
         with open(filename, 'r') as vfile:
             self.vocab = pickle.load(vfile)
-            
+
   def saveVocab(self, filename):
         with open(filename, 'w') as vfile:
             pickle.dump(self.vocab, vfile)
-    
+
   def setupRandomVocab(self, numVocab):
         """split knowledge base into distinct vocabularies (randomly)"""
         keys = self.idVectors.keys()
@@ -77,7 +77,7 @@ class AssociativeMemoryTester(object):
       if not return_as_vector:
         result = [self.get_key_from_vector(r, self.structuredVectors) for r in result]
         result = filter(None, result)
-        
+
       return result
 
   def get_key_from_vector(self, vector, vector_dict):
@@ -94,8 +94,8 @@ class AssociativeMemoryTester(object):
         if pair[1] > max_val:
           max_val = pair[1]
           max_key = pair[0]
-      
-      if max_val > 0.4:
+
+      if max_val > 0.8:
         return max_key
       else:
         return None
@@ -115,7 +115,7 @@ class AssociativeMemoryTester(object):
         for ans in allAnswers:
           print >> sys.stderr, ans
           print >> sys.stderr, "index:" + str(self.key_indices[ans]) + ", final index is " + str(len(self.structuredVectors) - 1)
-          
+
         print >> sys.stderr, "Done printing answers"
 
         cleanResultVectors = self.unbind_and_associate(self.structuredVectors[word], self.idVectors[relation], True, urn_agreement=goal)
@@ -124,7 +124,7 @@ class AssociativeMemoryTester(object):
         print >> self.jump_results_file, "target match: ", target_match
         print >> self.jump_results_file, "second match : ", second_match
         print >> self.jump_results_file, "size: ", size
-        
+
         cleanResult = [self.get_key_from_vector(vec, self.structuredVectors) for vec in cleanResultVectors]
         if len(cleanResult) == 0:
           return (False, target_match, second_match, size, False)
@@ -610,12 +610,12 @@ class AssociativeMemoryTester(object):
   def getStats(self, cleanResultVectors, answer, fp):
 
     cleanResult = [self.get_key_from_vector(v, self.structuredVectors) for v in cleanResultVectors]
-    
+
     size = numpy.linalg.norm(cleanResultVectors[0])
     matches = [(key, hrr.HRR(data=cleanResultVectors[0]).compare(hrr.HRR(data=self.structuredVectors[key]))) for key in self.structuredVectors.keys()]
 
     largest = heapq.nlargest(2, matches, key = lambda x: x[1])
-    
+
     if not answer:
       return [largest[0][1], size]
 
@@ -667,7 +667,7 @@ class AssociativeMemoryTester(object):
       self.hierarchical_results_file.close()
 
   def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None, *args, **kwargs):
-    
+
     self.openJumpResultsFile()
 
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, ["score", "target dot product", "largest non-target dot product", "norm", "exactGoal"], dataFunc=dataFunc, *args, **kwargs)
@@ -686,6 +686,7 @@ class AssociativeMemoryTester(object):
 
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, strings, file_open_func, dataFunc=dataFunc, *args, **kwargs)
 
+
   def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None, *args, **kwargs):
 
     self.openSentenceResultsFile()
@@ -697,7 +698,8 @@ class AssociativeMemoryTester(object):
 #individual run into a total mean success rate with confidence intervals
 #dataFunc is a function that takes an associator, and is called after every trial. Allows data about
 #the associator on the run to be displayed
-  def runBootstrap(self, sample_size, num_trials_per_sample, num_bootstrap_samples, output_file, func, statNames=None, file_open_func=None, dataFunc=None, *args, **kwargs):
+  def runBootstrap(self, sample_size, num_trials_per_sample, num_bootstrap_samples, output_file,
+      func, statNames=None, file_open_func=None, dataFunc=None, *args, **kwargs):
     start_time = datetime.datetime.now()
 
     relation_counts = {}
@@ -734,23 +736,25 @@ class AssociativeMemoryTester(object):
     for i in range(sample_size):
       output_file.write("Begin run " + str(i + 1) + " out of " + str(sample_size) + ":\n")
       result = func("", num_trials_per_sample, dataFunc=dataFunc, *args, **kwargs)
-      
+
       if len(result) > 0:
         if not stats:
           stats = [[] for j in result]
-        
+
         for (r,S) in zip(result, stats):
           S.extend(r)
-      
+
       self.print_bootstrap_summary(statNames, stats, i + 1, sample_size, output_file)
       output_file.flush()
-      #self.copyFile(output_file, file_open_func)
 
     self.finish()
 
     end_time = datetime.datetime.now()
     self.print_bootstrap_runtime_summary(output_file, end_time - start_time)
     self.print_relation_stats(output_file, **kwargs)
+
+
+
 
   def print_relation_stats(self, output_file, **kwargs):
     if "relation_stats" in kwargs:
@@ -764,12 +768,14 @@ class AssociativeMemoryTester(object):
 
           output_file.write( str(r) + ", " + str(printout) + "\n")
 
+
+
   def print_bootstrap_summary(self, statNames, stats, sample_index, sample_size, output_file):
     mean = lambda x: float(sum(x)) / float(len(x))
-    
+
     output_file.write("************ Bootstrap summary *************\n")
     output_file.write("After " + str(sample_index) + "samples out of " + str(sample_size) + "\n")
-    
+
     if stats:
       i = 0
       for s in stats:
@@ -782,6 +788,8 @@ class AssociativeMemoryTester(object):
         i += 1
 
 
+
+
   def print_bootstrap_runtime_summary(self, output_file, time):
     output_file.write("************ Runtime summary *************\n")
     output_file.write("Total elapsed time for bootstrap runs: " + str(time) + "\n")
@@ -789,6 +797,8 @@ class AssociativeMemoryTester(object):
 
     if self.num_jumps != 0:
       output_file.write("Average time per jump: " + str(float(time.seconds) / float(self.num_jumps)) + "\n")
+
+
 
   #this will show that the keys don't match up. however, that is fixed when the vectors are given to the GPU.
   #we fix it by using the order of they keys in the items for both the indices and the items
@@ -802,7 +812,7 @@ class AssociativeMemoryTester(object):
       for i, pair in enumerate(zip(self.structuredVectors.keys(), self.idVectors.keys())):
         if pair[0] != pair[1]:
           print "bad pair, index: ", i, " pair: ", pair
-      
+
 
   def finish(self):
     pass
