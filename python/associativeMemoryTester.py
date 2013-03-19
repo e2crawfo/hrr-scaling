@@ -104,7 +104,7 @@ class AssociativeMemoryTester(object):
         allAnswers = [r[1] for r in self.corpus[word] if r[0]==relation]
         #result = cconv(self.knowledgeBase[word], pInv(self.knowledgeBase[prompt[0]]))
 
-        print >> self.jump_results_file, "************New test*************"
+        print >> self.jump_results_file, "************New Jump test*************"
         print >> self.jump_results_file, "word relations: ", [r for r in self.corpus[word]]
         print >> self.jump_results_file, "current relation: ", relation
         print >> self.jump_results_file, "target index"
@@ -237,6 +237,7 @@ class AssociativeMemoryTester(object):
         negLargestDotProduct = []
         negSizes = []
 
+
         # choose pairs of words randomly, test heritage
         while n_count < n:
             samples_A = random.sample(self.corpus, n-n_count)
@@ -245,12 +246,12 @@ class AssociativeMemoryTester(object):
                 word = samples_A[i]
                 target = samples_B[i]
 
+
+                print >> self.hierarchical_results_file, "************New hierarchical test*************"
+
                 parentList = self.findAllParents(word, rtype, stat_depth=stat_depth)[0]
                 if target in parentList and m_count < m:
-                    print >> self.hierarchical_results_file, "************New hierarchical test*************"
-                    print >> self.hierarchical_results_file, "Positive test"
-                    #print >> self.hierarchical_results_file, "Start word: ", word, ", index: ", self.key_indices[word]
-                    #print >> self.hierarchical_results_file, "Target word: ", target, ", index: ", self.key_indices[target]
+                    print >> self.hierarchical_results_file, "   *****Positive test*****"
 
                     m_count = m_count + 1
                     if startFromParent:
@@ -278,10 +279,7 @@ class AssociativeMemoryTester(object):
 
                     if result > -1: p_score = p_score + 1
                 elif target not in parentList:
-                    print >> self.hierarchical_results_file, "************New hierarchical test*************"
-                    print >> self.hierarchical_results_file, "Negative test"
-                    #print >> self.hierarchical_results_file, "Start word: ", word, ", index: ", self.key_indices[word]
-                    #print >> self.hierarchical_results_file, "Target word: ", target, ", index: ", self.key_indices[target]
+                    print >> self.hierarchical_results_file, "   *****Negative test*****"
 
                     n_count = n_count + 1
                     if startFromParent:
@@ -308,15 +306,19 @@ class AssociativeMemoryTester(object):
                           totalSizes[i].extend( l )
 
                     if result > -1: n_score = n_score + 1
+                else:
+                    print >> self.hierarchical_results_file, "************Hierarchical test aborted*************"
 
         # choose single words randomly and select parents to fill test quota
         while m_count < m:
             words = random.sample(self.corpus, m-m_count)
             for word in words:
+
+                print >> self.hierarchical_results_file, "************New hierarchical test*************"
+                
                 parentList = self.findAllParents(word, rtype, stat_depth=stat_depth)[0]
                 if len(parentList) > 0:
-                    print >> self.hierarchical_results_file, "************New hierarchical test*************"
-                    print >> self.hierarchical_results_file, "Positive test"
+                    print >> self.hierarchical_results_file, "   *****Positive test*****"
 
                     m_count = m_count + 1
                     target = random.sample(parentList, 1)[0]
@@ -346,6 +348,9 @@ class AssociativeMemoryTester(object):
                           totalSizes[i].extend( l )
 
                     if result > -1: p_score = p_score + 1
+
+                else:
+                    print >> self.hierarchical_results_file, "************Hierarchical test aborted*************"
           
         # print the score
         print >> self.hierarchical_results_file, "************ Hierarchical test summary *************"
@@ -374,9 +379,6 @@ class AssociativeMemoryTester(object):
           result.append(totalSizes[i])
 
         return result
-
-
-
 
 
   def findAllParents(self, word, rtype=isA_symbols, useHRR=False, target=None, findChildren=False, stat_depth = 0, *arg, **kwargs):
