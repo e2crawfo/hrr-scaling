@@ -4,7 +4,7 @@ Purpose
 
 **cleanup-scaling** demonstrates that neural cleanup memories designed using the 
 Neural Engineering Framework are capable of encoding human-scale structured 
-knowledge representations. 
+knowledge representations with relatively modest resource requirements.
 
 Method
 ------
