@@ -20,7 +20,7 @@ look for the corresponding ID vector on its input, and output its
 corresponding semantic pointer when its activation is high enough. These 
 cleanup nodes get input from the unbinding operation. 
 
-The completed neural network permits us to NEURALLY traverse the WordNet graph,
+The completed neural network permits us to *neurally* traverse the WordNet graph,
 while using an amount of neural resources that is linear in the number of 
 concepts encoded. A battery of tests is run on the resulting graph to check that
 the WordNet graph can indeed be reliablty traversed.
