@@ -32,9 +32,3 @@ def bootstrap_CI(alpha, stat_func, data, num) :
 
   return (lower_CI_bound, upper_CI_bound)
 
-
-#test
-
-data = [random.randint(0, 10) for i in range(20)]
-print bootstrap_CI(0.05, lambda x: float(sum(x)) / float(len(x)), data, 999)
-print sum(data) / len(data)
