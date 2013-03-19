@@ -1,5 +1,17 @@
 # compiled source #
 #########
 *.pyc
+*.pyo
 *.o
 *.so
+*.so*
+*.swp
+*.swo
+*.exe
+
+# data stores #
+########
+data
+goodData
+wordnetData
+nef_data

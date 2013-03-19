@@ -111,10 +111,11 @@ class GPUCleanup(nef.ArrayNode):
       self._spikeIndices = numpy.where(returnSpikes)[0]
       self._spikes = dict((i, numpy.zeros(self.numNeuronsPerItem)) for i in self._spikeIndices)
 
-      #c_returnSpikes = convert_to_carray(returnSpikes, c_int, 1)
+      c_returnSpikes = convert_to_carray(returnSpikes, c_int, 1)
 
-      self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), c_int(self.dimensions), c_int(int(auto)), c_index_vectors, c_result_vectors, c_float(tau), c_encoder, c_decoder, c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), c_float(t_rc))
-      #self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), c_int(self.dimensions), c_int(int(auto)), c_index_vectors, c_result_vectors, c_float(tau), c_encoder, c_decoder, c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), c_float(t_rc), c_returnSpikes) 
+      self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), c_int(self.dimensions), 
+                                     c_int(int(auto)), c_index_vectors, c_result_vectors, c_float(tau), c_encoder, c_decoder, 
+                                     c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), c_float(t_rc), c_returnSpikes) 
 
       self.mode='gpu_cleanup'
 
