@@ -22,8 +22,8 @@ cleanup nodes get input from the unbinding operation.
 
 The completed neural network permits us to *neurally* traverse the WordNet graph,
 while using an amount of neural resources that is linear in the number of 
-concepts encoded. A battery of tests is run on the resulting graph to check that
-the WordNet graph can indeed be reliablty traversed.
+concepts encoded. A battery of tests is run on the network to check that
+the WordNet graph can be reliablty traversed.
 
 How to use
 ---------
