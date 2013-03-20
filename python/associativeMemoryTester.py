@@ -153,13 +153,13 @@ class AssociativeMemoryTester(object):
         sizes = []
         exactGoals = 0
 
-        planned_words = [] 
-        
+        planned_words = []
+
         if "planned_words" in kwargs:
           planned_words = kwargs["planned_words"]
-        
+
         relation_indices = []
-        if "relation_indices" in kwargs:
+        if "planned_relations" in kwargs:
           relation_indices = kwargs["relation_indices"]
 
         relation_stats = {}
@@ -171,7 +171,7 @@ class AssociativeMemoryTester(object):
               words = planned_words[testNumber: min(n, len(planned_words))]
             else:
               words = random.sample(self.corpus, n-testNumber)
-             
+
             for word in words:
                 testableLinks = [r for r in self.corpus[word] if r[0] in vocab_symbols]
 
@@ -216,7 +216,7 @@ class AssociativeMemoryTester(object):
         #print testName, 'results:'
         #print score, "links successful out of", testNumber, "tests."
         return [[float(score) / float(testNumber)], target_matches, second_matches, sizes, [float(exactGoals) / float(testNumber)]]
-    
+
   def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=isA_symbols, startFromParent=False, dataFunc=None, *args, **kwargs):
         if m is None:
           m = n
@@ -228,7 +228,7 @@ class AssociativeMemoryTester(object):
         m_count = 0
         p_score = 0
         n_score = 0
-        
+
         totalTargetMatches = [[] for i in range(stat_depth)]
         totalSecondMatches = [[] for i in range(stat_depth)]
         totalSizes = [[] for i in range(stat_depth)]
@@ -391,7 +391,7 @@ class AssociativeMemoryTester(object):
           print >> self.hierarchical_results_file, "Target:", target, ", index: ", self.key_indices[target]
 
     #this outputs a list of keys, regardless of whether its in vector_indexing mode or not
-    
+
         level = 0
         if self.vector_indexing and useHRR:
           layerA = [self.structuredVectors[word]]
@@ -401,9 +401,9 @@ class AssociativeMemoryTester(object):
         layerB = []
         parents = set()
 
-        relation_stats = {} 
+        relation_stats = {}
         if "relation_stats" in kwargs:
-          relation_stats = kwargs["relation_stats"]	
+          relation_stats = kwargs["relation_stats"]
 
         target_matches = [[] for i in range(stat_depth)]
         second_matches = [[] for i in range(stat_depth)]
@@ -574,6 +574,8 @@ class AssociativeMemoryTester(object):
 
                 cleanResultVectors = self.unbind_and_associate(sentenceVector, self.sentenceVocab[symbol], True)
 
+                cleanResult = [self.get_key_from_vector(vec, self.structuredVectors) for vec in cleanResultVectors]
+
                 target_match, second_match, size = self.getStats(cleanResultVectors, answer, self.sentence_results_file)
 
                 target_matches.append(target_match)
@@ -581,9 +583,9 @@ class AssociativeMemoryTester(object):
                 sizes.append(size)
 
                 print >> sys.stderr, "Guess keys: ", cleanResult
-                print >> sys.stderr, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
+                #print >> sys.stderr, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
                 print >> self.sentence_results_file, "Guess keys: ", cleanResult
-                print >> self.sentence_results_file, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
+                #print >> self.sentence_results_file, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
 
                 #query = pInv(self.sentenceVocab[symbol])
                 #result = self.cleanup(cconv(sentenceVector, query), self.cleanupMemory.keys())
@@ -678,7 +680,7 @@ class AssociativeMemoryTester(object):
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
 
-    htest = lambda x, y: self.hierarchicalTest(x,y, stats_depth)
+    htest = lambda x, y, dataFunc=None, *args, **kwargs: self.hierarchicalTest(x,y, stats_depth, dataFunc=dataFunc, *args, **kwargs)
     s = lambda x: [x + "target dot product", x + "largest non-target dot product", x + "norm"]
     strings = [ s( str(i + 1) + " ") for i in range(stats_depth)]
     strings = [i for l in strings for i in l]
