@@ -1,4 +1,3 @@
-from SymbolDefinitions import *
 from VectorOperations import *
 
 from CorporaManagement import CorpusHandler
@@ -26,6 +25,7 @@ def parse_args(print_args=False):
   parser.add_argument('-c', default='config')
   parser.add_argument('-d', default=512, type=int)
   parser.add_argument('-r', nargs='?', const=False, default=True)
+  parser.add_argument('-b', nargs='?', const=False, default=True)
 
   argvals = parser.parse_args()
 
@@ -46,16 +46,16 @@ def read_config(config_name="config"):
 
 
 #Setup corpus
-def setup_corpus(input_dir, seed, save, use_corpus, dim, proportion):
+def setup_corpus(input_dir, relation_symbols, seed, save, use_corpus, dim, proportion):
   if seed is not None:
     random.seed(seed)
     numpy.random.seed(seed)
 
   if use_corpus:
     if dim != -1:
-      corpus = CorpusHandler(True, D=dim, input_dir = input_dir)
+      corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols)
     else:
-      corpus = CorpusHandler(True, input_dir = input_dir)
+      corpus = CorpusHandler(True, input_dir = input_dir, relation_symbols = relation_symbols)
 
     corpus.parseWordnet()
 
@@ -91,21 +91,21 @@ def setup_corpus(input_dir, seed, save, use_corpus, dim, proportion):
 # then add a word/relation combo to the jump test that will decode to that key
 # then add a probe on that key so we can see what happens!
 
-def gen_probes(num_words, vocab_symbols):
+def gen_probes(num_words, relation_symbols):
   """Generate probes for an associative memory test.
 
   Specify links to be tested ahead of time, and put probes on the
   populations that will be activated.
 
   param int num_words: the number of populations to monitor
-  param list vocab_symbols : the usable relation symbols
+  param list relation_symbols : the usable relation symbols
   """
 
   probes = []
   words = random.sample(corpus.corpusDict, num_words)
   relations = []
   for word in words:
-    testableLinks = [r for r in corpus.corpusDict[word] if r[0] in vocab_symbols]
+    testableLinks = [r for r in corpus.corpusDict[word] if r[0] in relation_symbols]
 
     index = random.sample(range(len(testableLinks)), 1)[0]
     link = testableLinks[index]

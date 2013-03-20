@@ -1,20 +1,21 @@
-import sys  
-import cPickle as pickle
-from VectorOperations import *
-from SymbolDefinitions import *
+import sys
 import random
 import Queue
+import cPickle as pickle
+
+from VectorOperations import *
 
 class CorpusHandler:
     #D = 512 # number of dimensions per vocab vector
     corpusDict = None
     cleanupMemory = None
     knowledgeBase = None
-    
-    def __init__(self, try_load, D=512, input_dir="."):
+
+    def __init__(self, try_load, D=512, input_dir=".", relation_symbols=[]):
       self.try_load = try_load
       self.D = D
       self.input_dir = input_dir
+      self.relation_symbols = relation_symbols
 
     def parseWordnet(self):
         if self.try_load and self.loadCorpusDict(self.input_dir+'/cd1.data'):
@@ -139,7 +140,7 @@ class CorpusHandler:
                 # find all relations of current item
                 if activeItem not in localProcessed:
                     for relation in self.corpusDict[activeItem]:
-                        if relation[0] in vocab_symbols:
+                        if relation[0] in self.relation_symbols:
                             localStack.append(relation)
                             localProcessed.add(activeItem)
 
@@ -189,7 +190,7 @@ class CorpusHandler:
             self.cleanupMemory[key] = generatorFunc(self.D)
 
         # Add relationship and POS keywords to the cleanup memory
-        for symbol in vocab_symbols:
+        for symbol in self.relation_symbols:
             self.cleanupMemory[symbol] = generatorFunc(self.D)
 
     def formKnowledgeBase(self, identityCleanup=False, useUnitary=False):
@@ -218,14 +219,14 @@ class CorpusHandler:
         else:
             keyOrder = []
             stuck = False
-            resolved = set(vocab_symbols)
+            resolved = set(self.relation_symbols)
             
             dependencies = {}
             for key in self.corpusDict.keys():
                 dependencies[key] = set([tag[1] for tag in self.corpusDict[key]
-                                         if tag[0] in vocab_symbols])
+                                         if tag[0] in self.relation_symbols])
                     
-            while len(keyOrder) < len(self.corpusDict)+len(vocab_symbols) and not stuck:
+            while len(keyOrder) < len(self.corpusDict)+len(self.relation_symbols) and not stuck:
                 resolvable = set()
                 for key in dependencies:
                   if dependencies[key].issubset(resolved):
@@ -250,13 +251,13 @@ class CorpusHandler:
 
 
         # Define the knowledge base in terms of the cleanup memory
-        for symbol in vocab_symbols:
+        for symbol in self.relation_symbols:
             self.knowledgeBase[symbol] = self.cleanupMemory[symbol]
         for key in keyOrder:
             self.knowledgeBase[key] = genVec(self.D)
 
             for relation in self.corpusDict[key]:
-                if relation[0] not in vocab_symbols: continue
+                if relation[0] not in self.relation_symbols: continue
 
                 if identityCleanup:
                     pair = cconv(self.knowledgeBase[relation[0]], self.knowledgeBase[relation[1]])

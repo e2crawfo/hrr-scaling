@@ -1,5 +1,6 @@
 import startup_utils
 from VectorOperations import *
+import symbol_definitions 
 from associativeMemoryTester import AssociativeMemoryTester
 from neuralAssociativeMemory import NeuralAssociativeMemory
 
@@ -13,11 +14,17 @@ dim = argvals.d
 proportion = argvals.p
 config_name = argvals.c
 do_relation_stats = argvals.r
+use_bi_relations = argvals.b
+
+if use_bi_relations:
+  relation_symbols = symbol_definitions.bi_relation_symbols()
+else:
+  relation_symbols = symbol_definitions.uni_relation_symbols()
 
 input_dir, output_dir = startup_utils.read_config(config_name)
 
 (corpusDict, idVectors, structuredVectors) = \
-    startup_utils.setup_corpus(input_dir, seed, save, use_corpus, dim, proportion)
+    startup_utils.setup_corpus(input_dir, relation_symbols, seed, save, use_corpus, dim, proportion)
 
 num_words = 0
 probes = []
@@ -27,7 +34,7 @@ relations = []
 kwargs = {}
 
 if num_words > 0:
-  (probes, words, relations) = startup_utils.gen_probes(num_words, vocab_symbols)
+  (probes, words, relations) = startup_utils.gen_probes(num_words, relation_symbols)
 
   if len(relations) == len(words) and len(words) > 0:
     kwargs["planned_relations"] = relation_indices
@@ -40,8 +47,11 @@ if do_relation_stats:
 associator = NeuralAssociativeMemory(idVectors, structuredVectors, 
                                      output_dir = output_dir, probes=probes)
 
-tester = AssociativeMemoryTester(corpusDict, idVectors, 
-                    structuredVectors, associator, True, output_dir = output_dir)
+isA_symbols = symbol_definitions.isA_symbols()
+sentence_symbols = symbol_definitions.sentence_role_symbols()
+
+tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors, 
+                    relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols)
 
 data_display = startup_utils.draw_associator_graph
 

@@ -1,5 +1,5 @@
-from SymbolDefinitions import *
 from VectorOperations import *
+import symbol_definitions
 
 import bootstrap
 
@@ -16,7 +16,8 @@ import shutil
 from ccm.lib import hrr
 
 class AssociativeMemoryTester(object):
-  def __init__(self, corpus, idVectors, structuredVectors, associator, vector_indexing, cleanLevel = 0.3, seed=None, output_dir="."):
+  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=None, output_dir=".", isA_symbols = [], sentence_symbols = []):
+
         self.num_jumps = 0
 
         self.output_dir = output_dir
@@ -33,12 +34,15 @@ class AssociativeMemoryTester(object):
           numpy.random.seed(seed)
 
         self.associator = associator
-        self.vector_indexing =vector_indexing 
+        self.vector_indexing =vector_indexing
         self.corpus = corpus
         self.idVectors = idVectors
         self.structuredVectors = structuredVectors
         self.vocab = [idVectors]
         self.sentenceVocab = None
+        self.relation_symbols = relation_symbols
+        self.isA_symbols = isA_symbols
+        self.sentence_symbols = sentence_symbols
 
         self.key_indices = {}
         i = 0
@@ -173,7 +177,7 @@ class AssociativeMemoryTester(object):
               words = random.sample(self.corpus, n-testNumber)
 
             for word in words:
-                testableLinks = [r for r in self.corpus[word] if r[0] in vocab_symbols]
+                testableLinks = [r for r in self.corpus[word] if r[0] in self.relation_symbols]
 
                 if len(testableLinks) > 0:
                     if testNumber < len(relation_indices):
@@ -217,7 +221,7 @@ class AssociativeMemoryTester(object):
         #print score, "links successful out of", testNumber, "tests."
         return [[float(score) / float(testNumber)], target_matches, second_matches, sizes, [float(exactGoals) / float(testNumber)]]
 
-  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=isA_symbols, startFromParent=False, dataFunc=None, *args, **kwargs):
+  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False, dataFunc=None, *args, **kwargs):
         if m is None:
           m = n
         """Check whether word A is a type of word B. Test with n cases in which
@@ -381,7 +385,7 @@ class AssociativeMemoryTester(object):
         return result
 
 
-  def findAllParents(self, word, rtype=isA_symbols, useHRR=False, target=None, findChildren=False, stat_depth = 0, *arg, **kwargs):
+  def findAllParents(self, word, rtype=[], useHRR=False, target=None, findChildren=False, stat_depth = 0, *arg, **kwargs):
 
         print >> self.hierarchical_results_file, "In find all parents, useHRR=", useHRR
 
@@ -457,7 +461,7 @@ class AssociativeMemoryTester(object):
                       second_matches[level].append(second_match)
                       sizes[level].append(size)
 
-                      index = len([r[1] for r in self.corpus[word_key] if r[0] in vocab_symbols])
+                      index = len([r[1] for r in self.corpus[word_key] if r[0] in self.relation_symbols])
                       if relation_stats:
                         relation_stats[index][0].append(target_match)
                         relation_stats[index][1].append(second_matche)
@@ -539,7 +543,7 @@ class AssociativeMemoryTester(object):
                 elif pos == 'v' : self.verbs.append(offset)
                 else: raise Exception('Unexpected POS token: '+pos)
             self.sentenceVocab = {}
-            for symbol in sentence_symbols:
+            for symbol in self.sentence_symbols:
                 self.sentenceVocab[symbol] = genVec(self.D)
 
         posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
@@ -555,11 +559,11 @@ class AssociativeMemoryTester(object):
             sentenceVector = numpy.zeros(self.D)
 
             print >> self.sentence_results_file, "Roles in sentence:"
-            for symbol in sentence_symbols:
+            for symbol in self.sentence_symbols:
 
-                if random.random() < sentence_symbols[symbol][0]: # choose lexical items to include
+                if random.random() < self.sentence_symbols[symbol][0]: # choose lexical items to include
                     print >> self.sentence_results_file, symbol
-                    pos = sentence_symbols[symbol][1] # determine the POS for this lexical item
+                    pos = self.sentence_symbols[symbol][1] # determine the POS for this lexical item
                     word = (pos, random.sample(posmap[pos], 1)[0]) # choose words
                     sentence[symbol] = word    # build the sentence in a python dictionary
                     sentenceVector = sentenceVector + cconv(self.sentenceVocab[symbol],
@@ -680,7 +684,7 @@ class AssociativeMemoryTester(object):
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
 
-    htest = lambda x, y, dataFunc=None, *args, **kwargs: self.hierarchicalTest(x,y, stats_depth, dataFunc=dataFunc, *args, **kwargs)
+    htest = lambda x, y, dataFunc=None, *args, **kwargs: self.hierarchicalTest(x,y, stats_depth, rtype=self.isA_symbols, dataFunc=dataFunc, *args, **kwargs)
     s = lambda x: [x + "target dot product", x + "largest non-target dot product", x + "norm"]
     strings = [ s( str(i + 1) + " ") for i in range(stats_depth)]
     strings = [i for l in strings for i in l]
@@ -715,7 +719,7 @@ class AssociativeMemoryTester(object):
         relation_hist[len(self.corpus[key])] += 1
 
       for relation in self.corpus[key]:
-        if relation[0] not in vocab_symbols: continue
+        if relation[0] not in self.relation_symbols: continue
 
         relation_count += 1
         if not relation[0] in relation_counts:
