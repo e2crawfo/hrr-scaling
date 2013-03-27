@@ -1,4 +1,4 @@
-from VectorOperations import *
+from vector_operations import *
 
 from CorporaManagement import CorpusHandler
 from associativeMemoryTester import AssociativeMemoryTester

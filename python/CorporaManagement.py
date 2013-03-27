@@ -3,7 +3,7 @@ import random
 import Queue
 import cPickle as pickle
 
-from VectorOperations import *
+from vector_operations import *
 
 class CorpusHandler:
     #D = 512 # number of dimensions per vocab vector

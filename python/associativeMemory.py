@@ -1,6 +1,6 @@
 
 from ccm.lib import hrr
-from VectorOperations import *
+from vector_operations import *
 
 class AssociativeMemory(object):
 

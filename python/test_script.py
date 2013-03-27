@@ -1,5 +1,5 @@
 import startup_utils
-from VectorOperations import *
+from vector_operations import *
 import symbol_definitions 
 from associativeMemoryTester import AssociativeMemoryTester
 from associativeMemory import AssociativeMemory

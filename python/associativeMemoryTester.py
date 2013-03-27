@@ -1,4 +1,4 @@
-from VectorOperations import *
+from vector_operations import *
 import symbol_definitions
 
 import bootstrap
