@@ -1,6 +1,6 @@
 #NeuralAssociativeMemory!
 import associativeMemory
-from gpuCleanup import GPUCleanup
+from gpu_cleanup import GPUCleanup
 
 import ccm
 import string
