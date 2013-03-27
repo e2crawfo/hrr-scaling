@@ -5,6 +5,9 @@ import random
 def normalize(x):
     return x/numpy.linalg.norm(x)
 
+def zeroVec(dim):
+    return numpy.zeros(dim)
+
 def genVec(dim, selfReflect = False):
     if selfReflect:
         v = numpy.random.normal(0,1,int(dim/2)+1)

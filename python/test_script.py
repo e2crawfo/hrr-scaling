@@ -2,6 +2,7 @@ import startup_utils
 from VectorOperations import *
 import symbol_definitions 
 from associativeMemoryTester import AssociativeMemoryTester
+from associativeMemory import AssociativeMemory
 from neuralAssociativeMemory import NeuralAssociativeMemory
 
 argvals = startup_utils.parse_args(True)
@@ -9,12 +10,13 @@ argvals = startup_utils.parse_args(True)
 steps = argvals.steps
 seed = argvals.seed
 save = argvals.save
-use_corpus = argvals.u
 dim = argvals.d
 proportion = argvals.p
 config_name = argvals.c
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
+
+use_corpus = True
 
 if use_bi_relations:
   relation_symbols = symbol_definitions.bi_relation_symbols()
@@ -44,21 +46,22 @@ if do_relation_stats:
   kwargs["relation_stats"] = startup_utils.setup_relation_stats()
 
 
-associator = NeuralAssociativeMemory(idVectors, structuredVectors, 
-                                     output_dir = output_dir, probes=probes)
+#associator = NeuralAssociativeMemory(idVectors, structuredVectors,output_dir = output_dir, probes=probes)
+associator = AssociativeMemory(idVectors, structuredVectors, .25)
+
 
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
-tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors, 
+tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors,
                     relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols)
 
 data_display = startup_utils.draw_associator_graph
 
 #short tests
-#tester.runBootstrap_jump(1, 1, dataFunc = data_display, **kwargs)
-#tester.runBootstrap_hierarchical(1, 1, dataFunc = data_display, **kwargs)
-tester.runBootstrap_sentence(1, 1, dataFunc = data_display, **kwargs)
+tester.runBootstrap_jump(1, 1, dataFunc = data_display, **kwargs)
+#tester.runBootstrap_hierarchical(1, 5, dataFunc = data_display, **kwargs)
+#tester.runBootstrap_sentence(2, 5, dataFunc = data_display, **kwargs)
 
 #For paper:
 #tester.runBootstrap_jump(20, 100, dataFunc = data_display, **kwargs)

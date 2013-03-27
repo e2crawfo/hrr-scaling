@@ -1,4 +1,5 @@
 
+from ccm.lib import hrr
 from VectorOperations import *
 
 class AssociativeMemory(object):
@@ -9,27 +10,39 @@ class AssociativeMemory(object):
     self.indices = indices
     self.items = items
     self.threshold = threshold
+    self.dim= len(items.values()[1])
+    self.hrr_vecs = dict([(key, hrr.HRR(data=self.indices[key])) for key in self.indices.keys()])
 
-  def unbind_and_associate(self, item, query):
+  def unbind_and_associate(self, item, query, *arg, **kwargs):
       messy = cconv(item, pInv(query))
       return self.associate(messy)
 
   def associate(self, messyVector):
+
+      print("********In Associate*********")
       keys = self.indices.keys()
 
-      result = []
-      for key in keys:
-          vector = self.indices[key]
-          d = numpy.dot(messyVector, vector)
-          if d > self.threshold:
-              result.append((d, key))
+      messy_hrr = hrr.HRR(data=messyVector)
 
-      result.sort(reverse=True)
+      similarity = lambda key: messy_hrr.compare(self.hrr_vecs[key])
+      similarities = [(similarity(key), key) for key in keys]
+      result = filter(lambda x: x[0] > self.threshold, similarities)
 
-      for i in range(len(result)):
-          result[i] = self.items[result[i][1]]
+      if len(result) == 0:
+          print("max:")
+          print(max(similarities, key=lambda x:x[0]))
+          result = [zeroVec(self.dim)]
+          print("Nothing reached threshold")
+          print(self.threshold)
+      else:
+          print(str(len(result)) + " reached threshold")
+          result.sort(reverse=True, key=lambda x:x[0])
+          result = [self.items[r[1]] for r in result]
 
       return result
+
+  def drawCombinedGraph(self, indices=None):
+    pass
 
 
 

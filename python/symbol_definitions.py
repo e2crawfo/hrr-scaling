@@ -1,7 +1,7 @@
 _isA_symbols = ['@', '@i']
 holonym_symbols = ['#p', '#s', '#m']
 inv_isA_symbols = ['~', '~i']
-_uni_symbols = _isA_symbols + holonym_symbols + inv_isA_symbols
+_uni_symbols = _isA_symbols + holonym_symbols 
 
 reflexive = {
     '@' : '~',
@@ -35,7 +35,6 @@ relationSymbols = [_isA_symbols,                # HYPERNYMY
                    meronymy]
 
 _bi_symbols = [r for i in relationSymbols for r in i]
-#vocab_symbols = [r for i in relationSymbols for r in i]
 
 _sentence_role_symbols = {    # (frequency of occurrence, part of speech)
     'ss_subject': (1.0, 'n'),
@@ -53,7 +52,6 @@ def isA_symbols():
 def uni_relation_symbols():
   """Return unidirectional relation symbols"""
   return _uni_symbols
-
 
 def bi_relation_symbols():
   """Return bidirectional relation symbols"""

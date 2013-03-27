@@ -17,15 +17,14 @@ import argparse
 #Parse args
 def parse_args(print_args=False):
   parser = argparse.ArgumentParser(description='Test an associative memory.')
-  parser.add_argument('--steps', default=100, type=int)
-  parser.add_argument('--seed', default=1, type=int)
-  parser.add_argument('--save', default=False, type=bool)
-  parser.add_argument('-p', default=1.0, type=float)
-  parser.add_argument('-u', nargs='?', const=False, default=True)
-  parser.add_argument('-c', default='config')
-  parser.add_argument('-d', default=512, type=int)
-  parser.add_argument('-r', nargs='?', const=False, default=True)
-  parser.add_argument('-b', nargs='?', const=False, default=True)
+  parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
+  parser.add_argument('--seed', default=1, type=int, help='Seed for the random number generator.')
+  parser.add_argument('--save', default=False, type=bool, help='Whether to save the results of parsing the Wordnet files')
+  parser.add_argument('-p', default=1.0, type=float, help='Specify the proportion of Wordnet synsets to use.')
+  parser.add_argument('-c', default='config', help='Specifiy the name of the config file')
+  parser.add_argument('-d', default=512, type=int, help='Specify the number of dimensions to use')
+  parser.add_argument('-r', nargs='?', const=True, default=False, help='Supply this argument to collect the relation stats')
+  parser.add_argument('-b', nargs='?', const=True, default=False, help='Supply this argument to use bidirectional relations')
 
   argvals = parser.parse_args()
 

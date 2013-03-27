@@ -43,6 +43,7 @@ class AssociativeMemoryTester(object):
         self.relation_symbols = relation_symbols
         self.isA_symbols = isA_symbols
         self.sentence_symbols = sentence_symbols
+        self.data = None
 
         self.key_indices = {}
         i = 0
@@ -84,8 +85,11 @@ class AssociativeMemoryTester(object):
 
       return result
 
+  def sufficient_norm(self, vector):
+      return numpy.linalg.norm(vector) >= 0.1
+
   def get_key_from_vector(self, vector, vector_dict):
-      if numpy.linalg.norm(vector) < 0.1:
+      if not self.sufficient_norm(vector):
         return None
 
       hrr_vec = hrr.HRR(data=vector)
@@ -104,57 +108,88 @@ class AssociativeMemoryTester(object):
       else:
         return None
 
-  def testLink(self, word, relation, goal):
-        allAnswers = [r[1] for r in self.corpus[word] if r[0]==relation]
-        #result = cconv(self.knowledgeBase[word], pInv(self.knowledgeBase[prompt[0]]))
 
-        print >> self.jump_results_file, "************New Jump test*************"
-        print >> self.jump_results_file, "word relations: ", [r for r in self.corpus[word]]
-        print >> self.jump_results_file, "current relation: ", relation
-        print >> self.jump_results_file, "target index"
-        print >> self.jump_results_file, self.key_indices[goal]
+  def testLink(self, word, relation, goal=None, output_file = None, start_from_vec=False, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0):
 
-        print >> sys.stderr, "Printing answers:"
+        self.print_header(output_file, "Testing link", char='-')
 
-        for ans in allAnswers:
-          print >> sys.stderr, ans
-          print >> sys.stderr, "index:" + str(self.key_indices[ans]) + ", final index is " + str(len(self.structuredVectors) - 1)
+        if start_from_vec:
+          word_key = self.get_key_from_vector(word, self.structuredVectors)
+          print >> output_file, "start :", word_key
+        else:
+          print >> output_file, "start: ", word
+          word_key = word
+          word = self.structuredVectors[word]
 
-        print >> sys.stderr, "Done printing answers"
+        self.print_header(sys.stdout, "Start")
+        print(word_key)
 
-        cleanResultVectors = self.unbind_and_associate(self.structuredVectors[word], self.idVectors[relation], True, urn_agreement=goal)
-        target_match, second_match, size = self.getStats(cleanResultVectors, goal, self.jump_results_file)
+        if goal:
+          self.print_header(sys.stdout, "Target")
+          print(goal)
 
-        print >> self.jump_results_file, "target match: ", target_match
-        print >> self.jump_results_file, "second match : ", second_match
-        print >> self.jump_results_file, "size: ", size
+        if relation_is_vec:
+          print >> output_file, "relation is a vector"
+        else:
+          print >> output_file, "relation: ", relation
+          relation_key = relation
+          relation = self.idVectors[relation]
 
-        cleanResult = [self.get_key_from_vector(vec, self.structuredVectors) for vec in cleanResultVectors]
-        if len(cleanResult) == 0:
-          return (False, target_match, second_match, size, False)
+        print >> output_file, "goal: ", goal
+        print >> output_file, "depth: ", depth
 
-        #validAnswers is whether the results we returned were all valid answers
-        validAnswers = all([r in allAnswers for r in cleanResult])
+        #cleanResultVectors = self.unbind_and_associate(word, relation, True, urn_agreement=goal)
+        cleanResultVectors = self.unbind_and_associate(word, relation, True)
 
-        #exact goal is whether the goal answer was in the results we returned  
-        exactGoal = target_match > second_match
+        if goal:
+          cleanResult, target_match, second_match, size = self.getStats(cleanResultVectors, goal, output_file)
 
-        print >> sys.stderr, "Valid answers? ",validAnswers
-        print >> sys.stderr, "Exact goal? ",exactGoal
-        print >> self.jump_results_file, "Valid answers? ",validAnswers
-        print >> self.jump_results_file, "Exact goal? ",exactGoal
+          print >> output_file, "target match: ", target_match
+          print >> output_file, "second match : ", second_match
+          print >> output_file, "size: ", size
+          print >> output_file, "num_relations: ", num_relations
 
-        return (validAnswers, target_match, second_match, size, exactGoal)
-    
+          self.add_data("depth_"+str(depth)+"_target_match", target_match)
+          self.add_data("depth_"+str(depth)+"_second_match", second_match)
+          self.add_data("depth_"+str(depth)+"_size", size)
+
+          if num_relations > 0:
+            self.add_data("rel_"+str(num_relations)+"_target_match", target_match)
+            self.add_data("rel_"+str(num_relations)+"_second_match", second_match)
+            self.add_data("rel_"+str(num_relations)+"_size", size)
+
+          if return_vec:
+            return cleanResultVectors
+          else:
+            if answers:
+              validAnswers = all([r in answers for r in cleanResult])
+              exactGoal = target_match > second_match
+
+              return (cleanResult, validAnswers, exactGoal)
+            else:
+              return cleanResult
+
+        else:
+          largest, size = self.getStats(cleanResultVectors, None, self.hierarchical_results_file)
+          norm = numpy.linalg.norm(word)
+
+          print >> output_file, "negInitialVecSize: ", norm
+          print >> output_file, "negLargestDotProduct: ", largest
+          print >> output_file, "negSize: ", size
+
+          self.add_data("negInitialVecSize", norm)
+          self.add_data("negLargestDotProduct", largest)
+          self.add_data("negSize", size)
+
+          return cleanResultVectors
+
+
   def jumpTest(self, testName, n, dataFunc=None, *args, **kwargs):
         # select a key, follow a hyp/hol link, record success / failure
 
         testNumber = 0
-        score = 0
 
-        target_matches = []
-        second_matches = []
-        sizes = []
+        score = 0
         exactGoals = 0
 
         planned_words = []
@@ -165,10 +200,6 @@ class AssociativeMemoryTester(object):
         relation_indices = []
         if "planned_relations" in kwargs:
           relation_indices = kwargs["relation_indices"]
-
-        relation_stats = {}
-        if "relation_stats" in kwargs:
-          relation_stats = kwargs["relation_stats"]
 
         while testNumber < n:
             if testNumber < len(planned_words):
@@ -185,348 +216,199 @@ class AssociativeMemoryTester(object):
                     else:
                       prompt = random.sample(testableLinks, 1)[0]
 
-                    result = self.testLink(word, prompt[0], prompt[1])
+                    self.print_header(self.jump_results_file, "New Jump Test")
+
+                    answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
+
+                    (result, valid, exact) = self.testLink(word, prompt[0], prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers)
+
+                    print >> sys.stderr, "Valid answers? ",valid
+                    print >> sys.stderr, "Exact goal? ",exact
+                    print >> self.jump_results_file, "Valid answers? ",valid
+                    print >> self.jump_results_file, "Exact goal? ",exact
+
                     if dataFunc:
                       dataFunc(self.associator)
 
-                    testNumber = testNumber + 1
+                    testNumber += 1
 
-                    success = result[0]
-                    if success: score = score + 1
-                    
-                    exactGoal = result[4]
-                    if exactGoal:
-                      exactGoals += 1
+                    if valid: score += 1
 
-                    target_matches.append(result[1])
-                    second_matches.append(result[2])
-                    sizes.append(result[3])
-
-                    if relation_stats:
-                      relation_stats[len(testableLinks)][0].append(result[1])
-                      relation_stats[len(testableLinks)][1].append(result[2])
-                      relation_stats[len(testableLinks)][2].append(result[3])
-                      relation_stats[len(testableLinks)][3] += 1
+                    if exact: exactGoals += 1
 
         # print the score
-        print >> self.jump_results_file, "************ Jump test summary *************"
+        title = "Jump Test Summary"
+        self.print_header(self.jump_results_file, title)
         self.jump_results_file.write("score,"+str(score)+":\n")
         self.jump_results_file.write("totaltests,"+str(testNumber)+":\n")
+        self.print_footer(self.jump_results_file, title)
 
-        print "Start trial:\n"
-        print "score,"+str(score)+":\n"
-        print "totaltests,"+str(testNumber)+":\n"
+        valid_score = float(score) / float(testNumber)
+        exact_score = float(exactGoals) / float(testNumber)
 
-        #print testName, 'results:'
-        #print score, "links successful out of", testNumber, "tests."
-        return [[float(score) / float(testNumber)], target_matches, second_matches, sizes, [float(exactGoals) / float(testNumber)]]
+        print "score,"+str(valid_score)
+
+        self.add_data("jump_score_valid", valid_score)
+        self.add_data("jump_score_exact", exact_score)
 
   def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False, dataFunc=None, *args, **kwargs):
-        if m is None:
-          m = n
         """Check whether word A is a type of word B. Test with n cases in which
         word A IS NOT a descendant of word B and m cases where word A IS a
         descendent of word B. The rtype parameter specifies which relationships
         to use in the search (by default, only the isA relationships)."""
+
+        if m is None:
+          m = n
+
         n_count = 0
         m_count = 0
         p_score = 0
         n_score = 0
 
-        totalTargetMatches = [[] for i in range(stat_depth)]
-        totalSecondMatches = [[] for i in range(stat_depth)]
-        totalSizes = [[] for i in range(stat_depth)]
+        negative_pairs = []
+        positive_pairs = []
 
-        negInitialVecSize = []
-        negLargestDotProduct = []
-        negSizes = []
-
-
-        # choose pairs of words randomly, test heritage
+        #find positive and negative pairs
         while n_count < n:
-            samples_A = random.sample(self.corpus, n-n_count)
-            samples_B = random.sample(self.corpus, n-n_count)
-            for i in range(len(samples_A)):
-                word = samples_A[i]
-                target = samples_B[i]
+          start = random.sample(self.corpus, 1)[0]
+          target = random.sample(self.corpus, 1)[0]
 
+          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False, *args, **kwargs)
 
-                print >> self.hierarchical_results_file, "************New hierarchical test*************"
+          pair = (start, target)
+          if target in parent_list and m_count < m:
+            positive_pairs.append(pair)
+            m_count += 1
+          elif not (target in parent_list):
+            negative_pairs.append(pair)
+            n_count += 1
 
-                parentList = self.findAllParents(word, rtype, stat_depth=stat_depth)[0]
-                if target in parentList and m_count < m:
-                    print >> self.hierarchical_results_file, "   *****Positive test*****"
-
-                    m_count = m_count + 1
-                    if startFromParent:
-                        result = self.findAllParents(target, rtype, True, word, True, stat_depth=stat_depth)[0]
-                    else:
-                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth, *args, **kwargs)
-                        target_matches = result[4]
-                        second_matches = result[5]
-                        sizes = result[6]
-
-                        negInitialVecSize.extend(result[1])
-                        negLargestDotProduct.extend(result[2])
-                        negSizes.extend(result[3])
-
-                        result = result[0]
-
-                        for i, l in enumerate(target_matches):
-                          totalTargetMatches[i].extend( l )
-
-                        for i, l in enumerate(second_matches):
-                          totalSecondMatches[i].extend( l )
-
-                        for i, l in enumerate(sizes):
-                          totalSizes[i].extend( l )
-
-                    if result > -1: p_score = p_score + 1
-                elif target not in parentList:
-                    print >> self.hierarchical_results_file, "   *****Negative test*****"
-
-                    n_count = n_count + 1
-                    if startFromParent:
-                        result = self.findAllParents(target, rtype, True, word, True, stat_depth=stat_depth)[0]
-                    else:
-                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth, *args, **kwargs)
-                        target_matches = result[4]
-                        second_matches = result[5]
-                        sizes = result[6]
-
-                        negInitialVecSize.extend(result[1])
-                        negLargestDotProduct.extend(result[2])
-                        negSizes.extend(result[3])
-
-                        result = result[0]
-
-                        for i, l in enumerate(target_matches):
-                          totalTargetMatches[i].extend( l )
-
-                        for i, l in enumerate(second_matches):
-                          totalSecondMatches[i].extend( l )
-
-                        for i, l in enumerate(sizes):
-                          totalSizes[i].extend( l )
-
-                    if result > -1: n_score = n_score + 1
-                else:
-                    print >> self.hierarchical_results_file, "************Hierarchical test aborted*************"
-
-        # choose single words randomly and select parents to fill test quota
         while m_count < m:
-            words = random.sample(self.corpus, m-m_count)
-            for word in words:
+          start = random.sample(self.corpus, 1)[0]
+          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False, *args, **kwargs)
 
-                print >> self.hierarchical_results_file, "************New hierarchical test*************"
-                
-                parentList = self.findAllParents(word, rtype, stat_depth=stat_depth)[0]
-                if len(parentList) > 0:
-                    print >> self.hierarchical_results_file, "   *****Positive test*****"
+          if len(parent_list) == 0: continue
 
-                    m_count = m_count + 1
-                    target = random.sample(parentList, 1)[0]
-                    #print >> self.hierarchical_results_file, "Start word: ", word, ", index: ", self.key_indices[word]
-                    #print >> self.hierarchical_results_file, "Target word: ", target, ", index: ", self.key_indices[target]
-                    if startFromParent:
-                        result = self.findAllParents(target, rtype, True, word, True, stat_depth = stat_depth)[0]
-                    else:
-                        result = self.findAllParents(word, rtype, True, target, stat_depth=stat_depth, *args, **kwargs)
-                        target_matches = result[4]
-                        second_matches = result[5]
-                        sizes = result[6]
+          target = random.sample(parent_list, 1)[0]
+          positive_pairs.append((start, target))
+          m_count += 1
 
-                        negInitialVecSize.extend(result[1])
-                        negLargestDotProduct.extend(result[2])
-                        negSizes.extend(result[3])
+        #now run the tests!
+        title = "New Hierarchical Test - Negative"
+        for pair in negative_pairs:
+          self.print_header(self.hierarchical_results_file, title)
 
-                        result = result[0]
+          #for printing
+          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True, *args, **kwargs)
+          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True, *args, **kwargs)
+          if result == -1: n_score += 1
 
-                        for i, l in enumerate(target_matches):
-                          totalTargetMatches[i].extend( l )
+        title = "New Hierarchical Test - Positive"
+        for pair in positive_pairs:
+          self.print_header(self.hierarchical_results_file, title)
 
-                        for i, l in enumerate(second_matches):
-                          totalSecondMatches[i].extend( l )
+          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True, *args, **kwargs)
+          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True, *args, **kwargs)
+          if result > -1: p_score += 1
 
-                        for i, l in enumerate(sizes):
-                          totalSizes[i].extend( l )
 
-                    if result > -1: p_score = p_score + 1
-
-                else:
-                    print >> self.hierarchical_results_file, "************Hierarchical test aborted*************"
-          
         # print the score
-        print >> self.hierarchical_results_file, "************ Hierarchical test summary *************"
+        title = "Hierarchical Test Summary"
+        self.print_header(self.hierarchical_results_file, title)
         self.hierarchical_results_file.write("Start trial:\n")
-        self.hierarchical_results_file.write("FP,"+str(n_score)+"\n")#false positive
-        self.hierarchical_results_file.write("CR,"+str(n-n_score)+"\n")#correct rejections
+        self.hierarchical_results_file.write("FP,"+str(n-n_score)+"\n")#false positive
+        self.hierarchical_results_file.write("CR,"+str(n_score)+"\n")#correct rejections
         self.hierarchical_results_file.write("hits,"+str(p_score)+"\n")
         self.hierarchical_results_file.write("misses,"+str(m-p_score)+"\n")
-        self.hierarchical_results_file.write("TS,"+str(n-n_score+p_score)+" out of "+str(n+m)+"\n")#successful tests, out of total
+        self.hierarchical_results_file.write("TS,"+str(n_score+p_score)+" out of "+str(n+m)+"\n")#successful tests, out of total
         self.hierarchical_results_file.write("NT,"+str(n)+"\n")#neg tests
         self.hierarchical_results_file.write("PT,"+str(m)+"\n")#pos tests
+        self.print_footer(self.hierarchical_results_file, title)
 
         print "Start trial:\n"
-        print "FP,"+str(n_score)+"\n"#false positive
-        print "CR,"+str(n-n_score)+"\n"#correct negative
+        print "FP,"+str(n-n_score)+"\n"#false positive
+        print "CR,"+str(n_score)+"\n"#correct negative
         print "hits,"+str(p_score)+"\n"#correct positive
         print "misses,"+str(m-p_score)+"\n"#false negative
-        print "TS,"+str(n-n_score+p_score)+" out of "+str(n+m)+"\n"#successful tests, out of total
+        print "TS,"+str(n_score+p_score)+" out of "+str(n+m)+"\n"#successful tests, out of total
         print "NT,"+str(n)+"\n"#neg tests
         print "PT,"+str(m)+"\n"#pos tests
 
-        result = [[float(n-n_score + p_score) / float(m + n)], negInitialVecSize, negLargestDotProduct, negSizes] 
-        for i in range(stat_depth):
-          result.append(totalTargetMatches[i])
-          result.append(totalSecondMatches[i])
-          result.append(totalSizes[i])
+        overall_score = float(n_score + p_score) / float(m + n)
+        self.add_data("hierarchical_score", overall_score)
 
         return result
 
+  def findAllParents(self, start_key, target_key=None, rtype=[], use_HRR=False, stat_depth=0, print_output = False, *arg, **kwargs):
 
-  def findAllParents(self, word, rtype=[], useHRR=False, target=None, findChildren=False, stat_depth = 0, *arg, **kwargs):
+        if print_output:
+          print >> self.hierarchical_results_file, "In find all parents, useHRR=", use_HRR
+          print >> self.hierarchical_results_file, "Start:", start_key
 
-        print >> self.hierarchical_results_file, "In find all parents, useHRR=", useHRR
+          if target_key is not None:
+            print >> self.hierarchical_results_file, "Target:", target_key
 
-        print >> self.hierarchical_results_file, "Start:", word, ", index: ", self.key_indices[word]
-        #if self.vector_indexing and useHRR:
-        if target is not None:
-          print >> self.hierarchical_results_file, "Target:", target, ", index: ", self.key_indices[target]
-
-    #this outputs a list of keys, regardless of whether its in vector_indexing mode or not
 
         level = 0
-        if self.vector_indexing and useHRR:
-          layerA = [self.structuredVectors[word]]
+        if use_HRR:
+          layerA = [self.structuredVectors[start_key]]
         else:
-          layerA = [word]
+          layerA = [start_key]
 
         layerB = []
         parents = set()
 
-        relation_stats = {}
-        if "relation_stats" in kwargs:
-          relation_stats = kwargs["relation_stats"]
-
-        target_matches = [[] for i in range(stat_depth)]
-        second_matches = [[] for i in range(stat_depth)]
-        sizes = [[] for i in range(stat_depth)]
-
-        #for links that shouldnt be successful aren't in wordNet)
-        negInitialVecSize = []
-        negLargestDotProduct = []
-        negSizes = []
-
-        #print >> self.hierarchical_results_file, "Start word: ", word, ", index: ", self.key_indices[word]
-
         while len(layerA) > 0:
             word = layerA.pop()
-            
-            # add word to parents (unless it's the initial word)
-            # find the parents of this word
-            if useHRR:
-                
-                if self.vector_indexing:
-                  print >> self.hierarchical_results_file, "Norm of link: ", numpy.linalg.norm(word)
-                  key=self.get_key_from_vector(word, self.structuredVectors)
-                  if key is not None and key in parents: continue
-                  if key is not None and level > 0:
-                    parents.add(key)
-                  #in the vector_indexing case, word will be an actual vector
-                  #only temporary, to see if it works in principle
-                  #vector = self.structuredVectors[key]
-                  vector = word
 
+            if use_HRR:
+              key = self.get_key_from_vector(word, self.structuredVectors)
+            else:
+              key = word
+
+            if key:
+              if key in parents: continue
+              if level > 0:
+                parents.add(key)
+
+                if print_output:
+                  print >> self.hierarchical_results_file, key, "found at level ", level
+
+                if target_key and target_key == key:
+                  return level
+
+            links =  []
+            if not use_HRR:
+              links = [r[1] for r in self.corpus[word] if r[0] in rtype]
+            else:
+              for symbol in rtype:
+                answers = [r[1] for r in self.corpus[key] if r[0] == symbol]
+
+                if len(answers) == 0:
+                  target = None
                 else:
-                  #in the non-vector_indexing(autovector_indexing) case, word is a key that 
-                  #indexes both structuredVectors and idVectors
-                  if word in parents: continue
-                  if level > 0:
-                    parents.add(word)
-                  vector = self.structuredVectors[word]
+                  target = answers[0]
 
-                links = []
-                for symbol in rtype:
-                  #have to fix this
-                  results = self.unbind_and_associate(word, self.idVectors[symbol], True)
-                  word_key = self.get_key_from_vector(word, self.structuredVectors)
-                  answers = [r[1] for r in self.corpus[word_key] if r[0] == symbol]
+                num_relations = len(filter(lambda x: x[0] in self.relation_symbols, self.corpus[key]))
 
-                  if len(answers) > 0:
-                    if level < stat_depth:
-                      target_match, second_match, size = self.getStats(results, answers[0], self.hierarchical_results_file)
+                results = self.testLink(word, symbol, target, self.hierarchical_results_file, start_from_vec=True, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
 
-                      target_matches[level].append(target_match)
-                      second_matches[level].append(second_match)
-                      sizes[level].append(size)
+                links.extend( filter(self.sufficient_norm, results) )
 
-                      index = len([r[1] for r in self.corpus[word_key] if r[0] in self.relation_symbols])
-                      if relation_stats:
-                        relation_stats[index][0].append(target_match)
-                        relation_stats[index][1].append(second_matche)
-                        relation_stats[index][2].append(size)
-                        relation_stats[index][3] += 1
-                  else:
-                    [largest, size] = self.getStats(results, None, self.hierarchical_results_file)
 
-                    negInitialVecSize.append(numpy.linalg.norm(word))
-                    negLargestDotProduct.append(largest)
-                    negSizes.append(size)
+            if len(links) > 0:
+                layerB.extend(links)
 
-                  #results = self.unbind_and_associate(vector, self.idVectors[symbol], self.vector_indexing)
-                  links.extend(copy.deepcopy(results))
-
-            else:
-                if word in parents: continue
-                if level > 0:
-                  parents.add(word)
-                links = [r[1] for r in self.corpus[word] if r[0] in rtype]
-
-            #remove any links that are not similar enough to any vectors in the vocab
-            #mainly for vectors with 0 norm
-            #this step is sort of worrisome, shouldn't really be filtering stuff out like this...though it should be simple enough to neurally filter out things that are too small
-            if self.vector_indexing and useHRR:
-
-              adjusted_links=[]
-              keys=[]
-              for link in links:
-                key=self.get_key_from_vector(link, self.structuredVectors)
-
-                if key is not None:
-                  adjusted_links.append(link)
-                  keys.append(key)
-              
-              if len(adjusted_links) > 0:
-                layerB.extend(adjusted_links)
-
-              links=keys
-            else:
-              # add the parent words to layer B
-              if len(links) > 0:
-                  layerB.extend(links)
-
-            #turn the links into keys for the sake of giving feedback on screen
-
-            for link in links:
-              print >> self.hierarchical_results_file, link, "found at level ", level + 1, ", index: ", self.key_indices[link]
-            
             if len(layerA)==0:
                 level = level + 1
                 layerA = layerB
                 layerB = []
 
-            # return the level at which the target was found, if it was found
-            if target is not None and target in links:
-                return [level, negInitialVecSize, negLargestDotProduct, negSizes, target_matches, second_matches, sizes]
 
-        # return the list of parents
-        if target is None:
-            return [parents]
-
-        # ...or return -1 if a target was specified (and not found)
+        if target_key is None:
+            return list(parents)
         else:
-            return [-1, negInitialVecSize, negLargestDotProduct, negSizes, target_matches, second_matches, sizes]
+            return -1
 
   def sentenceTest(self, testName, n, dataFunc=None, *args, **kwargs):
         # check that POS lists exist (form them if required)
@@ -549,12 +431,10 @@ class AssociativeMemoryTester(object):
         posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
 
         score = 0
-        target_matches = []
-        second_matches = []
-        sizes = []
-        
+
         for i in range(n):
-            print >> self.sentence_results_file, "************New sentence test*************"
+            title = "New Sentence Test"
+            self.print_header(self.sentence_results_file, title)
             sentence = {}
             sentenceVector = numpy.zeros(self.D)
 
@@ -575,43 +455,31 @@ class AssociativeMemoryTester(object):
                 answer = sentence[symbol]
 
                 print >> self.sentence_results_file, "Testing ", symbol
+                result, valid, exact = self.testLink(sentenceVector, self.sentenceVocab[symbol], answer,
+                    output_file = self.sentence_results_file, return_vec=False,
+                    start_from_vec=True, relation_is_vec=True, num_relations=len(sentence), answers=[answer])
 
-                cleanResultVectors = self.unbind_and_associate(sentenceVector, self.sentenceVocab[symbol], True)
-
-                cleanResult = [self.get_key_from_vector(vec, self.structuredVectors) for vec in cleanResultVectors]
-
-                target_match, second_match, size = self.getStats(cleanResultVectors, answer, self.sentence_results_file)
-
-                target_matches.append(target_match)
-                second_matches.append(second_match)
-                sizes.append(size)
-
-                print >> sys.stderr, "Guess keys: ", cleanResult
-                #print >> sys.stderr, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
-                print >> self.sentence_results_file, "Guess keys: ", cleanResult
-                #print >> self.sentence_results_file, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
-
-                #query = pInv(self.sentenceVocab[symbol])
-                #result = self.cleanup(cconv(sentenceVector, query), self.cleanupMemory.keys())
-                if len(cleanResult)>0 and cleanResult[0] == answer:
-                    sentence_score = sentence_score + 1
-                    print >> self.sentence_results_file, "correct!"
+                if exact:
+                    sentence_score += 1
+                    print >> self.sentence_results_file, "Correct."
                 else:
-                    print >> self.sentence_results_file, "incorrect!"
+                    print >> self.sentence_results_file, "Incorrect."
 
             sentence_percent = float(sentence_score) / float(len(sentence))
-            print >> self.sentence_results_file, "Percent correct for current sentence: " 
+            print >> self.sentence_results_file, "Percent correct for current sentence: "
             score = score + sentence_percent
 
         print "sentence test score:", score, "out of", n
 
         percent = float(score) / float(n)
-        print >> self.sentence_results_file, "************ Sentence test summary *************"
+        title = "Sentence Test Summary"
+        self.print_header(self.sentence_results_file, title)
         print >> self.sentence_results_file, "Correct: ", score
         print >> self.sentence_results_file, "Total: ", n
         print >> self.sentence_results_file, "Percent: ", percent
+        self.print_footer(self.sentence_results_file, title)
 
-        return [[percent], target_matches, second_matches, sizes]
+        self.add_data("sentence_score", percent)
 
   def getStats(self, cleanResultVectors, answer, fp):
 
@@ -623,7 +491,7 @@ class AssociativeMemoryTester(object):
     largest = heapq.nlargest(2, matches, key = lambda x: x[1])
 
     if not answer:
-      return [largest[0][1], size]
+      return (largest[0][1], size)
 
     target_match = None
     second_match = None
@@ -635,11 +503,10 @@ class AssociativeMemoryTester(object):
       second_match = largest[0][1]
 
     print >> sys.stderr, "Guess keys: ", cleanResult
-    print >> sys.stderr, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
     print >> fp, "Guess keys: ", cleanResult
-    print >> fp, "Guess indices: ", [self.key_indices.get(key) for key in cleanResult]
 
-    return [target_match, second_match, size]
+    return (cleanResult, target_match, second_match, size)
+
 
   def openJumpResultsFile(self, mode='w'):
     if not self.jump_results_file:
@@ -676,7 +543,7 @@ class AssociativeMemoryTester(object):
 
     self.openJumpResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, ["score", "target dot product", "largest non-target dot product", "norm", "exactGoal"], dataFunc=dataFunc, *args, **kwargs)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, dataFunc=dataFunc, *args, **kwargs)
 
 
   def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None, *args, **kwargs):
@@ -685,20 +552,27 @@ class AssociativeMemoryTester(object):
     file_open_func()
 
     htest = lambda x, y, dataFunc=None, *args, **kwargs: self.hierarchicalTest(x,y, stats_depth, rtype=self.isA_symbols, dataFunc=dataFunc, *args, **kwargs)
-    s = lambda x: [x + "target dot product", x + "largest non-target dot product", x + "norm"]
-    strings = [ s( str(i + 1) + " ") for i in range(stats_depth)]
-    strings = [i for l in strings for i in l]
-    strings = ["score", "negInitialVecSize", "negLargestDotProduct", "negSizes"] + strings
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, strings, file_open_func, dataFunc=dataFunc, *args, **kwargs)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func, dataFunc=dataFunc, *args, **kwargs)
 
 
   def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None, *args, **kwargs):
 
     self.openSentenceResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, ["score", "target dot product", "largest non-target dot product", "norm"], dataFunc=dataFunc, *args, **kwargs)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, dataFunc=dataFunc, *args, **kwargs)
 
+  #a general function for adding data to our data object, with arbitrary index depth.
+  #note we are always appending to a list. This is the new bookkeeping mechanism.
+  #everything just throws the data in a common dictionary, data (its mostly done in testLink)
+  #and after every bootstrap run we just bootstrap on each of the named objects in that dictionary
+
+  #assume self.data is  just a flat dictionary pointing to lists of numbers to be bootstrapped
+  def add_data(self, index, data):
+    if not (index in self.data):
+      self.data[index] = []
+
+    self.data[index].append(data)
 
 #Run a series of bootstrap runs, then combine the success rate from each
 #individual run into a total mean success rate with confidence intervals
@@ -708,6 +582,26 @@ class AssociativeMemoryTester(object):
       func, statNames=None, file_open_func=None, dataFunc=None, *args, **kwargs):
     start_time = datetime.datetime.now()
 
+    self.data = {}
+
+    #Now start running the tests
+    self.num_jumps = 0
+    output_file.write("Begin series of " + str(sample_size) + " runs, with " + str(num_trials_per_sample) + " trials each.\n")
+
+    for i in range(sample_size):
+      output_file.write("Begin run " + str(i + 1) + " out of " + str(sample_size) + ":\n")
+      func("", num_trials_per_sample, dataFunc=dataFunc, *args, **kwargs)
+
+      self.print_bootstrap_summary(i + 1, sample_size, output_file)
+      output_file.flush()
+
+    self.finish()
+
+    end_time = datetime.datetime.now()
+    self.print_bootstrap_runtime_summary(output_file, end_time - start_time)
+    self.print_relation_stats(output_file, **kwargs)
+
+  def print_relation_stats(self, output_file, **kwargs):
     relation_counts = {}
     relation_count = 0
     relation_hist = {}
@@ -727,84 +621,57 @@ class AssociativeMemoryTester(object):
         else:
           relation_counts[relation[0]] += 1
 
-    output_file.write("************ Relation stats *************\n")
+    title = "Relation Distribution" 
+    self.print_header(output_file, title)
     output_file.write("relation_counts: " + str(relation_counts) + " \n")
     output_file.write("relation_count: " + str(relation_count) + " \n")
     output_file.write("relation_hist: " + str(relation_hist) + " \n")
-    output_file.write("************ End relation stats *************\n")
+    self.print_footer(output_file, title) 
 
-    #Now start running the tests
-    self.num_jumps = 0
-    output_file.write("Begin series of " + str(sample_size) + " runs, with " + str(num_trials_per_sample) + " trials each.\n")
-
-    stats = None
-
-    for i in range(sample_size):
-      output_file.write("Begin run " + str(i + 1) + " out of " + str(sample_size) + ":\n")
-      result = func("", num_trials_per_sample, dataFunc=dataFunc, *args, **kwargs)
-
-      if len(result) > 0:
-        if not stats:
-          stats = [[] for j in result]
-
-        for (r,S) in zip(result, stats):
-          S.extend(r)
-
-      self.print_bootstrap_summary(statNames, stats, i + 1, sample_size, output_file)
-      output_file.flush()
-
-    self.finish()
-
-    end_time = datetime.datetime.now()
-    self.print_bootstrap_runtime_summary(output_file, end_time - start_time)
-    self.print_relation_stats(output_file, **kwargs)
-
-
-
-
-  def print_relation_stats(self, output_file, **kwargs):
-    if "relation_stats" in kwargs:
-      relation_stats = kwargs["relation_stats"]
-      for r in relation_stats:
-        if len(relation_stats[r][0]) > 0:
-          printout = [sum(relation_stats[r][0]) / len(relation_stats[r][0]),\
-                     sum(relation_stats[r][1]) / len(relation_stats[r][1]),\
-                     sum(relation_stats[r][2]) / len(relation_stats[r][2]),\
-                     relation_stats[r][3]]
-
-          output_file.write( str(r) + ", " + str(printout) + "\n")
-
-
-
-  def print_bootstrap_summary(self, statNames, stats, sample_index, sample_size, output_file):
+  def print_bootstrap_summary(self, sample_index, sample_size, output_file):
     mean = lambda x: float(sum(x)) / float(len(x))
 
-    output_file.write("************ Bootstrap summary *************\n")
-    output_file.write("After " + str(sample_index) + "samples out of " + str(sample_size) + "\n")
+    title = "Bootstrap Summary"
+    self.print_header(output_file, title)
+    
+    output_file.write("After " + str(sample_index) + " samples out of " + str(sample_size) + "\n")
 
-    if stats:
-      i = 0
-      for s in stats:
-        CI = bootstrap.bootstrap_CI(0.05, mean, s, 999)
+    data_keys = self.data.keys()
+    data_keys.sort()
 
-        output_file.write("mean " + statNames[i] + ": " + str(mean(s)) + "\n")
-        output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
-        output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
-        output_file.write("raw data: " + str(s) + "\n")
-        i += 1
+    for n in data_keys:
+      s = self.data[n]
+      CI = bootstrap.bootstrap_CI(0.05, mean, s, 999)
 
+      output_file.write("\nmean " + n + ": " + str(mean(s)) + "\n")
+      output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
+      output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
+      output_file.write("raw data: " + str(s) + "\n")
 
-
+    self.print_footer(output_file, title)
 
   def print_bootstrap_runtime_summary(self, output_file, time):
-    output_file.write("************ Runtime summary *************\n")
+    self.print_header(output_file, "Runtime Summary")
     output_file.write("Total elapsed time for bootstrap runs: " + str(time) + "\n")
     output_file.write("Total num jumps: " + str(self.num_jumps) + "\n")
 
     if self.num_jumps != 0:
       output_file.write("Average time per jump: " + str(float(time.seconds) / float(self.num_jumps)) + "\n")
 
+    self.print_footer(output_file, "Runtime Summary")
 
+
+  def print_header(self, output_file, string, char='*', width=15, left_newline=True):
+    line = char * width  
+    string = line + " " + string + " " + line + "\n"
+    
+    if left_newline:
+      string = "\n" + string
+
+    output_file.write(string)
+
+  def print_footer(self, output_file, string, char='*', width=15):
+    self.print_header(output_file, "End " + string, char=char, width=width, left_newline=False)
 
   #this will show that the keys don't match up. however, that is fixed when the vectors are given to the GPU.
   #we fix it by using the order of they keys in the items for both the indices and the items

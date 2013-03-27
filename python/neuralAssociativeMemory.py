@@ -19,7 +19,7 @@ def transfer(x):
     return 0
 
 class NeuralAssociativeMemory(associativeMemory.AssociativeMemory):
-  def __init__(self, indices, items, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9, 
+  def __init__(self, indices, items, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9,
       thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
 
     self.useGPU = useGPU
@@ -46,7 +46,6 @@ class NeuralAssociativeMemory(associativeMemory.AssociativeMemory):
     #in the "core" case, indices will be the id vectors, items will be the structured vectors.
     self.indices=indices
     self.items=items
-    
 
     self.dim = len(self.indices[self.indices.keys()[0]])
     self.num_items = len(self.indices)
@@ -110,7 +109,7 @@ class NeuralAssociativeMemory(associativeMemory.AssociativeMemory):
     self.associator_node.connectToProbes(self.unbind_results_node)
 
     print "Done creating network"
-       
+
   def write_to_runtime_file(self, delta):
     print >> self.runtimes_file, self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
 
@@ -126,7 +125,7 @@ class NeuralAssociativeMemory(associativeMemory.AssociativeMemory):
     print >> sys.stderr, "beginning simulation"
     print "beginning simulation"
 
-    for j in range(self.timesteps):  
+    for j in range(self.timesteps):
       if self.threads > 1:
         self.item_node.tick_multithreaded(threads=self.threads, dt=self.dt)
       else:
@@ -155,15 +154,15 @@ class NeuralAssociativeMemory(associativeMemory.AssociativeMemory):
 
     #reset them all so they can be used again right away next time
     self.reset_nodes()
-    
+
     now = datetime.datetime.now()
     self.write_to_runtime_file(now - then)
-    
+
     if self.vector_indexing:
       return [vector]
     else:
       return [self.get_key_from_vector(vector, indices)]
-        
+
   def finish(self):
     self.item_node.kill_multithreaded()
 
