@@ -1,9 +1,6 @@
 from vector_operations import *
 
 from corpora_manager import CorpusHandler
-from associativeMemoryTester import AssociativeMemoryTester
-from neuralAssociativeMemory import NeuralAssociativeMemory
-from associativeMemory import AssociativeMemory
 from probe import Probe
 
 import sys

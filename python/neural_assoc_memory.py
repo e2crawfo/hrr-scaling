@@ -1,5 +1,5 @@
 #NeuralAssociativeMemory!
-import associativeMemory
+from assoc_memory import AssociativeMemory
 from gpu_cleanup import GPUCleanup
 
 import ccm
@@ -18,7 +18,7 @@ def transfer(x):
     if x>thresh: return 1
     return 0
 
-class NeuralAssociativeMemory(associativeMemory.AssociativeMemory):
+class NeuralAssociativeMemory(AssociativeMemory):
   def __init__(self, indices, items, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9,
       thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
 

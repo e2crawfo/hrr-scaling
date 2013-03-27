@@ -1,9 +1,9 @@
 import startup_utils
 from vector_operations import *
 import symbol_definitions 
-from associativeMemoryTester import AssociativeMemoryTester
-from associativeMemory import AssociativeMemory
-from neuralAssociativeMemory import NeuralAssociativeMemory
+from assoc_memory_tester import AssociativeMemoryTester
+from assoc_memory import AssociativeMemory
+from neural_assoc_memory import NeuralAssociativeMemory
 
 argvals = startup_utils.parse_args(True)
 
