@@ -1,6 +1,6 @@
 from vector_operations import *
 
-from CorporaManagement import CorpusHandler
+from corpora_manager import CorpusHandler
 from associativeMemoryTester import AssociativeMemoryTester
 from neuralAssociativeMemory import NeuralAssociativeMemory
 from associativeMemory import AssociativeMemory
