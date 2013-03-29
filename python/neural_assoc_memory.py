@@ -12,17 +12,17 @@ import numpy
 import random
 import datetime
 import sys
-thresh=0.3
-
-def transfer(x):
-    if x>thresh: return 1
-    return 0
 
 class NeuralAssociativeMemory(AssociativeMemory):
-  def __init__(self, indices, items, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9,
+
+  _type = "Neural"
+
+  def __init__(self, indices, items, identity, unitary, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9,
       thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
 
     self.useGPU = useGPU
+    self.threshold = thresh
+    self.transfer_func = lambda x: 1 if x > self.threshold else 0
 
     self.threads=threads
     if seed is not None:
@@ -34,6 +34,9 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.jump_results_file=None
     self.hierarchical_results_file=None
     self.active_results_file=None
+
+    self.unitary = unitary
+    self.identity = identity
 
     self.runtimes_file=open(self.output_dir+'/neural_runtimes', 'a')
     if not self.runtimes_file:
@@ -88,7 +91,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
                     saturation_range=(200,200),apply_noise=False)
                     #saturation_range=(200,200),apply_noise=False)
 
-    probeFunctions = [lambda x: x, transfer]
+    probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
    
     scale = 1.0
@@ -231,7 +234,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
       node.accumulator.printVal("associator node " + str(i), node.inputs[0].tau)
 
     print "Decoder:"
-    print self.associator_node[0].get_decoder(transfer)
+    print self.associator_node[0].get_decoder(self.transfer_func)
 
     print "alpha"
     print self.associator_node[0].alpha

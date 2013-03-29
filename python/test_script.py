@@ -1,6 +1,6 @@
 import startup_utils
 from vector_operations import *
-import symbol_definitions 
+import symbol_definitions
 from assoc_memory_tester import AssociativeMemoryTester
 from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
@@ -12,21 +12,30 @@ seed = argvals.seed
 save = argvals.save
 dim = argvals.d
 proportion = argvals.p
+threshold = argvals.t
 config_name = argvals.c
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
 
-use_corpus = True
+id_vecs = argvals.i
+unitary_vecs = argvals.u
+
+use_bi_relations = use_bi_relations and not id_vecs
 
 if use_bi_relations:
   relation_symbols = symbol_definitions.bi_relation_symbols()
 else:
   relation_symbols = symbol_definitions.uni_relation_symbols()
 
+test = argvals.test[0] if len(argvals.test) > 0 else 'j'
+num_runs = int(argvals.test[1]) if len(argvals.test) > 1 else 1
+num_trials = int(argvals.test[2]) if len(argvals.test) > 2 else 1
+print test, num_runs, num_trials
+
 input_dir, output_dir = startup_utils.read_config(config_name)
 
 (corpusDict, idVectors, structuredVectors) = \
-    startup_utils.setup_corpus(input_dir, relation_symbols, seed, save, use_corpus, dim, proportion)
+    startup_utils.setup_corpus(input_dir, relation_symbols, seed, save, dim, proportion, id_vecs=id_vecs, unitary_vecs=unitary_vecs)
 
 num_words = 0
 probes = []
@@ -46,9 +55,8 @@ if do_relation_stats:
   kwargs["relation_stats"] = startup_utils.setup_relation_stats()
 
 
-#associator = NeuralAssociativeMemory(idVectors, structuredVectors,output_dir = output_dir, probes=probes)
-associator = AssociativeMemory(idVectors, structuredVectors, .25)
-
+#associator = NeuralAssociativeMemory(idVectors, structuredVectors, id_vecs, unitary_vecs, output_dir = output_dir, probes=probes, thresh=threshold)
+associator = AssociativeMemory(idVectors, structuredVectors, threshold, id_vecs, unitary_vecs)
 
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
@@ -59,9 +67,14 @@ tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors,
 data_display = startup_utils.draw_associator_graph
 
 #short tests
-tester.runBootstrap_jump(1, 1, dataFunc = data_display, **kwargs)
-#tester.runBootstrap_hierarchical(1, 5, dataFunc = data_display, **kwargs)
-#tester.runBootstrap_sentence(2, 5, dataFunc = data_display, **kwargs)
+if test == 'j':
+  tester.runBootstrap_jump(num_runs, num_trials, dataFunc = data_display)
+elif test == 'h':
+  tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display)
+elif test == 's':
+  tester.runBootstrap_sentence(num_runs, num_trials, dataFunc = data_display)
+else:
+  pass
 
 #For paper:
 #tester.runBootstrap_jump(20, 100, dataFunc = data_display, **kwargs)

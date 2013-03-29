@@ -1,7 +1,7 @@
 from vector_operations import *
 import symbol_definitions
 
-import bootstrap
+from bootstrap import Bootstrapper
 
 import copy
 import heapq
@@ -16,7 +16,7 @@ import shutil
 from ccm.lib import hrr
 
 class AssociativeMemoryTester(object):
-  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=None, output_dir=".", isA_symbols = [], sentence_symbols = []):
+  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=1, output_dir=".", isA_symbols = [], sentence_symbols = []):
 
         self.num_jumps = 0
 
@@ -29,55 +29,41 @@ class AssociativeMemoryTester(object):
         self.jump_results_file=None
         self.hierarchical_results_file=None
 
-        if seed is not None:
-          random.seed(seed)
-          numpy.random.seed(seed)
+        self.seed = seed
+        self.rng = random.Random()
+        self.rng.seed(seed)
+        self.np_rng = numpy.random.RandomState(seed)
 
         self.associator = associator
+        self.associator.set_tester(self)
         self.vector_indexing =vector_indexing
+
         self.corpus = corpus
         self.idVectors = idVectors
         self.structuredVectors = structuredVectors
-        self.vocab = [idVectors]
-        self.sentenceVocab = None
+
         self.relation_symbols = relation_symbols
         self.isA_symbols = isA_symbols
         self.sentence_symbols = sentence_symbols
-        self.data = None
+
+        self.bootstrapper = None
 
         self.key_indices = {}
+
         i = 0
         for key in self.structuredVectors.keys():
           self.key_indices[key] = i
           i += 1
 
         self.D = len(idVectors.values()[0])
-        print "self.D : ", self.D
 
-  def loadVocab(self, filename):
-        with open(filename, 'r') as vfile:
-            self.vocab = pickle.load(vfile)
+        self.current_start_key = None
+        self.current_target_keys = None
+        self.current_relation_keys = None
 
-  def saveVocab(self, filename):
-        with open(filename, 'w') as vfile:
-            pickle.dump(self.vocab, vfile)
-
-  def setupRandomVocab(self, numVocab):
-        """split knowledge base into distinct vocabularies (randomly)"""
-        keys = self.idVectors.keys()
-        if numVocab > len(keys):
-            raise Exception('Number of vocabularies outstrips number of vectors!')
-        random.shuffle(keys)
-        vocabSize = int(len(keys)/numVocab)
-        vocabRemainder = int(len(keys)%numVocab)
-        vocab = [keys[i*vocabSize:(i+1)*vocabSize] for i in range(numVocab)]
-        for i in range(vocabRemainder):
-            vocab[i].append(keys[numVocab*vocabSize+i])
-        self.vocab = vocab
-
-  def unbind_and_associate(self, item, query, return_as_vector, *args, **kwargs):
+  def unbind_and_associate(self, item, query, return_as_vector):
       self.num_jumps += 1
-      result = self.associator.unbind_and_associate(item, query, *args, **kwargs)
+      result = self.associator.unbind_and_associate(item, query)
 
       if not return_as_vector:
         result = [self.get_key_from_vector(r, self.structuredVectors) for r in result]
@@ -146,7 +132,6 @@ class AssociativeMemoryTester(object):
 
           print >> output_file, "target match: ", target_match
           print >> output_file, "second match : ", second_match
-          print >> output_file, "size: ", size
           print >> output_file, "num_relations: ", num_relations
 
           self.add_data("depth_"+str(depth)+"_target_match", target_match)
@@ -162,10 +147,21 @@ class AssociativeMemoryTester(object):
             return cleanResultVectors
           else:
             if answers:
+
+              #clean result assumed to be sorted by activation
+              front = []
+              for r in cleanResult:
+                if r in answers:
+                  front.append(r)
+                else:
+                  break
+
+              correct = goal in front
+
               validAnswers = all([r in answers for r in cleanResult])
               exactGoal = target_match > second_match
 
-              return (cleanResult, validAnswers, exactGoal)
+              return (cleanResult, correct, validAnswers, exactGoal)
             else:
               return cleanResult
 
@@ -184,28 +180,29 @@ class AssociativeMemoryTester(object):
           return cleanResultVectors
 
 
-  def jumpTest(self, testName, n, dataFunc=None, *args, **kwargs):
+  def jumpTest(self, testName, n, dataFunc=None):
         # select a key, follow a hyp/hol link, record success / failure
 
         testNumber = 0
 
-        score = 0
-        exactGoals = 0
+        correct_score = 0
+        valid_score = 0
+        exact_score = 0
 
         planned_words = []
 
-        if "planned_words" in kwargs:
-          planned_words = kwargs["planned_words"]
+        #if "planned_words" in kwargs:
+        #  planned_words = kwargs["planned_words"]
 
         relation_indices = []
-        if "planned_relations" in kwargs:
-          relation_indices = kwargs["relation_indices"]
+        #if "planned_relations" in kwargs:
+        #  relation_indices = kwargs["relation_indices"]
 
         while testNumber < n:
             if testNumber < len(planned_words):
               words = planned_words[testNumber: min(n, len(planned_words))]
             else:
-              words = random.sample(self.corpus, n-testNumber)
+              words = self.rng.sample(self.corpus, n-testNumber)
 
             for word in words:
                 testableLinks = [r for r in self.corpus[word] if r[0] in self.relation_symbols]
@@ -214,16 +211,22 @@ class AssociativeMemoryTester(object):
                     if testNumber < len(relation_indices):
                       prompt = testableLinks[relation_indices[testNumber]]
                     else:
-                      prompt = random.sample(testableLinks, 1)[0]
+                      prompt = self.rng.sample(testableLinks, 1)[0]
 
                     self.print_header(self.jump_results_file, "New Jump Test")
 
                     answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
 
-                    (result, valid, exact) = self.testLink(word, prompt[0], prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers)
+                    self.current_start_key = word
+                    self.current_target_keys = answers
+                    self.current_relation_keys = [r[1] for r in self.corpus[word] if r[0] in self.relation_symbols]
 
+                    (result, correct, valid, exact) = self.testLink(word, prompt[0], prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers)
+
+                    print >> sys.stderr, "Correct goal? ",correct
                     print >> sys.stderr, "Valid answers? ",valid
                     print >> sys.stderr, "Exact goal? ",exact
+                    print >> self.jump_results_file, "Correct goal? ",correct
                     print >> self.jump_results_file, "Valid answers? ",valid
                     print >> self.jump_results_file, "Exact goal? ",exact
 
@@ -232,26 +235,28 @@ class AssociativeMemoryTester(object):
 
                     testNumber += 1
 
-                    if valid: score += 1
-
-                    if exact: exactGoals += 1
+                    if correct: correct_score += 1
+                    if valid: valid_score += 1
+                    if exact: exact_score += 1
 
         # print the score
         title = "Jump Test Summary"
         self.print_header(self.jump_results_file, title)
-        self.jump_results_file.write("score,"+str(score)+":\n")
+        self.jump_results_file.write("valid_score,"+str(valid_score)+":\n")
         self.jump_results_file.write("totaltests,"+str(testNumber)+":\n")
         self.print_footer(self.jump_results_file, title)
 
-        valid_score = float(score) / float(testNumber)
-        exact_score = float(exactGoals) / float(testNumber)
+        correct_score = float(correct_score) / float(testNumber)
+        valid_score = float(valid_score) / float(testNumber)
+        exact_score = float(exact_score) / float(testNumber)
 
         print "score,"+str(valid_score)
 
+        self.add_data("jump_score_correct", correct_score)
         self.add_data("jump_score_valid", valid_score)
         self.add_data("jump_score_exact", exact_score)
 
-  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False, dataFunc=None, *args, **kwargs):
+  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False, dataFunc=None):
         """Check whether word A is a type of word B. Test with n cases in which
         word A IS NOT a descendant of word B and m cases where word A IS a
         descendent of word B. The rtype parameter specifies which relationships
@@ -270,10 +275,10 @@ class AssociativeMemoryTester(object):
 
         #find positive and negative pairs
         while n_count < n:
-          start = random.sample(self.corpus, 1)[0]
-          target = random.sample(self.corpus, 1)[0]
+          start = self.rng.sample(self.corpus, 1)[0]
+          target = self.rng.sample(self.corpus, 1)[0]
 
-          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False, *args, **kwargs)
+          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False)
 
           pair = (start, target)
           if target in parent_list and m_count < m:
@@ -284,12 +289,12 @@ class AssociativeMemoryTester(object):
             n_count += 1
 
         while m_count < m:
-          start = random.sample(self.corpus, 1)[0]
-          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False, *args, **kwargs)
+          start = self.rng.sample(self.corpus, 1)[0]
+          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False)
 
           if len(parent_list) == 0: continue
 
-          target = random.sample(parent_list, 1)[0]
+          target = self.rng.sample(parent_list, 1)[0]
           positive_pairs.append((start, target))
           m_count += 1
 
@@ -299,16 +304,16 @@ class AssociativeMemoryTester(object):
           self.print_header(self.hierarchical_results_file, title)
 
           #for printing
-          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True, *args, **kwargs)
-          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True, *args, **kwargs)
+          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True)
+          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True)
           if result == -1: n_score += 1
 
         title = "New Hierarchical Test - Positive"
         for pair in positive_pairs:
           self.print_header(self.hierarchical_results_file, title)
 
-          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True, *args, **kwargs)
-          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True, *args, **kwargs)
+          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True)
+          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True)
           if result > -1: p_score += 1
 
 
@@ -339,7 +344,7 @@ class AssociativeMemoryTester(object):
 
         return result
 
-  def findAllParents(self, start_key, target_key=None, rtype=[], use_HRR=False, stat_depth=0, print_output = False, *arg, **kwargs):
+  def findAllParents(self, start_key, target_key=None, rtype=[], use_HRR=False, stat_depth=0, print_output = False):
 
         if print_output:
           print >> self.hierarchical_results_file, "In find all parents, useHRR=", use_HRR
@@ -410,7 +415,7 @@ class AssociativeMemoryTester(object):
         else:
             return -1
 
-  def sentenceTest(self, testName, n, dataFunc=None, *args, **kwargs):
+  def sentenceTest(self, testName, n, dataFunc=None):
         # check that POS lists exist (form them if required)
         if self.sentenceVocab is None:
             self.nouns = []
@@ -441,10 +446,10 @@ class AssociativeMemoryTester(object):
             print >> self.sentence_results_file, "Roles in sentence:"
             for symbol in self.sentence_symbols:
 
-                if random.random() < self.sentence_symbols[symbol][0]: # choose lexical items to include
+                if self.rng.random() < self.sentence_symbols[symbol][0]: # choose lexical items to include
                     print >> self.sentence_results_file, symbol
                     pos = self.sentence_symbols[symbol][1] # determine the POS for this lexical item
-                    word = (pos, random.sample(posmap[pos], 1)[0]) # choose words
+                    word = (pos, self.rng.sample(posmap[pos], 1)[0]) # choose words
                     sentence[symbol] = word    # build the sentence in a python dictionary
                     sentenceVector = sentenceVector + cconv(self.sentenceVocab[symbol],
                                                             self.idVectors[word]) # build the sentence as an HRR vector
@@ -539,28 +544,28 @@ class AssociativeMemoryTester(object):
     if self.hierarchical_results_file:
       self.hierarchical_results_file.close()
 
-  def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None, *args, **kwargs):
+  def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None):
 
     self.openJumpResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, dataFunc=dataFunc, *args, **kwargs)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, dataFunc=dataFunc)
 
 
-  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None, *args, **kwargs):
+  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None):
 
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
 
-    htest = lambda x, y, dataFunc=None, *args, **kwargs: self.hierarchicalTest(x,y, stats_depth, rtype=self.isA_symbols, dataFunc=dataFunc, *args, **kwargs)
+    htest = lambda x, y, dataFunc=None: self.hierarchicalTest(x,y, stats_depth, rtype=self.isA_symbols, dataFunc=dataFunc)
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func, dataFunc=dataFunc, *args, **kwargs)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func, dataFunc=dataFunc)
 
 
-  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None, *args, **kwargs):
+  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None):
 
     self.openSentenceResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, dataFunc=dataFunc, *args, **kwargs)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, dataFunc=dataFunc)
 
   #a general function for adding data to our data object, with arbitrary index depth.
   #note we are always appending to a list. This is the new bookkeeping mechanism.
@@ -569,28 +574,27 @@ class AssociativeMemoryTester(object):
 
   #assume self.data is  just a flat dictionary pointing to lists of numbers to be bootstrapped
   def add_data(self, index, data):
-    if not (index in self.data):
-      self.data[index] = []
-
-    self.data[index].append(data)
+    if self.bootstrapper:
+      self.bootstrapper.add_data(index, data)
 
 #Run a series of bootstrap runs, then combine the success rate from each
 #individual run into a total mean success rate with confidence intervals
 #dataFunc is a function that takes an associator, and is called after every trial. Allows data about
 #the associator on the run to be displayed
   def runBootstrap(self, sample_size, num_trials_per_sample, num_bootstrap_samples, output_file,
-      func, statNames=None, file_open_func=None, dataFunc=None, *args, **kwargs):
+      func, statNames=None, file_open_func=None, dataFunc=None):
     start_time = datetime.datetime.now()
 
-    self.data = {}
+    self.bootstrapper = Bootstrapper()
 
     #Now start running the tests
     self.num_jumps = 0
     output_file.write("Begin series of " + str(sample_size) + " runs, with " + str(num_trials_per_sample) + " trials each.\n")
+    self.associator.print_config(output_file)
 
     for i in range(sample_size):
       output_file.write("Begin run " + str(i + 1) + " out of " + str(sample_size) + ":\n")
-      func("", num_trials_per_sample, dataFunc=dataFunc, *args, **kwargs)
+      func("", num_trials_per_sample, dataFunc=dataFunc)
 
       self.print_bootstrap_summary(i + 1, sample_size, output_file)
       output_file.flush()
@@ -599,9 +603,9 @@ class AssociativeMemoryTester(object):
 
     end_time = datetime.datetime.now()
     self.print_bootstrap_runtime_summary(output_file, end_time - start_time)
-    self.print_relation_stats(output_file, **kwargs)
+    self.print_relation_stats(output_file)
 
-  def print_relation_stats(self, output_file, **kwargs):
+  def print_relation_stats(self, output_file):
     relation_counts = {}
     relation_count = 0
     relation_hist = {}
@@ -621,33 +625,19 @@ class AssociativeMemoryTester(object):
         else:
           relation_counts[relation[0]] += 1
 
-    title = "Relation Distribution" 
+    title = "Relation Distribution"
     self.print_header(output_file, title)
     output_file.write("relation_counts: " + str(relation_counts) + " \n")
     output_file.write("relation_count: " + str(relation_count) + " \n")
     output_file.write("relation_hist: " + str(relation_hist) + " \n")
-    self.print_footer(output_file, title) 
+    self.print_footer(output_file, title)
 
   def print_bootstrap_summary(self, sample_index, sample_size, output_file):
-    mean = lambda x: float(sum(x)) / float(len(x))
 
     title = "Bootstrap Summary"
     self.print_header(output_file, title)
-    
     output_file.write("After " + str(sample_index) + " samples out of " + str(sample_size) + "\n")
-
-    data_keys = self.data.keys()
-    data_keys.sort()
-
-    for n in data_keys:
-      s = self.data[n]
-      CI = bootstrap.bootstrap_CI(0.05, mean, s, 999)
-
-      output_file.write("\nmean " + n + ": " + str(mean(s)) + "\n")
-      output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
-      output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
-      output_file.write("raw data: " + str(s) + "\n")
-
+    self.bootstrapper.print_summary(output_file)
     self.print_footer(output_file, title)
 
   def print_bootstrap_runtime_summary(self, output_file, time):
@@ -662,9 +652,9 @@ class AssociativeMemoryTester(object):
 
 
   def print_header(self, output_file, string, char='*', width=15, left_newline=True):
-    line = char * width  
+    line = char * width
     string = line + " " + string + " " + line + "\n"
-    
+
     if left_newline:
       string = "\n" + string
 

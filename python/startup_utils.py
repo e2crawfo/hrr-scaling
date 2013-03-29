@@ -1,6 +1,6 @@
 from vector_operations import *
 
-from corpora_manager import CorpusHandler
+from corpora_management import CorpusHandler
 from probe import Probe
 
 import sys
@@ -18,10 +18,16 @@ def parse_args(print_args=False):
   parser.add_argument('--seed', default=1, type=int, help='Seed for the random number generator.')
   parser.add_argument('--save', default=False, type=bool, help='Whether to save the results of parsing the Wordnet files')
   parser.add_argument('-p', default=1.0, type=float, help='Specify the proportion of Wordnet synsets to use.')
+  parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold.')
   parser.add_argument('-c', default='config', help='Specifiy the name of the config file')
   parser.add_argument('-d', default=512, type=int, help='Specify the number of dimensions to use')
-  parser.add_argument('-r', nargs='?', const=True, default=False, help='Supply this argument to collect the relation stats')
-  parser.add_argument('-b', nargs='?', const=True, default=False, help='Supply this argument to use bidirectional relations')
+  parser.add_argument('-r', action='store_true', help='Supply this argument to collect the relation stats')
+  parser.add_argument('-b', action='store_true', help='Supply this argument to use bidirectional relations')
+  parser.add_argument('-u', action='store_true', help='Supply this argument to use unitary vectors')
+  parser.add_argument('-i', action='store_true', help='Supply this argument to use identity vectors')
+
+  parser.add_argument('test', nargs='*', help='Specify the test type, the number of runs and the number of trials')
+
 
   argvals = parser.parse_args()
 
@@ -42,16 +48,12 @@ def read_config(config_name="config"):
 
 
 #Setup corpus
-def setup_corpus(input_dir, relation_symbols, seed, save, use_corpus, dim, proportion):
-  if seed is not None:
-    random.seed(seed)
-    numpy.random.seed(seed)
-
+def setup_corpus(input_dir, relation_symbols, seed, save, dim, proportion, id_vecs=False, unitary_vecs = False, use_corpus=True):
   if use_corpus:
     if dim != -1:
-      corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols)
+      corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols, seed=seed+1)
     else:
-      corpus = CorpusHandler(True, input_dir = input_dir, relation_symbols = relation_symbols)
+      corpus = CorpusHandler(True, input_dir = input_dir, relation_symbols = relation_symbols, seed=seed+1)
 
     corpus.parseWordnet()
 
@@ -59,7 +61,7 @@ def setup_corpus(input_dir, relation_symbols, seed, save, use_corpus, dim, propo
       corpus.createCorpusSubset(proportion,1)
 
     print "Wordnet data parsed."
-    corpus.formKnowledgeBase()
+    corpus.formKnowledgeBase(id_vecs, unitary_vecs)
     print "Knowledge base formed."
 
     corpusDict = corpus.corpusDict

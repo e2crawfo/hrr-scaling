@@ -32,3 +32,30 @@ def bootstrap_CI(alpha, stat_func, data, num) :
 
   return (lower_CI_bound, upper_CI_bound)
 
+class Bootstrapper:
+
+  def __init__(self):
+    self.data = {}
+
+  def add_data(self, index, data):
+    if not (index in self.data):
+      self.data[index] = []
+
+    self.data[index].append(data)
+
+  def print_summary(self, output_file):
+    mean = lambda x: float(sum(x)) / float(len(x))
+
+    data_keys = self.data.keys()
+    data_keys.sort()
+
+    for n in data_keys:
+      s = self.data[n]
+      CI = bootstrap_CI(0.05, mean, s, 999)
+
+      output_file.write("\nmean " + n + ": " + str(mean(s)) + "\n")
+      output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
+      output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
+      output_file.write("num_samples: " + str(len(s)) + "\n")
+      output_file.write("raw data: " + str(s) + "\n")
+

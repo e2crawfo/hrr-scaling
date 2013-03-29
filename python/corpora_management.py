@@ -3,6 +3,9 @@ import random
 import Queue
 import cPickle as pickle
 
+#temporary
+from ccm.lib import hrr
+
 from vector_operations import *
 
 class CorpusHandler:
@@ -11,11 +14,13 @@ class CorpusHandler:
     cleanupMemory = None
     knowledgeBase = None
 
-    def __init__(self, try_load, D=512, input_dir=".", relation_symbols=[]):
+    def __init__(self, try_load, D=512, input_dir=".", relation_symbols=[], seed=1):
       self.try_load = try_load
       self.D = D
       self.input_dir = input_dir
       self.relation_symbols = relation_symbols
+      self.seed = seed
+      self.rng = make_rng(seed)
 
     def parseWordnet(self):
         if self.try_load and self.loadCorpusDict(self.input_dir+'/cd1.data'):
@@ -43,7 +48,7 @@ class CorpusHandler:
                     w_cnt = int(parse[3], 16)
                     p_i = 4+w_cnt*2
                     p_cnt = int(parse[p_i])
-                    
+
                     for i in range(p_cnt):
                         ptr = parse[p_i+1]
                         offset = int(parse[p_i+2])
@@ -53,14 +58,12 @@ class CorpusHandler:
                         self.corpusDict[tag].append((ptr, pointerTag))
                         # ignoring parse[p_i+4] (word/word mappings)
                         p_i = p_i + 4
-                        
+
                     line = f.readline()
 
-    def createCorpusSubset(self, proportion, seed=1):
+    def createCorpusSubset(self, proportion):
       subset_dict = {}
-      
-      random.seed(seed)
-  
+
       #randomly pick a starting point, following all links from that node,
       # do the same recursively for each node we just added. 
       # once we have enough nodes, have to go back through and correct 
@@ -91,7 +94,7 @@ class CorpusHandler:
 
         for item in new_entries:
           queue.put(item[1])
-      
+
       for key in subset_dict:
         removal_list = []
 
@@ -103,15 +106,11 @@ class CorpusHandler:
           subset_dict[key].remove(item)
 
       self.corpusDict = subset_dict
-      #print >> sys.stderr, "Corpora size: ", subset_dict
-      
-      #print [all([(i[1] in subset_dict) for i in subset_dict[x]]) for x in subset_dict]
-      
 
     def saveCorpusDict(self, filename):
         if self.corpusDict is None:
             raise Exception("Attempted to save corpus dictionary before it was created.")
-        
+
         with open(filename, 'w') as cfile:
             pickle.dump(self.corpusDict, cfile)
 
@@ -124,11 +123,11 @@ class CorpusHandler:
       except:
         return False
 
+    #currently this never gets called
     def processCorpus(self):
         '''Remove excessive relationships, handle circularity, etc.'''
         processed = set()
         stack = []
-        lastHolonym = None
         for item in self.corpusDict:
             if item in processed: continue
 
@@ -148,68 +147,58 @@ class CorpusHandler:
                 activeRelation = None
                 if len(localStack) > 1:
                     activeRelation = localStack.pop()
-                    stack.append((activeItem, localProcessed.copy(), lastHolonym, localStack))
+                    stack.append((activeItem, localProcessed.copy(), localStack))
                     localStack = []
                 elif len(localStack) == 1:
                     activeRelation = localStack[0]
                     localStack = []
                 elif len(stack) > 0:
                     processed.update(localProcessed)
-                    activeItem, localProcessed, lastHolonym, localStack = stack.pop()
+                    activeItem, localProcessed, localStack = stack.pop()
                 else:
                     activeItem = None
 
                 # check whether the link completes a circle
                 if activeRelation is not None:
-                    if activeRelation[0] in holonym_symbols:
-                        lastHolonym = (activeItem, activeRelation)
                     if activeRelation[1] in localProcessed:
                         # delete a relation if a circular definition was found
-                        if lastHolonym is not None:
-                            self.corpusDict[lastHolonym[0]].remove(lastHolonym[1])
-                            print 'deleting', lastHolonym[1], 'from', lastHolonym[1]
-                            lastHolonym = None
-                        else:
-                            self.corpusDict[activeItem].remove(activeRelation)
-                            print 'deleting', activeRelation, 'from', activeItem
+                        self.corpusDict[activeItem].remove(activeRelation)
+                        print 'deleting', activeRelation, 'from', activeItem
                     elif activeRelation[1] not in processed:
                         activeItem = activeRelation[1]
                     else:
                         localStack = []
 
         processed.update(localProcessed)
-        
-    def generateRandomCleanup(self, useUnitary=False):
-        if useUnitary:
-            generatorFunc = genUnitaryVec
-        else:
-            generatorFunc = genVec
-        
-        self.cleanupMemory = {}
-        for key in self.corpusDict.keys():
-            self.cleanupMemory[key] = generatorFunc(self.D)
 
-        # Add relationship and POS keywords to the cleanup memory
+    def generateRandomCleanup(self, identityCleanup=False, useUnitary=False):
+
+        self.cleanupMemory = {}
+
+        for key in self.corpusDict.keys():
+          if useUnitary and identityCleanup:
+              self.cleanupMemory[key] = genUnitaryVec(self.D, self.rng)
+          else:
+              self.cleanupMemory[key] = genVec(self.D, self.rng)
+
         for symbol in self.relation_symbols:
-            self.cleanupMemory[symbol] = generatorFunc(self.D)
+          if useUnitary:
+              self.cleanupMemory[symbol] = genUnitaryVec(self.D, self.rng)
+          else:
+              self.cleanupMemory[symbol] = genVec(self.D, self.rng)
 
     def formKnowledgeBase(self, identityCleanup=False, useUnitary=False):
         # Check existence of corpus
         if self.corpusDict is None:
             raise Exception("Attempted to form the knowledge base without a corpus.")
-        
-        print "Length!", len(self.corpusDict)
-    
-        # Check existence of cleanup memory, generate if required
-        if self.cleanupMemory is None:
-          if not (self.try_load and self.loadCleanup(self.input_dir+'/clean1.data')) :
-          #if not (self.try_load and self.loadCleanup('clean1.data') and len(self.cleanupMemory) == len(self.corpusDict)):
-              print "Generating random cleanup"
-              self.generateRandomCleanup(useUnitary)
 
-        if self.try_load and self.loadKnowledgeBase(self.input_dir+'/kb1.data') :
-        #if self.try_load and self.loadKnowledgeBase('kb1.data') and len(self.knowledgeBase) == len(self.corpusDict):
-          return
+        print "Length!", len(self.corpusDict)
+        if identityCleanup:
+          print "Processing Corpus"
+          self.processCorpus()
+
+        print "Generating random cleanup"
+        self.generateRandomCleanup(identityCleanup, useUnitary)
 
         self.knowledgeBase = {}
 
@@ -220,12 +209,12 @@ class CorpusHandler:
             keyOrder = []
             stuck = False
             resolved = set(self.relation_symbols)
-            
+
             dependencies = {}
             for key in self.corpusDict.keys():
                 dependencies[key] = set([tag[1] for tag in self.corpusDict[key]
                                          if tag[0] in self.relation_symbols])
-                    
+
             while len(keyOrder) < len(self.corpusDict)+len(self.relation_symbols) and not stuck:
                 resolvable = set()
                 for key in dependencies:
@@ -251,40 +240,39 @@ class CorpusHandler:
 
 
         # Define the knowledge base in terms of the cleanup memory
-        for symbol in self.relation_symbols:
-            self.knowledgeBase[symbol] = self.cleanupMemory[symbol]
+        #for symbol in self.relation_symbols:
+        #    self.knowledgeBase[symbol] = self.cleanupMemory[symbol]
+
         for key in keyOrder:
-            self.knowledgeBase[key] = genVec(self.D)
+
+            if not identityCleanup:
+                self.knowledgeBase[key] = genVec(self.D)
 
             for relation in self.corpusDict[key]:
                 if relation[0] not in self.relation_symbols: continue
 
                 if identityCleanup:
-                    pair = cconv(self.knowledgeBase[relation[0]], self.knowledgeBase[relation[1]])
-                else:
-                    if not self.cleanupMemory.has_key(relation[0]):
-                        self.cleanupMemory[relation[0]] = genVec(self.D)
                     pair = cconv(self.cleanupMemory[relation[0]], self.cleanupMemory[relation[1]])
-
-                if self.knowledgeBase.has_key(key):
-                    self.knowledgeBase[key] = self.knowledgeBase[key] + pair
+                    self.cleanupMemory[key] += pair
                 else:
-                    self.knowledgeBase[key] = pair
+                    pair = cconv(self.cleanupMemory[relation[0]], self.cleanupMemory[relation[1]])
+                    self.knowledgeBase[key] += pair
 
             if identityCleanup:
-                self.knowledgeBase[key] = self.knowledgeBase[key] + self.cleanupMemory[key]
-            self.knowledgeBase[key] = normalize(self.knowledgeBase[key])
+                self.cleanupMemory[key] = normalize(self.cleanupMemory[key])
+            else:
+                self.knowledgeBase[key] = normalize(self.knowledgeBase[key])
 
         if identityCleanup:
-            self.cleanupMemory = self.knowledgeBase
+            self.knowledgeBase = self.cleanupMemory
 
 
         # Iterate a few more times to try to get 
-        
+
     def saveCleanup(self, filename):
         if self.cleanupMemory is None:
             raise Exception("Attempted to save corpus dictionary before it was created.")
-        
+
         with open(filename, 'w') as cfile:
             pickle.dump(self.cleanupMemory, cfile)
 
@@ -302,7 +290,7 @@ class CorpusHandler:
     def saveKnowledgeBase(self, filename):
         if self.knowledgeBase is None:
             raise Exception("Attempted to save corpus dictionary before it was created.")
-        
+
         with open(filename, 'w') as kfile:
             pickle.dump(self.knowledgeBase, kfile)
 
