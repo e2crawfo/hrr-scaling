@@ -173,18 +173,23 @@ class AssociativeMemoryTester(object):
             return cleanResult
 
         else:
-          largest, size = self.getStats(cleanResultVectors, None, self.hierarchical_results_file)
-          norm = numpy.linalg.norm(word_vec)
+          if self.associator.return_vec:
+            cleanResultVectors = cleanResult
+            cleanResult, largest, size = self.getStats(cleanResultVectors, None, self.hierarchical_results_file)
+            norm = numpy.linalg.norm(word_vec)
 
-          print >> output_file, "negInitialVecSize: ", norm
-          print >> output_file, "negLargestDotProduct: ", largest
-          print >> output_file, "negSize: ", size
+            print >> output_file, "negInitialVecSize: ", norm
+            print >> output_file, "negLargestDotProduct: ", largest
+            print >> output_file, "negSize: ", size
 
-          self.add_data("negInitialVecSize", norm)
-          self.add_data("negLargestDotProduct", largest)
-          self.add_data("negSize", size)
+            self.add_data("negInitialVecSize", norm)
+            self.add_data("negLargestDotProduct", largest)
+            self.add_data("negSize", size)
 
-          return cleanResultVectors
+            if return_vec:
+              return cleanResultVectors
+
+          return cleanResult
 
 
   def jumpTest(self, testName, n, dataFunc=None):
@@ -356,9 +361,10 @@ class AssociativeMemoryTester(object):
           if target_key is not None:
             print >> self.hierarchical_results_file, "Target:", target_key
 
+        store_vecs = self.associator.return_vec
 
         level = 0
-        if use_HRR:
+        if use_HRR and store_vecs:
           layerA = [self.structuredVectors[start_key]]
         else:
           layerA = [start_key]
@@ -369,7 +375,7 @@ class AssociativeMemoryTester(object):
         while len(layerA) > 0:
             word = layerA.pop()
 
-            if use_HRR:
+            if use_HRR and store_vecs:
               key = self.get_key_from_vector(word, self.structuredVectors)
             else:
               key = word
@@ -399,9 +405,14 @@ class AssociativeMemoryTester(object):
 
                 num_relations = len(filter(lambda x: x[0] in self.relation_symbols, self.corpus[key]))
 
-                results = self.testLink(symbol, word, key, target, self.hierarchical_results_file, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
-
-                links.extend( filter(self.sufficient_norm, results) )
+                if store_vecs:
+                  results = self.testLink(symbol, word, key, target, self.hierarchical_results_file, return_vec=store_vecs, depth=level, num_relations=num_relations, answers=answers)
+                  links.extend( filter(self.sufficient_norm, results) )
+                else:
+                  results = self.testLink(symbol, None, key, target, self.hierarchical_results_file, return_vec=store_vecs, depth=level, num_relations=num_relations, answers=answers)
+                  if answers:
+                    results=results[0]
+                  links.extend( results )
 
 
             if len(links) > 0:
@@ -507,7 +518,7 @@ class AssociativeMemoryTester(object):
     largest = heapq.nlargest(2, matches, key = lambda x: x[1])
 
     if not answer:
-      return (largest[0][1], size)
+      return (cleanResult, largest[0][1], size)
 
     target_match = None
     second_match = None

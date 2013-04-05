@@ -1,3 +1,4 @@
 alias ambreak b assoc_memory_tester.py:%1
 alias cmbreak b corpora_management.py:%1
+alias am b assoc_memory.py:%1
 
