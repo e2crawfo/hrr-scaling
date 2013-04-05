@@ -62,7 +62,7 @@ isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors,
-                    relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols, seed=seed)
+                    relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols, seed=seed, unitary=unitary_vecs)
 
 data_display = startup_utils.draw_associator_graph
 

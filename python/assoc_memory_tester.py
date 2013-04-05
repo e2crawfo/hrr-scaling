@@ -16,7 +16,7 @@ import shutil
 from ccm.lib import hrr
 
 class AssociativeMemoryTester(object):
-  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=1, output_dir=".", isA_symbols = [], sentence_symbols = []):
+  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=1, output_dir=".", isA_symbols = [], sentence_symbols = [], unitary=False):
 
         self.num_jumps = 0
 
@@ -50,6 +50,7 @@ class AssociativeMemoryTester(object):
 
         self.key_indices = {}
         self.sentence_vocab = None
+        self.unitary = unitary
 
         i = 0
         for key in self.structuredVectors.keys():
@@ -433,7 +434,10 @@ class AssociativeMemoryTester(object):
                 else: raise Exception('Unexpected POS token: '+pos)
             self.sentence_vocab = {}
             for symbol in self.sentence_symbols:
-                self.sentence_vocab[symbol] = genVec(self.D)
+                if self.unitary:
+                  self.sentence_vocab[symbol] = genUnitaryVec(self.D)
+                else:
+                  self.sentence_vocab[symbol] = genVec(self.D)
 
         posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
 
