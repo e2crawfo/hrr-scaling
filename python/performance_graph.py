@@ -1,5 +1,10 @@
 from random import *
-import matplotlib.pyplot as plt
+
+try:
+  import matplotlib.pyplot as plt
+except:
+  pass
+
 import numpy
 from operator import *
 

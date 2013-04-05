@@ -1,5 +1,5 @@
 import numpy
-import pylab
+#import pylab
 from ccm.lib.nef.core import ArrayNode
 from ccm.lib.nef.generate import makeGenerator
 from ccm.lib.nef.storage import Storage
@@ -197,9 +197,9 @@ class ActivityNode(ArrayNode):
           numpy.seterr(invalid='ignore',divide='ignore')
           G=self.t_ref-self.t_rc*numpy.log(1-self.J_threshold/J)
           G=numpy.where(G>0.001,1/G,0)
-          pylab.plot(x,G)
+          #pylab.plot(x,G)
 
-        pylab.show()
+        #pylab.show()
 
     def current_to_activity(self,J):
         if not self.lif:

@@ -13,9 +13,7 @@ def draw_bootstrap_samples(data, num):
     samples.append(sample)
 
   return samples
-
-def get_bootstrap_stats(stat_func, data, num):
-
+def get_bootstrap_stats(stat_func, data, num): 
   samples = draw_bootstrap_samples(data, num)
 
   stats = []
@@ -52,10 +50,14 @@ class Bootstrapper:
     for n in data_keys:
       s = self.data[n]
       CI = bootstrap_CI(0.05, mean, s, 999)
+      largest = max(s)
+      smallest = min(s) 
 
       output_file.write("\nmean " + n + ": " + str(mean(s)) + "\n")
       output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
       output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
+      output_file.write("max: " + str(largest) + "\n")
+      output_file.write("min: " + str(smallest) + "\n")
       output_file.write("num_samples: " + str(len(s)) + "\n")
       output_file.write("raw data: " + str(s) + "\n")
 

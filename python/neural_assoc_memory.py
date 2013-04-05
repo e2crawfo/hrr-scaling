@@ -37,6 +37,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     self.unitary = unitary
     self.identity = identity
+    self.return_vec = True
 
     self.runtimes_file=open(self.output_dir+'/neural_runtimes', 'a')
     if not self.runtimes_file:

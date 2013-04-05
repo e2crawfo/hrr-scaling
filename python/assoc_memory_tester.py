@@ -49,6 +49,7 @@ class AssociativeMemoryTester(object):
         self.bootstrapper = None
 
         self.key_indices = {}
+        self.sentence_vocab = None
 
         i = 0
         for key in self.structuredVectors.keys():
@@ -60,14 +61,11 @@ class AssociativeMemoryTester(object):
         self.current_start_key = None
         self.current_target_keys = None
         self.current_relation_keys = None
+        self.current_num_relations = None
 
-  def unbind_and_associate(self, item, query, return_as_vector):
+  def unbind_and_associate(self, item, query):
       self.num_jumps += 1
       result = self.associator.unbind_and_associate(item, query)
-
-      if not return_as_vector:
-        result = [self.get_key_from_vector(r, self.structuredVectors) for r in result]
-        result = filter(None, result)
 
       return result
 
@@ -95,20 +93,18 @@ class AssociativeMemoryTester(object):
         return None
 
 
-  def testLink(self, word, relation, goal=None, output_file = None, start_from_vec=False, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0):
+  def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0):
 
         self.print_header(output_file, "Testing link", char='-')
 
-        if start_from_vec:
-          word_key = self.get_key_from_vector(word, self.structuredVectors)
-          print >> output_file, "start :", word_key
-        else:
-          print >> output_file, "start: ", word
-          word_key = word
-          word = self.structuredVectors[word]
+        if word_vec is None:
+          #should be an error here if neither is supplied
+          word_vec = self.structuredVectors[word_key]
 
-        self.print_header(sys.stdout, "Start")
-        print(word_key)
+        if word_key:
+          print >> output_file, "start :", word_key
+          self.print_header(sys.stdout, "Start")
+          print(word_key)
 
         if goal:
           self.print_header(sys.stdout, "Target")
@@ -124,50 +120,60 @@ class AssociativeMemoryTester(object):
         print >> output_file, "goal: ", goal
         print >> output_file, "depth: ", depth
 
+        self.current_target_keys = answers
+        self.current_num_relations = num_relations
+
         #cleanResultVectors = self.unbind_and_associate(word, relation, True, urn_agreement=goal)
-        cleanResultVectors = self.unbind_and_associate(word, relation, True)
+        cleanResult = self.unbind_and_associate(word_vec, relation)
 
         if goal:
-          cleanResult, target_match, second_match, size = self.getStats(cleanResultVectors, goal, output_file)
+          if self.associator.return_vec:
+            cleanResultVectors = cleanResult
+            cleanResult, target_match, second_match, size = self.getStats(cleanResultVectors, goal, output_file)
 
-          print >> output_file, "target match: ", target_match
-          print >> output_file, "second match : ", second_match
-          print >> output_file, "num_relations: ", num_relations
+            print >> output_file, "target match: ", target_match
+            print >> output_file, "second match : ", second_match
+            print >> output_file, "num_relations: ", num_relations
 
-          self.add_data("depth_"+str(depth)+"_target_match", target_match)
-          self.add_data("depth_"+str(depth)+"_second_match", second_match)
-          self.add_data("depth_"+str(depth)+"_size", size)
+            self.add_data("depth_"+str(depth)+"_target_match", target_match)
+            self.add_data("depth_"+str(depth)+"_second_match", second_match)
+            self.add_data("depth_"+str(depth)+"_size", size)
 
-          if num_relations > 0:
-            self.add_data("rel_"+str(num_relations)+"_target_match", target_match)
-            self.add_data("rel_"+str(num_relations)+"_second_match", second_match)
-            self.add_data("rel_"+str(num_relations)+"_size", size)
+            if num_relations > 0:
+              self.add_data("rel_"+str(num_relations)+"_target_match", target_match)
+              self.add_data("rel_"+str(num_relations)+"_second_match", second_match)
+              self.add_data("rel_"+str(num_relations)+"_size", size)
+            
+            if return_vec:
+              return cleanResultVectors
 
           if return_vec:
-            return cleanResultVectors
+            #here there should be an error about trying to return vectors even though we 
+            #don't get them back from the associator
+            pass
+
+          #here we are returning keys
+          if answers:
+            #clean result assumed to be sorted by activation
+            front = []
+            for r in cleanResult:
+              if r in answers:
+                front.append(r)
+              else:
+                break
+
+            correct = goal in front
+
+            validAnswers = all([r in answers for r in cleanResult])
+            exactGoal = len(cleanResult) > 0 and cleanResult[0] == goal
+
+            return (cleanResult, correct, validAnswers, exactGoal)
           else:
-            if answers:
-
-              #clean result assumed to be sorted by activation
-              front = []
-              for r in cleanResult:
-                if r in answers:
-                  front.append(r)
-                else:
-                  break
-
-              correct = goal in front
-
-              validAnswers = all([r in answers for r in cleanResult])
-              exactGoal = target_match > second_match
-
-              return (cleanResult, correct, validAnswers, exactGoal)
-            else:
-              return cleanResult
+            return cleanResult
 
         else:
           largest, size = self.getStats(cleanResultVectors, None, self.hierarchical_results_file)
-          norm = numpy.linalg.norm(word)
+          norm = numpy.linalg.norm(word_vec)
 
           print >> output_file, "negInitialVecSize: ", norm
           print >> output_file, "negLargestDotProduct: ", largest
@@ -217,11 +223,7 @@ class AssociativeMemoryTester(object):
 
                     answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
 
-                    self.current_start_key = word
-                    self.current_target_keys = answers
-                    self.current_relation_keys = [r[1] for r in self.corpus[word] if r[0] in self.relation_symbols]
-
-                    (result, correct, valid, exact) = self.testLink(word, prompt[0], prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers)
+                    result, correct, valid, exact = self.testLink(prompt[0], None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers)
 
                     print >> sys.stderr, "Correct goal? ",correct
                     print >> sys.stderr, "Valid answers? ",valid
@@ -396,7 +398,7 @@ class AssociativeMemoryTester(object):
 
                 num_relations = len(filter(lambda x: x[0] in self.relation_symbols, self.corpus[key]))
 
-                results = self.testLink(word, symbol, target, self.hierarchical_results_file, start_from_vec=True, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
+                results = self.testLink(symbol, word, key, target, self.hierarchical_results_file, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
 
                 links.extend( filter(self.sufficient_norm, results) )
 
@@ -417,7 +419,7 @@ class AssociativeMemoryTester(object):
 
   def sentenceTest(self, testName, n, dataFunc=None):
         # check that POS lists exist (form them if required)
-        if self.sentenceVocab is None:
+        if self.sentence_vocab is None:
             self.nouns = []
             self.adjectives = []
             self.adverbs = []
@@ -429,9 +431,9 @@ class AssociativeMemoryTester(object):
                 elif pos == 'r' : self.adverbs.append(offset)
                 elif pos == 'v' : self.verbs.append(offset)
                 else: raise Exception('Unexpected POS token: '+pos)
-            self.sentenceVocab = {}
+            self.sentence_vocab = {}
             for symbol in self.sentence_symbols:
-                self.sentenceVocab[symbol] = genVec(self.D)
+                self.sentence_vocab[symbol] = genVec(self.D)
 
         posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
 
@@ -451,7 +453,7 @@ class AssociativeMemoryTester(object):
                     pos = self.sentence_symbols[symbol][1] # determine the POS for this lexical item
                     word = (pos, self.rng.sample(posmap[pos], 1)[0]) # choose words
                     sentence[symbol] = word    # build the sentence in a python dictionary
-                    sentenceVector = sentenceVector + cconv(self.sentenceVocab[symbol],
+                    sentenceVector = sentenceVector + cconv(self.sentence_vocab[symbol],
                                                             self.idVectors[word]) # build the sentence as an HRR vector
             # ask about parts of the sentence
             sentence_score = 0
@@ -459,10 +461,15 @@ class AssociativeMemoryTester(object):
 
                 answer = sentence[symbol]
 
+                self.current_start_key = None
+                self.current_target_keys = [answer]
+                self.current_num_relations = len(sentence)
+
                 print >> self.sentence_results_file, "Testing ", symbol
-                result, valid, exact = self.testLink(sentenceVector, self.sentenceVocab[symbol], answer,
+
+                result, correct, valid, exact = self.testLink(self.sentence_vocab[symbol], sentenceVector, None, answer,
                     output_file = self.sentence_results_file, return_vec=False,
-                    start_from_vec=True, relation_is_vec=True, num_relations=len(sentence), answers=[answer])
+                    relation_is_vec=True, num_relations=len(sentence), answers=[answer])
 
                 if exact:
                     sentence_score += 1
@@ -486,7 +493,7 @@ class AssociativeMemoryTester(object):
 
         self.add_data("sentence_score", percent)
 
-  def getStats(self, cleanResultVectors, answer, fp):
+  def getStats(self, cleanResultVectors, answer, fp, do_matches=True):
 
     cleanResult = [self.get_key_from_vector(v, self.structuredVectors) for v in cleanResultVectors]
 

@@ -1,6 +1,11 @@
 from ctypes import *
 import numpy
-import matplotlib.pylab as plt
+
+try:
+  import matplotlib.pylab as plt
+except:
+  pass
+
 import copy
 
 from ccm.lib import nef

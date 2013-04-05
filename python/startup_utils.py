@@ -58,7 +58,7 @@ def setup_corpus(input_dir, relation_symbols, seed, save, dim, proportion, id_ve
     corpus.parseWordnet()
 
     if proportion < 1.0:
-      corpus.createCorpusSubset(proportion,1)
+      corpus.createCorpusSubset(proportion)
 
     print "Wordnet data parsed."
     corpus.formKnowledgeBase(id_vecs, unitary_vecs)

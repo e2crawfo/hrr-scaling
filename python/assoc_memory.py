@@ -1,4 +1,8 @@
-import matplotlib as plt
+try:
+  import matplotlib as plt
+except:
+  pass
+
 from ccm.lib import hrr
 from vector_operations import *
 from bootstrap import Bootstrapper
@@ -21,6 +25,7 @@ class AssociativeMemory(object):
     self.identity = identity
     self.corpusDict = corpusDict
     self.similarities = dict(zip(indices.keys(), [0 for i in range(len(indices))]))
+    self.return_vec = False
 
   def set_tester(self, tester):
       self.tester = tester
@@ -42,12 +47,11 @@ class AssociativeMemory(object):
       results = filter(lambda item: item[1] > self.threshold, self.similarities.iteritems())
       result_keys = [item[0] for item in results]
 
-      #collect some stats
+      #collect stats
       target_keys = self.tester.current_target_keys
       num_correct_relations = len(target_keys)
 
-      relation_keys = self.tester.current_relation_keys
-      num_relations = len(relation_keys)
+      num_relations = self.tester.current_num_relations
 
       for key in target_keys:
         self.tester.add_data(str(num_relations) + "_correct_dot_product", self.similarities[key])
@@ -59,11 +63,12 @@ class AssociativeMemory(object):
 
       #now return something useful
       if len(result_keys) == 0:
-          print("max:")
-          print(max(similarities, key=lambda x:x[0]))
-          results = [zeroVec(self.dim)]
+          if self.return_vec:
+            results = [zeroVec(self.dim)]
+          else:
+            results = []
+
           print("Nothing reached threshold")
-          print(self.threshold)
       else:
           print(str(len(result_keys)) + " reached threshold")
           #plt.pyplot.hist([x[0] for x in result], 100)
@@ -73,7 +78,10 @@ class AssociativeMemory(object):
             results = heapq.nlargest(max_passes, results, key=lambda x: x[1])
 
           results.sort(reverse=True, key=lambda x:x[1])
-          results = [self.items[r[0]] for r in results]
+          if self.return_vec:
+            results = [self.items[r[0]] for r in results]
+          else:
+            results = [r[0] for r in results]
 
       return results
 

@@ -2,6 +2,7 @@ import sys
 import random
 import Queue
 import cPickle as pickle
+import bootstrap
 
 #temporary
 from ccm.lib import hrr
@@ -21,6 +22,7 @@ class CorpusHandler:
       self.relation_symbols = relation_symbols
       self.seed = seed
       self.rng = make_rng(seed)
+      self.bootstrapper = bootstrap.Bootstrapper()
 
     def parseWordnet(self):
         if self.try_load and self.loadCorpusDict(self.input_dir+'/cd1.data'):
