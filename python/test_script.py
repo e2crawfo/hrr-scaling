@@ -17,6 +17,8 @@ threshold = argvals.t
 config_name = argvals.c
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
+neural = argvals.n
+graph = argvals.g
 
 id_vecs = argvals.i
 unitary_vecs = argvals.u
@@ -60,8 +62,10 @@ if do_relation_stats:
   kwargs["relation_stats"] = startup_utils.setup_relation_stats()
 
 
-#associator = NeuralAssociativeMemory(idVectors, structuredVectors, id_vecs, unitary_vecs, output_dir = output_dir, probes=probes, thresh=threshold)
-associator = AssociativeMemory(idVectors, structuredVectors, threshold, id_vecs, unitary_vecs, bidirectional=use_bi_relations)
+if neural:
+  associator = NeuralAssociativeMemory(idVectors, structuredVectors, id_vecs, unitary_vecs, bidirectional=use_bi_relations, output_dir = output_dir, probes=probes, thresh=threshold)
+else:
+  associator = AssociativeMemory(idVectors, structuredVectors, threshold, id_vecs, unitary_vecs, bidirectional=use_bi_relations)
 
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
@@ -69,7 +73,10 @@ sentence_symbols = symbol_definitions.sentence_role_symbols()
 tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors,
                     relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols, seed=seed, unitary=unitary_vecs)
 
-data_display = startup_utils.draw_associator_graph
+if graph:
+  data_display = startup_utils.draw_associator_graph
+else:
+  data_display = lambda x: x
 
 #short tests
 if test == 'j':

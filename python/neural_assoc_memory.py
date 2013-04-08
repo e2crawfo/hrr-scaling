@@ -18,7 +18,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], bidirectional=False):
 
     self.useGPU = useGPU
     self.threshold = thresh
@@ -37,6 +37,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     self.unitary = unitary
     self.identity = identity
+    self.bidirectional = bidirectional
     self.return_vec = True
 
     self.runtimes_file=open(self.output_dir+'/neural_runtimes', 'a')
