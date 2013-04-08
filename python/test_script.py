@@ -56,7 +56,7 @@ if do_relation_stats:
 
 
 #associator = NeuralAssociativeMemory(idVectors, structuredVectors, id_vecs, unitary_vecs, output_dir = output_dir, probes=probes, thresh=threshold)
-associator = AssociativeMemory(idVectors, structuredVectors, threshold, id_vecs, unitary_vecs)
+associator = AssociativeMemory(idVectors, structuredVectors, threshold, id_vecs, unitary_vecs, bidirectional=use_bi_relations)
 
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
