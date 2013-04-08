@@ -4,6 +4,7 @@ import symbol_definitions
 from assoc_memory_tester import AssociativeMemoryTester
 from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
+import random
 
 argvals = startup_utils.parse_args(True)
 
@@ -19,6 +20,10 @@ use_bi_relations = argvals.b
 
 id_vecs = argvals.i
 unitary_vecs = argvals.u
+
+if seed == -1:
+  seed = random.randrange(1000)
+print seed
 
 use_bi_relations = use_bi_relations and not id_vecs
 
