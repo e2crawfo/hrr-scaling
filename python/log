@@ -1,0 +1,19 @@
+apr 16 2013 6:43 pm,
+-just finished changing find all parents to work new get_key_from_vector scheme
+-TODO: fix all the get_key_from_vectyor and related fns so they work properly.
+
+10:48 pm
+-so i think I've got all those functions straightened out. should be good to run tomorrow
+
+apr 17 2013 11:56 am,
+-things are working, at least for the neural jump test
+-also, suddently started giving the times it used to (~ 43s / jump)...no idea why. maybe some other process was running before?
+
+12:38 pm
+-hierarchical test not working in the non-neural case...not getting any of the positive tests and not printing out the traversal use non-hrr.
+
+apr 22 2013 7:13 pm,
+
+-hierarchical test not working in the neural case...parameters on the neurons may not be correct.
+-notice that there are two different threshold funcs, one in gpu_cleanup.py, one in neural_associative_memory....two different thresholds too, should mesh these together.
+
