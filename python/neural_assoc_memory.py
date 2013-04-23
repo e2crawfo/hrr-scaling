@@ -17,7 +17,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
   _type = "Neural"
 
-  def __init__(self, indices, items, identity, unitary, neurons_per_item=10, neurons_per_dim=100,thresh=0.3, thresh_min=-0.9,
+  def __init__(self, indices, items, identity, unitary, neurons_per_item=10, neurons_per_dim=50,thresh=0.3, thresh_min=-0.9,
       thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], bidirectional=False):
 
     self.useGPU = useGPU
@@ -72,14 +72,14 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.unbind_results_node.connect(self.unbind_measure)
 
     print "Creating results_node array"
-    self.results_node1 = nef.ArrayNode(self.dim)
-    self.results_node = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
-    self.results_node.connect(self.results_node1)
+    self.results_node = nef.ArrayNode(self.dim)
+    self.results_node_spiking = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
 
     print "Creating unbind array"
     self.unbind_node = nef.make_convolution('Unbind', self.item_node, self.query_node, self.unbind_results_node, neurons_per_dim, quick=True, invert_second=True)
 
     print "Creating associator nodes"
+
     max_thresh = .9
     min_thresh = 0
 
@@ -87,7 +87,6 @@ class NeuralAssociativeMemory(AssociativeMemory):
     associator_node = nef.ScalarNode(min=min_thresh, max=max_thresh)
     associator_node.configure(neurons=self.neurons_per_item,threshold_min=min_thresh,threshold_max=max_thresh,
                     saturation_range=(200,200),apply_noise=False)
-                    #saturation_range=(200,200),apply_noise=False)
 
     probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
@@ -103,10 +102,11 @@ class NeuralAssociativeMemory(AssociativeMemory):
       if type(probe.itemIndex) is tuple:
         probe.itemIndex = item_keys.index(probe.itemIndex)
 
-    self.associator_node = GPUCleanup(1, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True)
+    self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func)
 
-    self.associator_node.connect(self.results_node)
+    self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=0.02)
+    self.results_node_spiking.connect(self.results_node)
     self.associator_node.connectToProbes(self.unbind_results_node)
 
     print "Done creating network"
@@ -123,17 +123,17 @@ class NeuralAssociativeMemory(AssociativeMemory):
     print_debug_info = False
     print_neuron_data = False
 
-    print >> sys.stderr, "beginning simulation"
     print "beginning simulation"
 
+    i = 0
     for j in range(self.timesteps):
       if self.threads > 1:
         self.item_node.tick_multithreaded(threads=self.threads, dt=self.dt)
       else:
         self.item_node.tick(dt=self.dt)
 
-      if "urn_agreement" in kwargs:
-        self.print_unbind_results_node_agreement(kwargs["urn_agreement"])
+      if i % 10 == 0:
+        self.print_unbind_results_node_agreement()
 
       if print_debug_info:
         self.print_debug_info()
@@ -141,7 +141,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
         self.print_neuron_data()
 
     #vector = self.results_node.array()
-    vector = self.results_node1.array()
+    vector = self.results_node.array()
 
     #reset them all so they can be used again right away next time
     self.reset_nodes()
@@ -162,14 +162,10 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.unbind_node.array()
 
     self.unbind_measure.reset()
+    self.results_node_spiking.reset()
     self.results_node.reset()
-    self.results_node1.reset()
 
-    if self.useGPU:
-      self.associator_node.reset()
-    else:
-      for cn in self.associator_node:
-        cn.reset()
+    self.associator_node.reset()
 
   def drawTransferGraph(self, indices=None):
     self.drawGraph(["transfer"], indices)
@@ -188,18 +184,20 @@ class NeuralAssociativeMemory(AssociativeMemory):
     if self.useGPU:
       self.associator_node.drawGraph(functions, indices=indices)
 
-
-  def print_unbind_results_node_agreement(self, key):
-    print "Result node agreements: ", hrr.HRR(data=self.indices[key]).compare(hrr.HRR(data=self.unbind_measure.array()))
-
+  def print_unbind_results_node_agreement(self):
+    if len(self.tester.current_target_keys) > 0:
+      vector = self.indices[self.tester.current_target_keys[0]]
+      print "Result node agreements: ", hrr.HRR(data=vector).compare(hrr.HRR(data=self.unbind_measure.array()))
+    else:
+      print "Result node agreements: no expected match"
 
   def print_debug_info(self):
-    print >> sys.stderr, "printing results_node norm: ", numpy.linalg.norm(self.results_node.array())
+    print >> sys.stderr, "printing results_node norm: ", numpy.linalg.norm(self.results_node_spiking.array())
 
     print >> sys.stderr, "printing agreements" 
     agreements = []
     for i, vec in enumerate(self.items):
-      agreements.append((i,hrr.HRR(data=self.items[vec]).compare(hrr.HRR(data=self.results_node.array()))))
+      agreements.append((i,hrr.HRR(data=self.items[vec]).compare(hrr.HRR(data=self.results_node_spiking.array()))))
     print >> sys.stderr, agreements
 
     print >> sys.stderr, "dot product of unbind_measure with each of the id vecs"
@@ -209,7 +207,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     print >> sys.stderr, dot_prods
 
     print >> self.jump_results_file, "Result vector:"
-    print >> self.jump_results_file, self.results_node.array()
+    print >> self.jump_results_file, self.results_node_spiking.array()
 
 
 
