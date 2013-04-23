@@ -33,14 +33,18 @@ def bootstrap_CI(alpha, stat_func, data, num) :
 
 class Bootstrapper:
 
-  def __init__(self):
+  def __init__(self, verbose=False):
     self.data = {}
+    self.verbose = verbose
 
   def add_data(self, index, data):
     if not (index in self.data):
       self.data[index] = []
 
     self.data[index].append(data)
+
+    if self.verbose:
+      print "Bootstrapper adding data ... name: ", index, ", data: ", data
 
   def print_summary(self, output_file):
     mean = lambda x: float(sum(x)) / float(len(x))
