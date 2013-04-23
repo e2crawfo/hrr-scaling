@@ -16,7 +16,7 @@ import shutil
 from ccm.lib import hrr
 
 class AssociativeMemoryTester(object):
-  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=1, output_dir=".", isA_symbols = [], sentence_symbols = [], unitary=False):
+  def __init__(self, corpus, idVectors, structuredVectors, relation_symbols, associator, vector_indexing, cleanLevel = 0.3, seed=1, output_dir=".", isA_symbols = [], sentence_symbols = [], unitary=False, verbose=False):
 
         self.num_jumps = 0
 
@@ -47,6 +47,7 @@ class AssociativeMemoryTester(object):
         self.sentence_symbols = sentence_symbols
 
         self.bootstrapper = None
+        self.verbose = verbose
 
         self.key_indices = {}
         self.sentence_vocab = None
@@ -64,6 +65,12 @@ class AssociativeMemoryTester(object):
         self.current_relation_keys = None
         self.current_num_relations = None
 
+        self.test_threshold = 0.8
+        self.soft_threshold = 0.4
+
+        self.jump_plan_words = []
+        self.jump_plan_relation_indices = []
+
   def unbind_and_associate(self, item, query):
       self.num_jumps += 1
       result = self.associator.unbind_and_associate(item, query)
@@ -73,28 +80,11 @@ class AssociativeMemoryTester(object):
   def sufficient_norm(self, vector):
       return numpy.linalg.norm(vector) >= 0.1
 
-  def get_key_from_vector(self, vector, vector_dict):
-      if not self.sufficient_norm(vector):
-        return None
+  def set_jump_plan(self, w, ri):
+      self.jump_plan_words = w
+      self.jump_plan_relation_indices = ri
 
-      hrr_vec = hrr.HRR(data=vector)
-      comparisons=[(key, hrr_vec.compare(hrr.HRR(data=vector_dict[key]))) for key in vector_dict.keys()]
-
-      max_key = comparisons[0][0]
-      max_val = comparisons[0][1]
-
-      for pair in comparisons:
-        if pair[1] > max_val:
-          max_val = pair[1]
-          max_key = pair[0]
-
-      if max_val > 0.8:
-        return max_key
-      else:
-        return None
-
-
-  def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0):
+  def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
 
         self.print_header(output_file, "Testing link", char='-')
 
@@ -129,8 +119,10 @@ class AssociativeMemoryTester(object):
 
         if goal:
           if self.associator.return_vec:
-            cleanResultVectors = cleanResult
-            cleanResult, target_match, second_match, size = self.getStats(cleanResultVectors, goal, output_file)
+            cleanResultVector = cleanResult[0]
+            cleanResult, target_match, second_match, size = self.getStats(cleanResultVector, goal, output_file)
+
+            cleanResult = [cleanResult] if (target_match > threshold) else []
 
             print >> output_file, "target match: ", target_match
             print >> output_file, "second match : ", second_match
@@ -146,7 +138,7 @@ class AssociativeMemoryTester(object):
               self.add_data("rel_"+str(num_relations)+"_size", size)
             
             if return_vec:
-              return cleanResultVectors
+              return cleanResultVector
 
           if return_vec:
             #here there should be an error about trying to return vectors even though we 
@@ -164,7 +156,6 @@ class AssociativeMemoryTester(object):
                 break
 
             correct = goal in front
-
             validAnswers = all([r in answers for r in cleanResult])
             exactGoal = len(cleanResult) > 0 and cleanResult[0] == goal
 
@@ -174,8 +165,10 @@ class AssociativeMemoryTester(object):
 
         else:
           if self.associator.return_vec:
-            cleanResultVectors = cleanResult
-            cleanResult, largest, size = self.getStats(cleanResultVectors, None, self.hierarchical_results_file)
+            cleanResultVector = cleanResult[0]
+            cleanResult, largest, size = self.getStats(cleanResultVector, None, output_file)
+            cleanResult = []
+
             norm = numpy.linalg.norm(word_vec)
 
             print >> output_file, "negInitialVecSize: ", norm
@@ -187,7 +180,7 @@ class AssociativeMemoryTester(object):
             self.add_data("negSize", size)
 
             if return_vec:
-              return cleanResultVectors
+              return cleanResultVector
 
           return cleanResult
 
@@ -201,18 +194,9 @@ class AssociativeMemoryTester(object):
         valid_score = 0
         exact_score = 0
 
-        planned_words = []
-
-        #if "planned_words" in kwargs:
-        #  planned_words = kwargs["planned_words"]
-
-        relation_indices = []
-        #if "planned_relations" in kwargs:
-        #  relation_indices = kwargs["relation_indices"]
-
         while testNumber < n:
-            if testNumber < len(planned_words):
-              words = planned_words[testNumber: min(n, len(planned_words))]
+            if testNumber < len(self.jump_plan_words):
+              words = self.jump_plan_words[testNumber: min(n, len(self.jump_plan_words))]
             else:
               words = self.rng.sample(self.corpus, n-testNumber)
 
@@ -220,8 +204,8 @@ class AssociativeMemoryTester(object):
                 testableLinks = [r for r in self.corpus[word] if r[0] in self.relation_symbols]
 
                 if len(testableLinks) > 0:
-                    if testNumber < len(relation_indices):
-                      prompt = testableLinks[relation_indices[testNumber]]
+                    if testNumber < len(self.jump_plan_relation_indices):
+                      prompt = testableLinks[self.jump_plan_relation_indices[testNumber]]
                     else:
                       prompt = self.rng.sample(testableLinks, 1)[0]
 
@@ -229,7 +213,7 @@ class AssociativeMemoryTester(object):
 
                     answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
 
-                    result, correct, valid, exact = self.testLink(prompt[0], None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers)
+                    result, correct, valid, exact = self.testLink(prompt[0], None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers, threshold=self.test_threshold)
 
                     print >> sys.stderr, "Correct goal? ",correct
                     print >> sys.stderr, "Valid answers? ",valid
@@ -361,11 +345,14 @@ class AssociativeMemoryTester(object):
           if target_key is not None:
             print >> self.hierarchical_results_file, "Target:", target_key
 
-        store_vecs = self.associator.return_vec
+        use_vecs = use_HRR and self.associator.return_vec
 
         level = 0
-        if use_HRR and store_vecs:
+        if use_vecs:
           layerA = [self.structuredVectors[start_key]]
+
+          if target_key:
+            target_vector = self.structuredVectors[target_key]
         else:
           layerA = [start_key]
 
@@ -375,7 +362,19 @@ class AssociativeMemoryTester(object):
         while len(layerA) > 0:
             word = layerA.pop()
 
-            if use_HRR and store_vecs:
+            #test whether we've found the target
+            found = False
+            if use_vecs:
+              found = self.test_vector(word, target_vector)
+            else:
+              found = word == target_key
+
+            if found:
+              if print_output:
+                print >> self.hierarchical_results_file, target_key, "found at level ", level
+              return level
+            
+            if use_vecs:
               key = self.get_key_from_vector(word, self.structuredVectors)
             else:
               key = word
@@ -388,41 +387,37 @@ class AssociativeMemoryTester(object):
                 if print_output:
                   print >> self.hierarchical_results_file, key, "found at level ", level
 
-                if target_key and target_key == key:
-                  return level
+              links =  []
+              if not use_HRR:
+                links = [r[1] for r in self.corpus[word] if r[0] in rtype]
+              else:
+                for symbol in rtype:
+                  answers = [r[1] for r in self.corpus[key] if r[0] == symbol]
 
-            links =  []
-            if not use_HRR:
-              links = [r[1] for r in self.corpus[word] if r[0] in rtype]
-            else:
-              for symbol in rtype:
-                answers = [r[1] for r in self.corpus[key] if r[0] == symbol]
+                  if len(answers) == 0:
+                    target = None
+                  else:
+                    target = answers[0]
 
-                if len(answers) == 0:
-                  target = None
-                else:
-                  target = answers[0]
+                  num_relations = len(filter(lambda x: x[0] in self.relation_symbols, self.corpus[key]))
 
-                num_relations = len(filter(lambda x: x[0] in self.relation_symbols, self.corpus[key]))
-
-                if store_vecs:
-                  results = self.testLink(symbol, word, key, target, self.hierarchical_results_file, return_vec=store_vecs, depth=level, num_relations=num_relations, answers=answers)
-                  links.extend( filter(self.sufficient_norm, results) )
-                else:
-                  results = self.testLink(symbol, None, key, target, self.hierarchical_results_file, return_vec=store_vecs, depth=level, num_relations=num_relations, answers=answers)
-                  if answers:
-                    results=results[0]
-                  links.extend( results )
+                  if use_vecs:
+                    result = self.testLink(symbol, word, key, target, self.hierarchical_results_file, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
+                    links.append( result )
+                  else:
+                    results = self.testLink(symbol, None, key, target, self.hierarchical_results_file, return_vec=False, depth=level, num_relations=num_relations, answers=answers)
+                    if answers:
+                      results=results[0]
+                    links.extend( results )
 
 
-            if len(links) > 0:
-                layerB.extend(links)
+              if len(links) > 0:
+                  layerB.extend(links)
 
             if len(layerA)==0:
                 level = level + 1
                 layerA = layerB
                 layerB = []
-
 
         if target_key is None:
             return list(parents)
@@ -484,7 +479,7 @@ class AssociativeMemoryTester(object):
 
                 result, correct, valid, exact = self.testLink(self.sentence_vocab[symbol], sentenceVector, None, answer,
                     output_file = self.sentence_results_file, return_vec=False,
-                    relation_is_vec=True, num_relations=len(sentence), answers=[answer])
+                    relation_is_vec=True, num_relations=len(sentence), answers=[answer], threshold = self.test_threshold)
 
                 if exact:
                     sentence_score += 1
@@ -508,31 +503,59 @@ class AssociativeMemoryTester(object):
 
         self.add_data("sentence_score", percent)
 
-  def getStats(self, cleanResultVectors, answer, fp, do_matches=True):
+  def test_vector(self, vector, target):
+    """
+    This is used on the hierarchical test to simply decide whether we have found the vector or not
+    vector is the vector we are testing
+    target is the vector we are comparing to 
+    """
+    hrr_vec = hrr.HRR(data=vector)
+    return hrr_vec.compare(hrr.HRR(data=target)) > self.soft_threshold 
+    
 
-    cleanResult = [self.get_key_from_vector(v, self.structuredVectors) for v in cleanResultVectors]
+  def get_key_from_vector(self, vector, vector_dict, return_comps = False):
+      if not self.sufficient_norm(vector):
+        return None
 
-    size = numpy.linalg.norm(cleanResultVectors[0])
-    matches = [(key, hrr.HRR(data=cleanResultVectors[0]).compare(hrr.HRR(data=self.structuredVectors[key]))) for key in self.structuredVectors.keys()]
+      comparisons = self.find_matches(vector, vector_dict)
+      max_key, max_val = max(comparisons, key = lambda x: x[1])
 
-    largest = heapq.nlargest(2, matches, key = lambda x: x[1])
+      if max_val > self.soft_threshold:
+        return max_key
+      else:
+        return None
+
+  def find_matches(self, vector, vector_dict, exempt=[]):
+    hrr_vec = hrr.HRR(data=vector)
+    keys = vector_dict.keys()
+
+    for key in vector_dict.keys():
+      if key not in exempt:
+        yield (key, hrr_vec.compare(hrr.HRR(data=vector_dict[key])))
+    
+  def getStats(self, cleanResultVector, answer, fp, do_matches=True, threshold = 0.0):
+
+    size = numpy.linalg.norm(cleanResultVector)
 
     if not answer:
-      return (cleanResult, largest[0][1], size)
+      comparisons = self.find_matches(cleanResultVector, self.structuredVectors)
+      largest_match = max(comparisons, key = lambda x: x[1])
+      return (largest_match[0], largest_match[1], size)
 
-    target_match = None
-    second_match = None
-    if largest[0][0] == answer:
-      target_match = largest[0][1]
-      second_match = largest[1][1]
     else:
-      target_match = matches[ self.key_indices[answer] ][1]
-      second_match = largest[0][1]
+      comparisons = self.find_matches(cleanResultVector, self.structuredVectors, exempt=[answer])
+    
+      second_key, second_match = max(comparisons, key = lambda x: x[1])
 
-    print >> sys.stderr, "Guess keys: ", cleanResult
-    print >> fp, "Guess keys: ", cleanResult
+      hrr_vec = hrr.HRR(data=self.structuredVectors[answer])
+      target_match = hrr_vec.compare(hrr.HRR(data=cleanResultVector))
 
-    return (cleanResult, target_match, second_match, size)
+      if target_match > second_match:
+        cleanResult = answer
+      else:
+        cleanResult = second_key
+
+      return (cleanResult, target_match, second_match, size)
 
 
   def openJumpResultsFile(self, mode='w'):
@@ -607,7 +630,7 @@ class AssociativeMemoryTester(object):
       func, statNames=None, file_open_func=None, dataFunc=None):
     start_time = datetime.datetime.now()
 
-    self.bootstrapper = Bootstrapper()
+    self.bootstrapper = Bootstrapper(self.verbose)
 
     #Now start running the tests
     self.num_jumps = 0
