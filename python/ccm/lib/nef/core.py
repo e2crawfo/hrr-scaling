@@ -3,12 +3,11 @@ import ccm
 import copy
 
 import sys
-
-from ccm.lib.nef.connect import connect
-from ccm.lib.nef.accumulator import Accumulator
-
 import Queue
 import threading
+
+from .connect import connect
+from .accumulator import Accumulator
 
 nodeLock = threading.Lock()
 nodeCV = threading.Condition(nodeLock)

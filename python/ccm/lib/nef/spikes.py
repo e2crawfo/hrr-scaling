@@ -1,7 +1,8 @@
 import numpy
-from ccm.lib.nef.activity import ActivityNode
-from ccm.lib.nef.core import ArrayNode
 from numpy import dot
+
+from .activity import ActivityNode
+from .core import ArrayNode
 
 
 class SpikingNode(ActivityNode):

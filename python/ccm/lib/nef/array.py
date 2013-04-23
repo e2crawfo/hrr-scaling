@@ -1,7 +1,7 @@
-from ccm.lib.nef.values import HRRNode    
-from ccm.lib.nef.core import ArrayNode
-from ccm.lib.hrr import HRR
-from ccm.lib.nef.spikes import SpikingNode
+from .values import HRRNode    
+from .core import ArrayNode
+from .spikes import SpikingNode
+from ..hrr import HRR
 
 import numpy
 

@@ -7,8 +7,8 @@
 #from ca.nengo.util.impl import NodeThreadPool, NEFGPUInterface
 #from ca.nengo.sim.impl import LocalSimulator
 
-from ccm.lib.nef.spikes import SpikingNode
-from ccm.lib.nef.activity import ActivityNode
+from .spikes import SpikingNode
+from .activity import ActivityNode
 
 #from spikes import SpikingNode
 

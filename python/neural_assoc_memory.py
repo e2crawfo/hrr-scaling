@@ -44,10 +44,6 @@ class NeuralAssociativeMemory(AssociativeMemory):
     if not self.runtimes_file:
       self.runtimes_file=open(self.output_dir+'/neural_runtimes2', 'a')
 
-    #always use vector indexing so that for the hierarchical tests, we don't map back to a key, since thats kind of cheating
-    #this only really affects the behaviour of unbind_and_associate
-    self.vector_indexing = True
-
     #in the "core" case, indices will be the id vectors, items will be the structured vectors.
     self.indices=indices
     self.items=items
@@ -67,25 +63,25 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.item_node = nef.make_array_HRR('Item', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
 
     print "Creating query_node array"
-    self.query_node = nef.make_array_HRR('Query', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
+    self.query_node = nef.make_array_HRR('Query', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
 
     print "Creating unbind_results_node array"
-    self.unbind_results_node = nef.make_array_HRR('UnbindResult', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
+    self.unbind_results_node = nef.make_array_HRR('UnbindResult', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
 
     self.unbind_measure = nef.ArrayNode(self.dim)
     self.unbind_results_node.connect(self.unbind_measure)
 
     print "Creating results_node array"
     self.results_node1 = nef.ArrayNode(self.dim)
-    self.results_node = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
+    self.results_node = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
     self.results_node.connect(self.results_node1)
 
     print "Creating unbind array"
     self.unbind_node = nef.make_convolution('Unbind', self.item_node, self.query_node, self.unbind_results_node, neurons_per_dim, quick=True, invert_second=True)
 
     print "Creating associator nodes"
-    max_thresh = .9 
-    min_thresh = 0 
+    max_thresh = .9
+    min_thresh = 0
 
     #create a single associator ensemble to use as a template for the GPUCleanup class. 
     associator_node = nef.ScalarNode(min=min_thresh, max=max_thresh)
@@ -144,16 +140,6 @@ class NeuralAssociativeMemory(AssociativeMemory):
       if print_neuron_data and not self.useGPU:
         self.print_neuron_data()
 
-    matches = [hrr.HRR(data=self.results_node1.array()).compare(hrr.HRR(data=self.items[key])) for key in self.items.keys()]
-
-    max_match =  numpy.max(matches)
-    max_index =  numpy.argmax(matches)
-
-    del matches[max_index]
-
-    second_max_match =  numpy.max(matches)
-    second_max_index =  numpy.argmax(matches)
-
     #vector = self.results_node.array()
     vector = self.results_node1.array()
 
@@ -163,10 +149,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     now = datetime.datetime.now()
     self.write_to_runtime_file(now - then)
 
-    if self.vector_indexing:
-      return [vector]
-    else:
-      return [self.get_key_from_vector(vector, indices)]
+    return [vector]
 
   def finish(self):
     self.item_node.kill_multithreaded()

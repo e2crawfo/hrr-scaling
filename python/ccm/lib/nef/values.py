@@ -1,13 +1,14 @@
-from ccm.lib.nef.activity import ActivityNode
-from ccm.lib.nef.spikes import SpikingNode
-from ccm.lib.nef.core import ArrayNode
+from .activity import ActivityNode
+from .spikes import SpikingNode
+from .core import ArrayNode
 import numpy
 
 Node=SpikingNode
 #Node=ActivityNode
 #Node=ArrayNode
 
-from ccm.lib.hrr import HRR
+from ..hrr import HRR
+
 class HRRNode(Node):
     def __init__(self,size,min=None,max=None,**keys):
         if min is None: min=-numpy.sqrt(1.0/size)

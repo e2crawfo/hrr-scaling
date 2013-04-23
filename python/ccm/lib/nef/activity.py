@@ -1,9 +1,9 @@
 import numpy
 #import pylab
-from ccm.lib.nef.core import ArrayNode
-from ccm.lib.nef.generate import makeGenerator
-from ccm.lib.nef.storage import Storage
-from ccm.lib.nef.highdimension import calc_gamma_moments
+from .core import ArrayNode
+from .generate import makeGenerator
+from .storage import Storage
+from .highdimension import calc_gamma_moments
 
 svd_limit=1e-15
 

@@ -1,8 +1,8 @@
 
 import math
 import numpy
-from ccm.lib.nef.array import make_array_HRR
-from ccm.lib.nef.connect import connect
+from .array import make_array_HRR
+from .connect import connect
 
 def cconv(a, b):
     return numpy.real(numpy.ifft(numpy.fft(a)*numpy.fft(b)))
