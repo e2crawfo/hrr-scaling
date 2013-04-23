@@ -19,6 +19,7 @@ do_relation_stats = argvals.r
 use_bi_relations = argvals.b
 neural = argvals.n
 graph = argvals.g
+verbose = argvals.v
 
 id_vecs = argvals.i
 unitary_vecs = argvals.u
@@ -41,7 +42,7 @@ print test, num_runs, num_trials
 
 input_dir, output_dir = startup_utils.read_config(config_name)
 
-(corpusDict, idVectors, structuredVectors) = \
+(corpus_dict, idVectors, structuredVectors) = \
     startup_utils.setup_corpus(input_dir, relation_symbols, seed, save, dim, proportion, id_vecs=id_vecs, unitary_vecs=unitary_vecs)
 
 num_words = 0
@@ -52,14 +53,14 @@ relations = []
 kwargs = {}
 
 if num_words > 0:
-  (probes, words, relations) = startup_utils.gen_probes(num_words, relation_symbols)
+  (probes, words, relations) = startup_utils.gen_probes(corpus_dict, num_words, relation_symbols)
 
-  if len(relations) == len(words) and len(words) > 0:
-    kwargs["planned_relations"] = relation_indices
-    kwargs["planned_words"] = words
+  if not (len(relations) == len(words) and len(words) > 0):
+    words = []
+    relations = []
 
-if do_relation_stats:
-  kwargs["relation_stats"] = startup_utils.setup_relation_stats()
+#if do_relation_stats:
+#  kwargs["relation_stats"] = startup_utils.setup_relation_stats()
 
 
 if neural:
@@ -70,8 +71,11 @@ else:
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
-tester = AssociativeMemoryTester(corpusDict, idVectors, structuredVectors,
-                    relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols, seed=seed, unitary=unitary_vecs)
+tester = AssociativeMemoryTester(corpus_dict, idVectors, structuredVectors,
+                    relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols, seed=seed, unitary=unitary_vecs, verbose=verbose)
+
+if len(words) > 0:
+  tester.set_jump_plan(words, relations)
 
 if graph:
   data_display = startup_utils.draw_associator_graph
