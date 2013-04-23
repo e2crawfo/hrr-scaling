@@ -10,12 +10,6 @@ import copy
 
 from ccm.lib import nef
 
-thresh=0.3
-
-def transfer(x):
-    if x>thresh: return 1
-    return 0
-
 #returns a type (specifically a pointer to type "t" with depth "depth")
 def recursive_c_pointer_type(t, depth):
   return ( t if depth < 1 else POINTER(recursive_c_pointer_type(t,depth-1)))
@@ -39,7 +33,7 @@ def convert_to_carray(l, t, depth):
 class GPUCleanup(nef.ArrayNode):
 
   #index_vectors and result_vectors should both be lists of vectors
-  def __init__(self, devices, dt, auto, index_vectors, result_vectors, tau, node, probeFunctions=[], probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False):
+  def __init__(self, devices, dt, auto, index_vectors, result_vectors, tau, node, probeFunctions=[], probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x):
       self.libNeuralCleanupGPU = CDLL("libNeuralCleanupGPU.so")
 
       self.inputs=[]
@@ -68,7 +62,6 @@ class GPUCleanup(nef.ArrayNode):
       self.numNeuronsPerItem = len(alpha)
 
       self.dt = dt
-      #print "Decoder sum: ", sum(decoder)
 
       c_index_vectors = convert_to_carray(index_vectors, c_float, 2)
       c_result_vectors = convert_to_carray(result_vectors, c_float, 2)
