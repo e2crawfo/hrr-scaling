@@ -1,7 +1,7 @@
 import startup_utils
 from vector_operations import *
 import symbol_definitions
-from assoc_memory_tester import AssociativeMemoryTester
+from wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
 from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
 import random
@@ -22,7 +22,7 @@ graph = argvals.g
 verbose = argvals.v
 
 id_vecs = argvals.i
-unitary_vecs = argvals.u
+unitary = argvals.u
 
 if seed == -1:
   seed = random.randrange(1000)
@@ -42,8 +42,8 @@ print test, num_runs, num_trials
 
 input_dir, output_dir = startup_utils.read_config(config_name)
 
-(corpus_dict, idVectors, structuredVectors) = \
-    startup_utils.setup_corpus(input_dir, relation_symbols, seed, save, dim, proportion, id_vecs=id_vecs, unitary_vecs=unitary_vecs)
+(corpus_dict, id_vectors, semantic_pointers) = \
+    startup_utils.setup_corpus(input_dir, relation_symbols, seed, dim, id_vecs, unitary, proportion)
 
 num_words = 0
 probes = []
@@ -64,15 +64,15 @@ if num_words > 0:
 
 
 if neural:
-  associator = NeuralAssociativeMemory(idVectors, structuredVectors, id_vecs, unitary_vecs, bidirectional=use_bi_relations, output_dir = output_dir, probes=probes, thresh=threshold)
+  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, bidirectional=use_bi_relations, output_dir = output_dir, probes=probes, thresh=threshold)
 else:
-  associator = AssociativeMemory(idVectors, structuredVectors, threshold, id_vecs, unitary_vecs, bidirectional=use_bi_relations)
+  associator = AssociativeMemory(id_vectors, semantic_pointers, threshold, id_vecs, unitary, bidirectional=use_bi_relations)
 
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
-tester = AssociativeMemoryTester(corpus_dict, idVectors, structuredVectors,
-                    relation_symbols, associator, True, output_dir = output_dir, isA_symbols=isA_symbols, sentence_symbols=sentence_symbols, seed=seed, unitary=unitary_vecs, verbose=verbose)
+tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
+                    relation_symbols, associator, seed, output_dir, isA_symbols, sentence_symbols, unitary, verbose)
 
 if len(words) > 0:
   tester.set_jump_plan(words, relations)
