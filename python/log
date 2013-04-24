@@ -17,3 +17,7 @@ apr 22 2013 7:13 pm,
 -hierarchical test not working in the neural case...parameters on the neurons may not be correct.
 -notice that there are two different threshold funcs, one in gpu_cleanup.py, one in neural_associative_memory....two different thresholds too, should mesh these together.
 
+apr 24 2013 2:57 pm,
+-i've been adding tests to the test folder for the last couple of days...using a python lib called networkx for creating graphs to test on.
+
+
