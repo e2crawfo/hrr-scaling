@@ -1,4 +1,5 @@
-_isA_symbols = ['@', '@i']
+_isA_symbols = ['@']
+#_isA_symbols = ['@', '@i']
 holonym_symbols = ['#p', '#s', '#m']
 inv_isA_symbols = ['~', '~i']
 _uni_symbols = _isA_symbols + holonym_symbols 
