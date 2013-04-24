@@ -51,41 +51,33 @@ def read_config(config_name="config"):
 
 
 #Setup corpus
-def setup_corpus(input_dir, relation_symbols, seed, save, dim, proportion, id_vecs=False, unitary_vecs = False, use_corpus=True):
-  if use_corpus:
-    if dim != -1:
-      corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols, seed=seed+1)
-    else:
-      corpus = CorpusHandler(True, input_dir = input_dir, relation_symbols = relation_symbols, seed=seed+1)
+def setup_corpus(input_dir, relation_symbols, seed, dim, id_vecs=False, unitary_vecs = False, proportion = 1.0, save = False):
 
-    corpus.parseWordnet()
+  corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols, seed=seed+1)
 
-    if proportion < 1.0:
-      corpus.createCorpusSubset(proportion)
+  corpus.parseWordnet()
 
-    print "Wordnet data parsed."
-    corpus.formKnowledgeBase(id_vecs, unitary_vecs)
-    print "Knowledge base formed."
+  if proportion < 1.0:
+    corpus.createCorpusSubset(proportion)
 
-    corpusDict = corpus.corpusDict
-    idVectors = corpus.cleanupMemory
-    structuredVectors = corpus.knowledgeBase
+  print "Wordnet data parsed."
+  corpus.formKnowledgeBase(id_vecs, unitary_vecs)
+  print "Knowledge base formed."
 
-    if save:
-      print "Saving..."
-      corpus.saveCorpusDict(input_dir+'/cd1.data')
-      print "corpus saved"
-      corpus.saveCleanup(input_dir+'/clean1.data')
-      print "cleanup saved"
-      corpus.saveKnowledgeBase(input_dir+'/kb1.data')
-      print "knowledge base saved"
-  else:
-    corpus = CorpusHandler(True, D=dim, input_dir = input_dir)
-    corpus.corpusDict = None
-    idVectors = None
-    structuredVectors = None
+  corpusDict = corpus.corpusDict
+  id_vectors = corpus.cleanupMemory
+  semantic_pointers = corpus.knowledgeBase
 
-  return (corpusDict, idVectors, structuredVectors)
+  if save:
+    print "Saving..."
+    corpus.saveCorpusDict(input_dir+'/cd1.data')
+    print "corpus saved"
+    corpus.saveCleanup(input_dir+'/clean1.data')
+    print "cleanup saved"
+    corpus.saveKnowledgeBase(input_dir+'/kb1.data')
+    print "knowledge base saved"
+
+  return (corpusDict, id_vectors, semantic_pointers)
 
 
 #pick some key that i want to test...note this has to be the TARGET of something i decode
