@@ -17,11 +17,11 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
   _type = "Neural"
 
-  def __init__(self, indices, items, identity, unitary, neurons_per_item=10, neurons_per_dim=50,thresh=0.3, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], bidirectional=False):
+  def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=10, neurons_per_dim=50, thresh_min=-0.9,
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
 
     self.useGPU = useGPU
-    self.threshold = thresh
+    self.threshold = threshold
     self.transfer_func = lambda x: 1 if x > self.threshold else 0
 
     self.threads=threads
@@ -139,6 +139,8 @@ class NeuralAssociativeMemory(AssociativeMemory):
         self.print_debug_info()
       if print_neuron_data and not self.useGPU:
         self.print_neuron_data()
+
+      i += 1
 
     #vector = self.results_node.array()
     vector = self.results_node.array()

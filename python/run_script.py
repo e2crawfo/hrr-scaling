@@ -64,9 +64,9 @@ if num_words > 0:
 
 
 if neural:
-  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, bidirectional=use_bi_relations, output_dir = output_dir, probes=probes, thresh=threshold)
+  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes)
 else:
-  associator = AssociativeMemory(id_vectors, semantic_pointers, threshold, id_vecs, unitary, bidirectional=use_bi_relations)
+  associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold)
 
 isA_symbols = symbol_definitions.isA_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
