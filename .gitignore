@@ -15,3 +15,7 @@ data
 goodData
 wordnetData
 nef_data
+
+# images (graphs mostly) #
+#########
+*.png
