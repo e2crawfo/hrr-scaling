@@ -33,7 +33,9 @@ def convert_to_carray(l, t, depth):
 class GPUCleanup(nef.ArrayNode):
 
   #index_vectors and result_vectors should both be lists of vectors
-  def __init__(self, devices, dt, auto, index_vectors, result_vectors, tau, node, probeFunctions=[], probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x):
+  def __init__(self, devices, dt, auto, index_vectors, result_vectors, tau, node, probeFunctions=[], 
+      probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x, print_output=True):
+
       self.libNeuralCleanupGPU = CDLL("libNeuralCleanupGPU.so")
 
       self.inputs=[]
@@ -111,11 +113,13 @@ class GPUCleanup(nef.ArrayNode):
 
       c_returnSpikes = convert_to_carray(returnSpikes, c_int, 1)
 
+      print "Print output:", print_output, " ", int(print_output)
+
       self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), 
                                      c_int(self.dimensions), c_int(int(auto)), c_index_vectors, 
                                      c_result_vectors, c_float(tau), c_encoder, c_decoder, 
                                      c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), 
-                                     c_float(t_rc), c_returnSpikes) 
+                                     c_float(t_rc), c_returnSpikes, c_int(int(print_output)) )
 
       self.mode='gpu_cleanup'
 

@@ -18,11 +18,12 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True):
 
     self.useGPU = useGPU
     self.threshold = threshold
     self.transfer_func = lambda x: 1 if x > self.threshold else 0
+    self.print_output = print_output
 
     self.threads=threads
     if seed is not None:
@@ -60,7 +61,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     minimum = -maximum
 
     print "Creating item_node array"
-    self.item_node = nef.make_array_HRR('Item', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
+    self.item_node = nef.make_array_HRR('Item', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
 
     print "Creating query_node array"
     self.query_node = nef.make_array_HRR('Query', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
@@ -73,7 +74,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     print "Creating results_node array"
     self.results_node = nef.ArrayNode(self.dim)
-    self.results_node_spiking = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum) 
+    self.results_node_spiking = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
 
     print "Creating unbind array"
     self.unbind_node = nef.make_convolution('Unbind', self.item_node, self.query_node, self.unbind_results_node, neurons_per_dim, quick=True, invert_second=True)
@@ -90,19 +91,18 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
-   
+
     scale = 1.0
 
     item_keys = self.items.keys()
     scaled_items = [scale * self.items[key] for key in item_keys]
     indices = [self.indices[key] for key in item_keys]
 
-    #populate the probe indices based on the probe keys
     for probe in probes:
       if probe.itemKey :
         probe.itemIndex = item_keys.index(probe.itemKey)
 
-    self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func)
+    self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=0.02)

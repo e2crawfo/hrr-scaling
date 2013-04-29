@@ -338,7 +338,8 @@ long getDeviceCapacity(int device)
   
 void initializeDeviceInputAndOutput(NengoGPUData* nengoData)
 {
-  printf("Initializing input and output: device %d\n", nengoData->device);
+  if(nengoData->do_print)
+    printf("Initializing input and output: device %d\n", nengoData->device);
   
   char* name;
 
@@ -391,7 +392,10 @@ void reset_NEFEnsembles(NengoGPUData* nengoData)
   printf("Done resetting NEF fields: device %d\n", nengoData->device);
   */
   cudaError_t err;
-  printf("Resetting NEF fields: device %d\n", nengoData->device);
+
+  if(nengoData->do_print)
+    printf("Resetting NEF fields: device %d\n", nengoData->device);
+
   err = cudaMemset(nengoData->inputDevice->array, 0, sizeof(float) * nengoData->dimension);
   checkCudaErrorWithDevice(err, nengoData->device, "cuda setup structures");
   err = cudaMemset(nengoData->transformResult->array, 0, sizeof(float) * nengoData->numItems);
@@ -409,7 +413,9 @@ void reset_NEFEnsembles(NengoGPUData* nengoData)
   checkCudaErrorWithDevice(err, nengoData->device, "cuda setup structures");
   err = cudaMemset(nengoData->spikes->array, 0, sizeof(float) * nengoData->numNeuronsPerItem * nengoData->numItems);
   checkCudaErrorWithDevice(err, nengoData->device, "cuda setup structures");
-  printf("Done resetting NEF fields: device %d\n", nengoData->device);
+
+  if(nengoData->do_print)
+    printf("Done resetting NEF fields: device %d\n", nengoData->device);
   
 }
 
