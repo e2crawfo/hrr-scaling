@@ -191,7 +191,7 @@ class GPUCleanup(nef.ArrayNode):
       if indices is None or probe.itemIndex in indices:
         if probe.name in functionNames:
           plt.plot(self.time_points_prev, self.history[probe], ltd[probe.name])
-          l.append(str(probe.itemIndex) + ", " + probe.name)
+          l.append(str(probe.itemKey) + ", " + probe.name)
 
     plt.legend(l, loc=2)
 

@@ -17,7 +17,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
   _type = "Neural"
 
-  def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=10, neurons_per_dim=50, thresh_min=-0.9,
+  def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
       thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = []):
 
     self.useGPU = useGPU
@@ -80,12 +80,12 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     print "Creating associator nodes"
 
-    max_thresh = .9
-    min_thresh = 0
+    self.max_thresh = .9
+    self.min_thresh = 0
 
     #create a single associator ensemble to use as a template for the GPUCleanup class. 
-    associator_node = nef.ScalarNode(min=min_thresh, max=max_thresh)
-    associator_node.configure(neurons=self.neurons_per_item,threshold_min=min_thresh,threshold_max=max_thresh,
+    associator_node = nef.ScalarNode(min=self.min_thresh, max=self.max_thresh)
+    associator_node.configure(neurons=self.neurons_per_item,threshold_min=self.min_thresh,threshold_max=self.max_thresh,
                     saturation_range=(200,200),apply_noise=False)
 
     probeFunctions = [lambda x: x, self.transfer_func]
@@ -97,10 +97,10 @@ class NeuralAssociativeMemory(AssociativeMemory):
     scaled_items = [scale * self.items[key] for key in item_keys]
     indices = [self.indices[key] for key in item_keys]
 
-    #correct probes which are specified by their key rather than the item index
+    #populate the probe indices based on the probe keys
     for probe in probes:
-      if type(probe.itemIndex) is tuple:
-        probe.itemIndex = item_keys.index(probe.itemIndex)
+      if probe.itemKey :
+        probe.itemIndex = item_keys.index(probe.itemKey)
 
     self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func)
 
@@ -179,11 +179,12 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.drawGraph(["identity", "transfer"], indices)
 
   def drawGraph(self, functions, indices=None):
-    if indices:
-      item_keys = self.items.keys()
-      indices = [item_keys.index(i) if type(i) is tuple else i for i in indices]
-
     if self.useGPU:
+
+      if indices:
+        item_keys = self.items.keys()
+        indices = [item_keys.index(i) if type(i) is tuple else i for i in indices]
+
       self.associator_node.drawGraph(functions, indices=indices)
 
   def print_unbind_results_node_agreement(self):
@@ -233,3 +234,11 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     print "J_threshold:", self.associator_node[0].J_threshold
 
+
+  def print_config(self, output_file):
+    super(NeuralAssociativeMemory, self).print_config(output_file)
+
+    output_file.write("Neurons per item: " + str(self.neurons_per_item) + "\n")
+    output_file.write("Neurons per dim: " + str(self.neurons_per_dim) + "\n")
+    output_file.write("Min thresh: " + str(self.max_thresh) + "\n")
+    output_file.write("Max thresh: " + str(self.min_thresh) + "\n")
