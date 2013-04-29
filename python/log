@@ -20,4 +20,23 @@ apr 22 2013 7:13 pm,
 apr 24 2013 2:57 pm,
 -i've been adding tests to the test folder for the last couple of days...using a python lib called networkx for creating graphs to test on.
 
+apr 25 2013 5:18 pm,
+-the problem was I wasn't using enough neurons in the cleanup! had to use 20 in each ensemble
+-this is really important, and is actually confirmed by the results connor got
+
+apr 26 2013 3:13 pm,
+
+-I'm going to start the unidirectional neural jump tests...only "", "-u" and "-iu
+-here I just want to record the official word on how the network decides on success on the jump test:
+
+*************
+Basically, I want to say its a success if the similarity between the returned vector and the correct semantic
+pointer is greater than test_threshold = 0.8 and is greater than the similarity with any incorrect result.
+
+So in the case of associators that return vectors, the "correct" stat will be the one I concern myself with,
+all the others will be false since they only really apply in the case where multiple answers are returned
+*************
+
+-added a class to test assoc_memory_tester specifically, separate classes for the vector and non-vector case (both should use the assoc_memory rather than neural_assoc_memory for speed purposes). specifically want to test testLink since its such a complicated function
+
 
