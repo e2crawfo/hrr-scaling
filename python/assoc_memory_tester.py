@@ -60,6 +60,9 @@ class AssociativeMemoryTester(object):
       return result
 
 
+
+
+
   def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
 
         self.print_header(output_file, "Testing link", char='-')
@@ -96,25 +99,36 @@ class AssociativeMemoryTester(object):
         if goal:
           if self.associator.return_vec:
             cleanResultVector = cleanResult[0]
-            cleanResult, target_match, second_match, size = self.getStats(cleanResultVector, goal, output_file)
 
-            cleanResult = [cleanResult] if (target_match > threshold) else []
+            if goal in answers:
+              answers.remove(goal)
+
+            cleanResult, target_match, second_match, size, highest_invalid_match \
+              = self.getStats(cleanResultVector, goal, answers, output_file)
 
             print >> output_file, "target match: ", target_match
             print >> output_file, "second match : ", second_match
+            print >> output_file, "size : ", size
+            print >> output_file, "highest_invalid_match : ", highest_invalid_match
             print >> output_file, "num_relations: ", num_relations
 
             self.add_data("depth_"+str(depth)+"_target_match", target_match)
             self.add_data("depth_"+str(depth)+"_second_match", second_match)
             self.add_data("depth_"+str(depth)+"_size", size)
+            self.add_data("depth_"+str(depth)+"_hinv_match", highest_invalid_match)
 
             if num_relations > 0:
               self.add_data("rel_"+str(num_relations)+"_target_match", target_match)
               self.add_data("rel_"+str(num_relations)+"_second_match", second_match)
               self.add_data("rel_"+str(num_relations)+"_size", size)
+              self.add_data("rel_"+str(num_relations)+"_hinv_match", highest_invalid_match)
             
+            jump_correct = target_match > self.test_threshold and target_match > highest_invalid_match
+
             if return_vec:
               return cleanResultVector
+            else:
+              return (cleanResult, jump_correct, False, False)
 
           if return_vec:
             #here there should be an error about trying to return vectors even though we 
@@ -194,28 +208,46 @@ class AssociativeMemoryTester(object):
       if key not in exempt:
         yield (key, hrr_vec.compare(hrr.HRR(data=vector_dict[key])))
     
-  def getStats(self, cleanResultVector, answer, fp, do_matches=True, threshold = 0.0):
+  def getStats(self, cleanResultVector, goal, other_answers, fp, threshold = 0.0):
     size = numpy.linalg.norm(cleanResultVector)
 
-    if not answer:
+    if not goal:
       comparisons = self.find_matches(cleanResultVector, self.semantic_pointers)
       largest_match = max(comparisons, key = lambda x: x[1])
       return (largest_match[0], largest_match[1], size)
-
     else:
-      comparisons = self.find_matches(cleanResultVector, self.semantic_pointers, exempt=[answer])
-    
-      second_key, second_match = max(comparisons, key = lambda x: x[1])
+      comparisons = self.find_matches(cleanResultVector, self.semantic_pointers, exempt=[goal])
 
-      hrr_vec = hrr.HRR(data=self.semantic_pointers[answer])
+      if other_answers:
+        invalids = []
+        valids = []
+        for c in comparisons:
+          if c[0] in other_answers:
+            valids.append(c)
+          else:
+            invalids.append(c)
+      
+        max_invalid_key, max_invalid_match = max(invalids, key=lambda x:x[1])
+        max_valid_key, max_valid_match = max(valids, key=lambda x:x[1])
+
+        if max_invalid_match > max_valid_match:
+          second_key, second_match = max_invalid_key, max_invalid_match
+        else:
+          second_key, second_match = max_valid_key, max_valid_match
+
+      else:
+        second_key, second_match = max(comparisons, key=lambda x: x[1])
+        max_invalid_match = second_match
+
+      hrr_vec = hrr.HRR(data=self.semantic_pointers[goal])
       target_match = hrr_vec.compare(hrr.HRR(data=cleanResultVector))
 
       if target_match > second_match:
-        cleanResult = answer
+        cleanResult = goal
       else:
         cleanResult = second_key
 
-      return (cleanResult, target_match, second_match, size)
+      return (cleanResult, target_match, second_match, size, max_invalid_match)
 
   def copyFile(self, fp, func=None):
     if func:
