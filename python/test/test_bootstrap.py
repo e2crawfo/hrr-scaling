@@ -1,7 +1,11 @@
 from ..bootstrap import *
-import unittest
+
 import random
 
+import unittest
+from nose.plugins.attrib import attr
+
+@attr(speed='fast')
 class TestBootstrapFunctions(unittest.TestCase):
 
   def setUp(self):

@@ -2,16 +2,18 @@ from ..neural_assoc_memory import NeuralAssociativeMemory
 from ..vector_operations import *
 from ..ccm.lib import hrr
 
-import unittest
 import random
-
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
+import unittest
+from nose.plugins.attrib import attr
+
 class DummyTester(object):
   current_target_keys = None
 
+@attr(speed='slow')
 class TestNeuralCleanup(unittest.TestCase):
 
   def setUp(self):
@@ -32,8 +34,8 @@ class TestNeuralCleanup(unittest.TestCase):
 
     semantic_pointer = reduce(self.cconv_func, zip(roles, items), genVec(D))
     semantic_pointer = normalize(semantic_pointer)
-    nam = NeuralAssociativeMemory(items_dict, items_dict, False, False)
 
+    nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
     for r, i in zip(roles, items):
 
@@ -59,7 +61,7 @@ class TestNeuralCleanup(unittest.TestCase):
     self.cconv_func = lambda v, t: cconv(t[0], t[1]) + v
     semantic_pointer = reduce(self.cconv_func, zip(roles, items), genVec(D))
     semantic_pointer = normalize(semantic_pointer)
-    nam = NeuralAssociativeMemory(items_dict, items_dict, False, False)
+    nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
     for r, i in zip(roles, items):
       vec = nam.unbind_and_associate(semantic_pointer, r)
@@ -87,7 +89,7 @@ class TestNeuralCleanup(unittest.TestCase):
     expanded_roles = reduce(lambda x, y: x.extend(y), [roles for i in range(ratio)], [])
     semantic_pointer = reduce(self.cconv_func, zip(roles, items), genVec(D))
     semantic_pointer = normalize(semantic_pointer)
-    nam = NeuralAssociativeMemory(items_dict, items_dict, False, False)
+    nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
     for r, i in zip(roles, items):
       vec = nam.unbind_and_associate(semantic_pointer, r)
@@ -142,7 +144,7 @@ class TestNeuralCleanup(unittest.TestCase):
     indices_dict = dict( zip(range(num_vertices), id_vecs))
     items_dict = dict( zip(range(num_vertices), semantic_pointers))
 
-    nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False)
+    nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
     dummy_tester = DummyTester()
     nam.set_tester(dummy_tester)

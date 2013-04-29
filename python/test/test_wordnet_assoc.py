@@ -9,11 +9,11 @@ import unittest
 from nose.plugins.attrib import attr
 
 #for test selecting using Attrib nose plugin
-@attr(new=1)
+#@attr(speed='fast')
 class TestWordnetAssoc(unittest.TestCase):
 
   def createAssociator(self, id_vectors, semantic_pointers):
-    self.associator = AssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold)
+    pass
 
   def setUp(self):
     self.id = False
@@ -38,31 +38,31 @@ class TestWordnetAssoc(unittest.TestCase):
         relation_symbols, self.associator, seed, output_dir, isA_symbols, sentence_symbols, self.uv, True)
 
   def test_jump(self):
-    self.tester.runBootstrap_jump(2, 2)
+    self.tester.runBootstrap_jump(1, 1)
 
   def test_hierarchical(self):
-    self.tester.runBootstrap_hierarchical(2, 2)
+    self.tester.runBootstrap_hierarchical(1, 1)
 
   def test_sentence(self):
-    self.tester.runBootstrap_sentence(2, 2)
-
+    self.tester.runBootstrap_sentence(1, 1)
 
 #for test selecting using Attrib nose plugin
-@attr(new=1)
-@attr(neural=1)
+@attr(speed='fast')
+class TestWordnetAssocNonVector(TestWordnetAssoc):
+
+  def createAssociator(self, id_vectors, semantic_pointers):
+    self.associator = AssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold)
+
+#for test selecting using Attrib nose plugin
+@attr(speed='fast')
+class TestWordnetAssocVector(TestWordnetAssoc):
+
+  def createAssociator(self, id_vectors, semantic_pointers):
+    self.associator = AssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold, return_vec=True)
+
+#for test selecting using Attrib nose plugin
+@attr(speed='slow')
 class TestWordnetAssocNeural(TestWordnetAssoc):
 
   def createAssociator(self, id_vectors, semantic_pointers):
-    self.associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold)
-
-  #def test_jump(self):
-  #  self.tester.runBootstrap_jump(2, 2)
-
-  #def test_hierarchical(self):
-  #  self.tester.runBootstrap_hierarchical(2, 2)
-
-  #def test_sentence(self):
-  #  self.tester.runBootstrap_sentence(2, 2)
-
-
-
+    self.associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold, print_output=False)
