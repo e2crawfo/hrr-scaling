@@ -1,3 +1,12 @@
+
+try:
+  import matplotlib as mpl
+  mpl.use('Agg')
+  import matplotlib.pyplot as plt
+  can_plot = True
+except ImportError:
+  can_plot = False
+
 import startup_utils
 from vector_operations import *
 import symbol_definitions
@@ -18,7 +27,8 @@ config_name = argvals.c
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
 neural = argvals.n
-graph = argvals.g
+graph = argvals.g and can_plot
+
 verbose = argvals.v
 
 id_vecs = argvals.i
@@ -45,15 +55,16 @@ input_dir, output_dir = startup_utils.read_config(config_name)
 (corpus_dict, id_vectors, semantic_pointers) = \
     startup_utils.setup_corpus(input_dir, relation_symbols, seed, dim, id_vecs, unitary, proportion)
 
+#change these to use specific words/relations
 num_words = 0
 probes = []
-words = []
+#words = [('n', 2606384)]
+#relations = [0]
+words  = []
 relations = []
 
-kwargs = {}
-
 if num_words > 0:
-  (probes, words, relations) = startup_utils.gen_probes(corpus_dict, num_words, relation_symbols)
+  (probes, words, relations) = startup_utils.gen_probes(corpus_dict, num_words, relation_symbols, words, relations)
 
   if not (len(relations) == len(words) and len(words) > 0):
     words = []
@@ -91,6 +102,9 @@ elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials, dataFunc = data_display)
 else:
   pass
+
+if graph:
+  plt.savefig('neurons.png')
 
 #For paper:
 #tester.runBootstrap_jump(20, 100, dataFunc = data_display, **kwargs)

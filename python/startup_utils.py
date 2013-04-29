@@ -84,7 +84,7 @@ def setup_corpus(input_dir, relation_symbols, seed, dim, id_vecs=False, unitary_
 # then add a word/relation combo to the jump test that will decode to that key
 # then add a probe on that key so we can see what happens!
 
-def gen_probes(corpus_dict, num_words, relation_symbols):
+def gen_probes(corpus_dict, num_words, relation_symbols, words=[], relations=[]):
   """Generate probes for an associative memory test.
 
   Specify links to be tested ahead of time, and put probes on the
@@ -95,23 +95,29 @@ def gen_probes(corpus_dict, num_words, relation_symbols):
   """
 
   probes = []
-  words = []
-  relations = []
 
   n = 0
   while n < num_words: 
-    word = random.sample(corpus_dict, 1)[0]
-    testableLinks = [r for r in corpus_dict[word] if r[0] in relation_symbols]
+    if n < len(words):
+      testableLinks = [r for r in corpus_dict[words[n]] if r[0] in relation_symbols]
+      link = testableLinks[relations[n]]
+    else:
+      word = random.sample(corpus_dict, 1)[0]
+      testableLinks = [r for r in corpus_dict[word] if r[0] in relation_symbols]
 
-    if len(testableLinks) > 0:
-      index = random.sample(range(len(testableLinks)), 1)[0]
-      link = testableLinks[index]
+      if len(testableLinks) > 0:
+        index = random.sample(range(len(testableLinks)), 1)[0]
+        link = testableLinks[index]
+      else:
+        continue
 
       words.append(word)
-      probes.append(Probe(link[1], "identity"))
-      probes.append(Probe(link[1], "transfer"))
       relations.append(index)
-      n+=1 
+
+    probes.append(Probe(link[1], None, "identity"))
+    probes.append(Probe(link[1], None, "transfer"))
+
+    n+=1 
 
   return (probes, words, relations)
 
