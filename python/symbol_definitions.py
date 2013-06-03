@@ -1,5 +1,4 @@
-_isA_symbols = ['@']
-#_isA_symbols = ['@', '@i']
+_isA_symbols = ['@', '@i']
 holonym_symbols = ['#p', '#s', '#m']
 inv_isA_symbols = ['~', '~i']
 _uni_symbols = _isA_symbols + holonym_symbols 
@@ -49,6 +48,10 @@ _sentence_role_symbols = {    # (frequency of occurrence, part of speech)
 def isA_symbols():
   """Return isA relation symbols"""
   return _isA_symbols
+  #return ['@']
+
+def partOf_symbols():
+  return holonym_symbols
 
 def uni_relation_symbols():
   """Return unidirectional relation symbols"""

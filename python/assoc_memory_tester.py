@@ -156,7 +156,7 @@ class AssociativeMemoryTester(object):
         else:
           if self.associator.return_vec:
             cleanResultVector = cleanResult[0]
-            cleanResult, largest, size = self.getStats(cleanResultVector, None, output_file)
+            cleanResult, largest, size = self.getStats(cleanResultVector, None, None, output_file)
             cleanResult = []
 
             norm = numpy.linalg.norm(word_vec)

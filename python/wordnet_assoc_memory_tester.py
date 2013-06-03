@@ -14,7 +14,7 @@ import sys
 
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed=1, output_dir=".", isA_symbols = [], sentence_symbols = [], unitary=False, verbose=False):
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed=1, output_dir=".", isA_symbols = [], partOf_symbols = [], sentence_symbols = [], unitary=False, verbose=False):
 
         super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
             semantic_pointers, associator, seed, output_dir, unitary, verbose)
@@ -385,12 +385,15 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, dataFunc=dataFunc)
 
 
-  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None):
+  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None, symbols=None):
 
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
 
-    htest = lambda x, y, dataFunc=None: self.hierarchicalTest(x,y, stats_depth, rtype=self.isA_symbols, dataFunc=dataFunc)
+    if not symbols:
+      symbols = self.isA_symbols
+
+    htest = lambda x, y, dataFunc=None: self.hierarchicalTest(x,y, stats_depth, rtype=symbols, dataFunc=dataFunc)
 
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func, dataFunc=dataFunc)
 
