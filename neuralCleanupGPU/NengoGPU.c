@@ -21,6 +21,7 @@ extern "C"{
 
 NengoGPUData** nengoDataArray;
 float startTime = 0, endTime = 0;
+int do_print;
 volatile int myCVsignal = 0;
 int numDevices = 0;
 
@@ -121,7 +122,8 @@ int manipulateKill(int action)
 // This function initializes the synchronization primitives and creates a new thread for each GPU in use.
 void run_start()
 {
-  printf("NengoGPU: RUN_START\n");
+  if(do_print)
+    printf("NengoGPU: RUN_START\n");
 
   manipulateReset(-1);
   manipulateKill(-1);
@@ -186,13 +188,21 @@ void* start_GPU_thread(void* arg)
 
   int numDevicesFinished;
 
-  printf("GPU Thread %d: about to acquire device\n", nengoData->device);
+  if (nengoData->do_print)
+    printf("GPU Thread %d: about to acquire device\n", nengoData->device);
+
   initGPUDevice(nengoData->device);
-  printf("GPU Thread %d: done acquiring device\n", nengoData->device);
+
+  if (nengoData->do_print)
+    printf("GPU Thread %d: done acquiring device\n", nengoData->device);
   
-  printf("GPU Thread %d: about to move simulation data to device\n", nengoData->device);
+  if (nengoData->do_print)
+    printf("GPU Thread %d: about to move simulation data to device\n", nengoData->device);
+
   moveToDeviceNengoGPUData(nengoData);
-  printf("GPU Thread %d: done moving simulation data to device\n", nengoData->device);
+
+  if (nengoData->do_print)
+    printf("GPU Thread %d: done moving simulation data to device\n", nengoData->device);
 
   //printVecs(nengoData);
 
@@ -286,17 +296,21 @@ void run_kill()
 // with ctypes (but can also, of course, be called from c)
 // sizes store number of ensembles, number of network arrays and number of projections
 
-void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes)
+void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data)
 {
-  printf("NengoGPU: SETUP\n"); 
-
 
   int i, j, k;
   
   int numAvailableDevices = getGPUDeviceCount();
+
+  do_print = print_data;
+  if(do_print)
+    printf("NengoGPU: SETUP\n"); 
+
   numDevices = numDevicesRequested > numAvailableDevices ? numAvailableDevices : numDevicesRequested;
 
-  printf("Using %d devices. %d available\n", numDevices, numAvailableDevices);
+  if(do_print)
+    printf("Using %d devices. %d available\n", numDevices, numAvailableDevices);
 
   nengoDataArray = (NengoGPUData**) malloc(sizeof(NengoGPUData*) * numDevices);
 
@@ -308,7 +322,8 @@ void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int
     nengoDataArray[i] = getNewNengoGPUData();
   }
 
-  printf("About to create the NengoGPUData structures\n");
+  if(do_print)
+    printf("About to create the NengoGPUData structures\n");
 
   int items_per_device = numVectors / numDevices;
   int leftover = numVectors % numDevices;
@@ -326,6 +341,7 @@ void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int
     
     currentData->device = i;
 
+    currentData->do_print = do_print;
     currentData->numNeuronsPerItem = num_neurons;
     currentData->dimension = dimension;
     currentData->autoassociative = autoassociative;
@@ -394,7 +410,7 @@ void step(float* input, float* output, float* spikes, float start, float end)
   startTime = start;
   endTime = end;
 
-  if(((int) (startTime * 1000)) % 10 == 0)
+  if(do_print && ((int) (startTime * 1000)) % 10 == 0)
     printf("NengoGPU: STEP %f\n", start);
 
   NengoGPUData* currentData;
@@ -443,13 +459,17 @@ void step(float* input, float* output, float* spikes, float start, float end)
 
 void kill()
 {
-  printf("NengoGPU: KILL\n");
+  if(do_print)
+    printf("NengoGPU: KILL\n");
+
   run_kill();
 }
 
 void reset()
 {
-  printf("NengoGPU: RESET\n");
+  if(do_print)
+    printf("NengoGPU: RESET\n");
+
   manipulateReset(1);
 
   pthread_mutex_lock(mutex);

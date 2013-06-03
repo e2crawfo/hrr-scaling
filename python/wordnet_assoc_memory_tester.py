@@ -68,9 +68,6 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
                     result, correct, valid, exact = self.testLink(prompt[0], None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers, threshold=self.test_threshold)
 
-                    print >> sys.stderr, "Correct goal? ",correct
-                    print >> sys.stderr, "Valid answers? ",valid
-                    print >> sys.stderr, "Exact goal? ",exact
                     print >> self.jump_results_file, "Correct goal? ",correct
                     print >> self.jump_results_file, "Valid answers? ",valid
                     print >> self.jump_results_file, "Exact goal? ",exact

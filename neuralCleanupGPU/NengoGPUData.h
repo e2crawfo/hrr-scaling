@@ -88,6 +88,7 @@ struct NengoGPUData_t{
   int onDevice;
   int initialized;
   int device;
+  int do_print;
   float maxTimeStep;
 
   float startTime;

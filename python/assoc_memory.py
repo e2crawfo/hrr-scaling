@@ -15,7 +15,7 @@ class AssociativeMemory(object):
 
   # the associative memory maps from indices to items
   # indices and items must both be dictionaries, whose values are vectors
-  def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3):
+  def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, return_vec=False):
     self.indices = indices
     self.items = items
     self.threshold = threshold
@@ -24,7 +24,7 @@ class AssociativeMemory(object):
     self.unitary = unitary
     self.identity = identity
     self.similarities = dict(zip(indices.keys(), [0 for i in range(len(indices))]))
-    self.return_vec = False
+    self.return_vec = return_vec
     self.bidirectional = bidirectional
 
   def set_tester(self, tester):

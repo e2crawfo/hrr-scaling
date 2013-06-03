@@ -302,6 +302,7 @@ NengoGPUData* getNewNengoGPUData()
   new->device = 0;
   new->maxTimeStep = 0;
   new->initialized = 0;
+  new->do_print = 0;
 
   new->startTime = 0.0;
   new->endTime = 0.0;
