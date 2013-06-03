@@ -7,6 +7,7 @@ from ccm.lib import hrr
 from vector_operations import *
 from bootstrap import Bootstrapper
 import heapq
+import random
 
 class AssociativeMemory(object):
 
@@ -92,9 +93,73 @@ class AssociativeMemory(object):
     output_file.write("Unitary: " + str(self.unitary) + "\n")
     output_file.write("Identity: " + str(self.identity) + "\n")
     output_file.write("Bidirectional: " + str(self.bidirectional) + "\n")
-    output_file.write("Num items: " + str(len(self.indices)) + "\n")
+    output_file.write("Num items: " + str(len(self.items)) + "\n")
+    output_file.write("Num indices: " + str(len(self.indices)) + "\n")
     output_file.write("Dimension: " + str(self.dim) + "\n")
     output_file.write("Threshold: " + str(self.threshold) + "\n")
     output_file.write("Seed: " + str(self.tester.seed) + "\n")
     output_file.write("Associator type: " + str(self._type) + "\n")
+
+  def get_similarities_random(self, s, n, dataFunc=None):
+    samples_per_vec = 500
+    i = 0
+    print "In get_similarities_random"
+    for idkey1 in self.hrr_vecs.keys():
+
+      key_sample = random.sample(self.hrr_vecs, samples_per_vec)
+      vec1 = self.hrr_vecs[idkey1]
+
+      if i % 100 == 0:
+        print "Sampling for vector: ", i
+
+      for idkey2 in key_sample:
+        if idkey1 == idkey2:
+          continue
+        vec2 = self.hrr_vecs[idkey2]
+
+        similarity = vec1.compare(vec2)
+        self.tester.add_data(idkey1, similarity)
+        self.tester.add_data(idkey2, similarity)
+        self.tester.add_data("all", similarity)
+
+      i += 1
+
+  def get_similarities_sample(self, s, n, dataFunc=None):
+    num_samples = 2 * len(self.hrr_vecs)
+    threshold = 0.1
+    print "In get_similarities_sample"
+    print "Num samples:" + str(num_samples)
+    print "Threshold:" + str(threshold)
+
+    for i in range(num_samples):
+      idkey1, idkey2 = random.sample(self.hrr_vecs, 2)
+      vec1 = self.hrr_vecs[idkey1]
+      vec2 = self.hrr_vecs[idkey2]
+
+      similarity = vec1.compare(vec2)
+
+      if similarity > threshold:
+        self.tester.add_data("all", similarity)
+
+      if i % 1000 == 0:
+        print "Trial: ", i
+
+
+  def get_similarities(self, s, n, dataFunc=None):
+    """get similarities of idvectors"""
+    remaining_keys = self.hrr_vecs.keys()
+    for idkey2 in self.hrr_vecs.keys():
+      vec1 = self.hrr_vecs[idkey1]
+
+      for idkey2 in remaining_keys:
+        if idkey1 == idkey2:
+          continue
+        vec2 = self.hrr_vecs[idkey2]
+
+        similarity = vec1.compare(vec2)
+        self.tester.add_data(idkey1, similarity)
+        self.tester.add_data(idkey2, similarity)
+        self.tester.add_data("all", similarity)
+
+      remaining_keys.remove(idkey1)
 

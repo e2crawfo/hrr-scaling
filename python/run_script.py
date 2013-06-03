@@ -104,6 +104,8 @@ elif test == 'm':
   tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display, symbols=partOf_symbols)
 elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials, dataFunc = data_display)
+elif test == 'c':
+  tester.get_similarities()
 else:
   pass
 

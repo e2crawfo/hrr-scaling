@@ -33,9 +33,10 @@ def bootstrap_CI(alpha, stat_func, data, num) :
 
 class Bootstrapper:
 
-  def __init__(self, verbose=False):
+  def __init__(self, verbose=False, write_raw_data=False):
     self.data = {}
     self.verbose = verbose
+    self.write_raw_data = write_raw_data
 
   def add_data(self, index, data):
     if not (index in self.data):
@@ -58,11 +59,13 @@ class Bootstrapper:
       largest = max(s)
       smallest = min(s)
 
-      output_file.write("\nmean " + n + ": " + str(mean(s)) + "\n")
+      output_file.write("\nmean " + str(n) + ": " + str(mean(s)) + "\n")
       output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
       output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
       output_file.write("max: " + str(largest) + "\n")
       output_file.write("min: " + str(smallest) + "\n")
       output_file.write("num_samples: " + str(len(s)) + "\n")
-      output_file.write("raw data: " + str(s) + "\n")
+
+      if self.write_raw_data:
+        output_file.write("raw data: " + str(s) + "\n")
 

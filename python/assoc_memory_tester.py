@@ -60,9 +60,6 @@ class AssociativeMemoryTester(object):
       return result
 
 
-
-
-
   def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
 
         self.print_header(output_file, "Testing link", char='-')
@@ -273,10 +270,10 @@ class AssociativeMemoryTester(object):
 #dataFunc is a function that takes an associator, and is called after every trial. Allows data about
 #the associator on the run to be displayed
   def runBootstrap(self, sample_size, num_trials_per_sample, num_bootstrap_samples, output_file,
-      func, statNames=None, file_open_func=None, dataFunc=None):
+      func, statNames=None, file_open_func=None, dataFunc=None, write_raw_data=True):
     start_time = datetime.datetime.now()
 
-    self.bootstrapper = Bootstrapper(self.verbose)
+    self.bootstrapper = Bootstrapper(self.verbose, write_raw_data)
 
     #Now start running the tests
     self.num_jumps = 0
@@ -329,4 +326,7 @@ class AssociativeMemoryTester(object):
   def finish(self):
     pass
 
+  def get_similarities(self):
+    self.similarities_file=open(self.output_dir+'/similarities_' + self.date_time_string , 'w')
+    self.runBootstrap(1, 1, 999, self.similarities_file, self.associator.get_similarities_sample, write_raw_data=False)
 
