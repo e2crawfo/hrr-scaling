@@ -184,10 +184,10 @@ class CorpusHandler:
               self.cleanupMemory[key] = genVec(self.D, self.rng)
 
         for symbol in self.relation_symbols:
-          #if useUnitary:
-          #    self.cleanupMemory[symbol] = genUnitaryVec(self.D, self.rng)
-          #else:
-          self.cleanupMemory[symbol] = genVec(self.D, self.rng)
+          if useUnitary:
+              self.cleanupMemory[symbol] = genUnitaryVec(self.D, self.rng)
+          else:
+              self.cleanupMemory[symbol] = genVec(self.D, self.rng)
 
     def formKnowledgeBase(self, identityCleanup=False, useUnitary=False):
         # Check existence of corpus
