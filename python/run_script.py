@@ -26,7 +26,8 @@ threshold = argvals.t
 config_name = argvals.c
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
-neural = argvals.n
+algorithm = argvals.a
+neural = argvals.n and not algorithm
 graph = argvals.g and can_plot
 
 verbose = argvals.v
@@ -77,7 +78,7 @@ if num_words > 0:
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes)
 else:
-  associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold)
+  associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 
 isA_symbols = symbol_definitions.isA_symbols()
 partOf_symbols = symbol_definitions.partOf_symbols()

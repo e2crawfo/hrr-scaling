@@ -25,10 +25,10 @@ def parse_args(print_args=False):
   parser.add_argument('-b', action='store_true', help='Supply this argument to use bidirectional relations')
   parser.add_argument('-u', action='store_true', help='Supply this argument to use unitary vectors')
   parser.add_argument('-i', action='store_true', help='Supply this argument to use identity vectors')
+  parser.add_argument('-a', action='store_true', help='Supply this argument to use the neural cleanup algorithm, but no neurons. This trumps -n.')
   parser.add_argument('-n', action='store_true', help='Supply this argument to use a neural cleanup')
   parser.add_argument('-g', action='store_true', help='Supply this argument to display graphs (only makes a difference if -n is also supplied)')
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data the is printed to the file')
-
   parser.add_argument('test', nargs='*', help='Specify the test type, the number of runs and the number of trials')
 
 

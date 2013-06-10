@@ -38,6 +38,7 @@ class AssociativeMemory(object):
   def associate(self, messyVector):
 
       print("********In Associate*********")
+
       keys = self.indices.keys()
 
       messy_hrr = hrr.HRR(data=messyVector)
@@ -51,9 +52,10 @@ class AssociativeMemory(object):
       #collect stats
       target_keys = self.tester.current_target_keys
       num_correct_relations = len(target_keys)
-
       num_relations = self.tester.current_num_relations
 
+      #Correct dot products are the dot products of the things specified in target_keys.
+      #Largest incorrect is the largest member of nlargest whose key is not in targey_keys.
       for key in target_keys:
         self.tester.add_data(str(num_relations) + "_correct_dot_product", self.similarities[key])
 
@@ -61,28 +63,41 @@ class AssociativeMemory(object):
       largest_incorrect = filter(lambda x: x[0] not in target_keys, nlargest)[0]
 
       self.tester.add_data(str(num_relations) + "_largest_incorrect_dot_product", largest_incorrect[1])
+      self.tester.add_data("num_reaching_threshold", len(result_keys))
 
-      #now return something useful
-      if len(result_keys) == 0:
-          if self.return_vec:
-            results = [zeroVec(self.dim)]
-          else:
-            results = []
+      if self.return_vec:
+        result = zeroVec(self.dim)
 
-          print("Nothing reached threshold")
+        for key in result_keys:
+          result += self.similarities[key] * self.items[key]
+
+        result = normalize(result)
+
+        results = [result]
+
       else:
-          print(str(len(result_keys)) + " reached threshold")
-          #plt.pyplot.hist([x[0] for x in result], 100)
-          #plt.pyplot.show()
-          max_passes = 10
-          if len(result_keys) > max_passes:
-            results = heapq.nlargest(max_passes, results, key=lambda x: x[1])
+        #now return something useful
+        if len(result_keys) == 0:
+            if self.return_vec:
+              results = [zeroVec(self.dim)]
+            else:
+              results = []
 
-          results.sort(reverse=True, key=lambda x:x[1])
-          if self.return_vec:
-            results = [self.items[r[0]] for r in results]
-          else:
-            results = [r[0] for r in results]
+            print("Nothing reached threshold")
+        else:
+            print(str(len(result_keys)) + " reached threshold")
+
+            #Here we are getting the at most 10 largest from result keys, in order from greatest to smallest dot product.
+            #and in general we are returning the keys
+            max_passes = 10
+            if len(result_keys) > max_passes:
+              results = heapq.nlargest(max_passes, results, key=lambda x: x[1])
+
+            results.sort(reverse=True, key=lambda x:x[1])
+            if self.return_vec:
+              results = [self.items[r[0]] for r in results]
+            else:
+              results = [r[0] for r in results]
 
       return results
 
