@@ -39,6 +39,16 @@ def parse_args(print_args=False):
 
   return argvals
 
+def create_file_suffix(neural, unitary, identity, bidirectional, algorithm):
+  suff = "_"
+
+  if neural: suff += "n"
+  if unitary: suff += "u"
+  if identity: suff += "i"
+  if bidirectional: suff += "b"
+  if algorithm: suff += "a"
+
+  return suff
 
 #Read config
 def read_config(config_name="config"):

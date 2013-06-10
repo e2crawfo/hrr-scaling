@@ -18,7 +18,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.005):
 
     self.useGPU = useGPU
     self.threshold = threshold
@@ -61,23 +61,23 @@ class NeuralAssociativeMemory(AssociativeMemory):
     minimum = -maximum
 
     print "Creating item_node array"
-    self.item_node = nef.make_array_HRR('Item', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
+    self.item_node = nef.make_array_HRR('Item', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum, pstc=pstc)
 
     print "Creating query_node array"
-    self.query_node = nef.make_array_HRR('Query', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
+    self.query_node = nef.make_array_HRR('Query', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum, pstc=pstc)
 
     print "Creating unbind_results_node array"
-    self.unbind_results_node = nef.make_array_HRR('UnbindResult', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
+    self.unbind_results_node = nef.make_array_HRR('UnbindResult', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum, pstc=pstc)
 
     self.unbind_measure = nef.ArrayNode(self.dim)
     self.unbind_results_node.connect(self.unbind_measure)
 
     print "Creating results_node array"
     self.results_node = nef.ArrayNode(self.dim)
-    self.results_node_spiking = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum)
+    self.results_node_spiking = nef.make_array_HRR('Result', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum, pstc=pstc)
 
     print "Creating unbind array"
-    self.unbind_node = nef.make_convolution('Unbind', self.item_node, self.query_node, self.unbind_results_node, neurons_per_dim, quick=True, invert_second=True)
+    self.unbind_node = nef.make_convolution('Unbind', self.item_node, self.query_node, self.unbind_results_node, neurons_per_dim, quick=True, invert_second=True, pstc_in=pstc, pstc_out=pstc)
 
     print "Creating associator nodes"
 
@@ -92,7 +92,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
 
-    scale = 1.0
+    scale = 2.7
 
     item_keys = self.items.keys()
     scaled_items = [scale * self.items[key] for key in item_keys]
@@ -105,7 +105,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output)
 
     self.associator_node.connect(self.results_node_spiking)
-    self.unbind_results_node.connect(self.associator_node, tau=0.02)
+    self.unbind_results_node.connect(self.associator_node, tau=pstc)
     self.results_node_spiking.connect(self.results_node)
     self.associator_node.connectToProbes(self.unbind_results_node)
 

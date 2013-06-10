@@ -1,5 +1,7 @@
 from ctypes import *
 import numpy
+import datetime
+import string
 
 try:
   import matplotlib.pylab as plt
@@ -179,6 +181,7 @@ class GPUCleanup(nef.ArrayNode):
       return 
 
   def drawGraph(self, functionNames, indices=None):
+    fig = plt.figure()
 
     line_types = ["-", "--", "-.", ":"]
     line_types = line_types[0:min(len(functionNames), len(line_types))]
@@ -200,6 +203,10 @@ class GPUCleanup(nef.ArrayNode):
     plt.legend(l, loc=2)
 
     plt.show()
+
+    date_time_string = str(datetime.datetime.now())
+    date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
+    plt.savefig('graphs/neurons_'+date_time_string+".png")
   
   def connectToProbes(self, node):
     if self.probeFromGPU:

@@ -11,14 +11,14 @@ import sys
 import shutil
 
 class AssociativeMemoryTester(object):
-  def __init__(self, id_vectors, semantic_pointers,  associator, seed=1, output_dir=".", unitary=False, verbose=False):
+  def __init__(self, id_vectors, semantic_pointers,  associator, seed=1, output_dir=".", unitary=False, verbose=False, outfile_suffix=""):
 
         self.num_jumps = 0
 
         self.output_dir = output_dir
 
-        date_time_string = str(datetime.datetime.now())
-        self.date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
+        date_time_string = str(datetime.datetime.now()).split('.')[0]
+        self.date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":", " ","-"])
 
         self.sentence_results_file=None
         self.jump_results_file=None
@@ -52,6 +52,8 @@ class AssociativeMemoryTester(object):
 
         self.jump_plan_words = []
         self.jump_plan_relation_indices = []
+
+        self.outfile_suffix=outfile_suffix
 
   def unbind_and_associate(self, item, query):
       self.num_jumps += 1

@@ -35,6 +35,8 @@ verbose = argvals.v
 id_vecs = argvals.i
 unitary = argvals.u
 
+outfile_suffix = startup_utils.create_outfile_suffix(neural, unitary, id_vecs, use_bi_relations, algorithm)
+
 if seed == -1:
   seed = random.randrange(1000)
 print seed
@@ -76,7 +78,7 @@ if num_words > 0:
 
 
 if neural:
-  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes)
+  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes, timesteps=steps)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 
@@ -86,7 +88,7 @@ partOf_symbols = symbol_definitions.partOf_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
-                    relation_symbols, associator, seed, output_dir, isA_symbols, partOf_symbols, sentence_symbols, unitary, verbose)
+                    relation_symbols, associator, seed, output_dir, isA_symbols, partOf_symbols, sentence_symbols, unitary, verbose, outfile_suffix)
 
 if len(words) > 0:
   tester.set_jump_plan(words, relations)
@@ -110,8 +112,6 @@ elif test == 'c':
 else:
   pass
 
-if graph:
-  plt.savefig('neurons.png')
 
 #For paper:
 #tester.runBootstrap_jump(20, 100, dataFunc = data_display, **kwargs)

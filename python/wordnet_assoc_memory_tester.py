@@ -14,10 +14,10 @@ import sys
 
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed=1, output_dir=".", isA_symbols = [], partOf_symbols = [], sentence_symbols = [], unitary=False, verbose=False):
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed=1, output_dir=".", isA_symbols = [], partOf_symbols = [], sentence_symbols = [], unitary=False, verbose=False, outfile_suffix=None):
 
         super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
-            semantic_pointers, associator, seed, output_dir, unitary, verbose)
+            semantic_pointers, associator, seed, output_dir, unitary, verbose, outfile_suffix)
 
         self.sentence_results_file=None
         self.jump_results_file=None
@@ -331,7 +331,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
                     output_file = self.sentence_results_file, return_vec=False,
                     relation_is_vec=True, num_relations=len(sentence), answers=[answer], threshold = self.test_threshold)
 
-                if exact:
+                if correct:
                     sentence_score += 1
                     print >> self.sentence_results_file, "Correct."
                 else:
@@ -355,15 +355,15 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
   def openJumpResultsFile(self, mode='w'):
     if not self.jump_results_file:
-      self.jump_results_file=open(self.output_dir+'/jump_results_' + self.date_time_string , mode)
+      self.jump_results_file=open(self.output_dir+'/jump_results_' + self.date_time_string + self.outfile_suffix, mode)
 
   def openHierarchicalResultsFile(self, mode='w'):
     if not self.hierarchical_results_file:
-      self.hierarchical_results_file=open(self.output_dir+'/hierarchical_results_' + self.date_time_string , mode)
+      self.hierarchical_results_file=open(self.output_dir+'/hierarchical_results_' + self.date_time_string + self.outfile_suffix, mode)
 
   def openSentenceResultsFile(self, mode='w'):
     if not self.sentence_results_file:
-      self.sentence_results_file=open(self.output_dir+'/sentence_results_' + self.date_time_string , mode)
+      self.sentence_results_file=open(self.output_dir+'/sentence_results_' + self.date_time_string + self.outfile_suffix, mode)
 
   def closeFiles(self):
     if self.sentence_results_file:
