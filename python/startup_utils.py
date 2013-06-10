@@ -39,7 +39,7 @@ def parse_args(print_args=False):
 
   return argvals
 
-def create_file_suffix(neural, unitary, identity, bidirectional, algorithm):
+def create_outfile_suffix(neural, unitary, identity, bidirectional, algorithm):
   suff = "_"
 
   if neural: suff += "n"
