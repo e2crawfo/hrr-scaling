@@ -444,8 +444,6 @@ void step(float* input, float* output, float* spikes, float start, float end, fl
 
     if(currentData->stop_early)
     {
-      printf("GPU Thread %d: Stopping Early\n", currentData->device);
-
       int num_non_zero = 0;
       float threshold = 0.000001;
       for(j = 0; j < currentData->numItems; j++)
@@ -469,7 +467,6 @@ void step(float* input, float* output, float* spikes, float start, float end, fl
     }
     else
     {
-      printf("GPU Thread %d: Not Stopping Early\n", currentData->device);
       for(j = 0; j < currentData->dimension; j++)
       {
         output[j] += currentData->outputHost->array[j];
