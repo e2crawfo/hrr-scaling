@@ -12,9 +12,8 @@ import datetime
 import string
 import sys
 
-
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed=1, output_dir=".", isA_symbols = [], partOf_symbols = [], sentence_symbols = [], unitary=False, verbose=False, outfile_suffix=None):
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".", isA_symbols = [], partOf_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(), unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
             semantic_pointers, associator, seed, output_dir, unitary, verbose, outfile_suffix)
@@ -33,6 +32,10 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         self.jump_plan_words = []
         self.jump_plan_relation_indices = []
+
+        self.vector_factory = vector_factory
+
+        self.rng = random.Random(self.seed)
 
   def set_jump_plan(self, w, ri):
       self.jump_plan_words = w
@@ -291,9 +294,9 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
             self.sentence_vocab = {}
             for symbol in self.sentence_symbols:
                 if self.unitary:
-                  self.sentence_vocab[symbol] = genUnitaryVec(self.D)
+                  self.sentence_vocab[symbol] = self.vector_factory.genUnitaryVec(self.D)
                 else:
-                  self.sentence_vocab[symbol] = genVec(self.D)
+                  self.sentence_vocab[symbol] = self.vector_factory.genVec(self.D)
 
         posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
 

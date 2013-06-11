@@ -9,7 +9,6 @@ from ccm.lib import hrr
 from ccm.lib import nef
 
 import numpy
-import random
 import datetime
 import sys
 
@@ -18,7 +17,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False):
 
     self.useGPU = useGPU
     self.threshold = threshold
@@ -27,8 +26,6 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.quick_gpu = quick
 
     self.threads=threads
-    if seed is not None:
-      random.seed(seed)
 
     self.output_dir = output_dir
 

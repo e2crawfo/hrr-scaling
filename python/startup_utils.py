@@ -15,7 +15,8 @@ import argparse
 def parse_args(print_args=False):
   parser = argparse.ArgumentParser(description='Test an associative memory.')
   parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
-  parser.add_argument('--seed', default=-1, type=int, help='Seed for the random number generator.')
+  parser.add_argument('--vector-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
+  parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
   parser.add_argument('--save', default=False, type=bool, help='Whether to save the results of parsing the Wordnet files')
   parser.add_argument('-p', default=1.0, type=float, help='Specify the proportion of Wordnet synsets to use.')
   parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold.')
@@ -62,9 +63,9 @@ def read_config(config_name="config"):
 
 
 #Setup corpus
-def setup_corpus(input_dir, relation_symbols, seed, dim, id_vecs=False, unitary_vecs = False, proportion = 1.0, save = False):
+def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unitary_vecs = False, proportion = 1.0, save = False):
 
-  corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols, seed=seed+1)
+  corpus = CorpusHandler(True, D=dim, input_dir = input_dir, relation_symbols=relation_symbols, vf=vf, seed=seed)
 
   corpus.parseWordnet()
 

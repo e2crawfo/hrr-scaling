@@ -2,10 +2,17 @@ import numpy
 from numpy.fft import fft, ifft
 import random
 
+class VectorFactory:
+  def __init__(self, seed=1):
+    self.np_rng = numpy.random.RandomState(seed)
+
+  def genUnitaryVec(self, d):
+    return genUnitaryVec(d, self.np_rng)
+
+  def genVec(self, d, selfReflect=False):
+    return genVec(d, self.np_rng, selfReflect)
+
 def make_rng(seed):
-    rng = random.Random()
-    rng.seed(seed)
-    np_rng = numpy.random.RandomState(seed)
     return (rng, np_rng)
 
 def normalize(x):
@@ -14,11 +21,10 @@ def normalize(x):
 def zeroVec(dim):
     return numpy.zeros(dim)
 
-def genVec(dim, rng=None, selfReflect = False):
-    if not rng:
+def genVec(dim, np_rng=None, selfReflect = False):
+
+    if not np_rng:
       np_rng = numpy.random
-    else:
-      np_rng = rng[1]
 
     if selfReflect:
         v = np_rng.normal(0,1,int(dim/2)+1)
@@ -32,13 +38,12 @@ def genHRRVec(dim):
     v.normalize()
     return v.v
 
-def genUnitaryVec(d, rng=None):
-    if not rng:
-      rng = numpy.random
-    else:
-      rng = rng[0]
+def genUnitaryVec(d, np_rng=None):
 
-    uvec_f = [1] + [numpy.e**(1j*numpy.pi*rng.uniform(-1, 1)) for i in range((d-1)/2)]
+    if not np_rng:
+      np_rng = numpy.random
+
+    uvec_f = [1] + [numpy.e**(1j*numpy.pi*np_rng.uniform(-1, 1)) for i in range((d-1)/2)]
     if d%2==0: uvec_f.append(1)
     uvec_f = numpy.concatenate((uvec_f, numpy.conjugate(uvec_f[-2+(d%2):0:-1])))
     return normalize(numpy.real(numpy.fft.ifft(uvec_f)))

@@ -18,7 +18,8 @@ import random
 argvals = startup_utils.parse_args(True)
 
 steps = argvals.steps
-seed = argvals.seed
+vector_seed = argvals.vector_seed
+test_seed = argvals.test_seed
 save = argvals.save
 dim = argvals.d
 proportion = argvals.p
@@ -38,9 +39,11 @@ unitary = argvals.u
 
 outfile_suffix = startup_utils.create_outfile_suffix(neural, unitary, id_vecs, use_bi_relations, algorithm)
 
-if seed == -1:
-  seed = random.randrange(1000)
-print seed
+if vector_seed == -1:
+  vector_seed = random.randrange(1000)
+
+if test_seed == -1:
+  test_seed = random.randrange(1000)
 
 use_bi_relations = use_bi_relations and not id_vecs
 
@@ -56,8 +59,10 @@ print test, num_runs, num_trials
 
 input_dir, output_dir = startup_utils.read_config(config_name)
 
+vector_factory = VectorFactory(vector_seed)
+
 (corpus_dict, id_vectors, semantic_pointers) = \
-    startup_utils.setup_corpus(input_dir, relation_symbols, seed, dim, id_vecs, unitary, proportion)
+    startup_utils.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
 
 #change these to use specific words/relations
 num_words = 0
@@ -89,7 +94,7 @@ partOf_symbols = symbol_definitions.partOf_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
-                    relation_symbols, associator, seed, output_dir, isA_symbols, partOf_symbols, sentence_symbols, unitary, verbose, outfile_suffix)
+                    relation_symbols, associator, test_seed, output_dir, isA_symbols, partOf_symbols, sentence_symbols, vector_factory, unitary, verbose, outfile_suffix)
 
 if len(words) > 0:
   tester.set_jump_plan(words, relations)

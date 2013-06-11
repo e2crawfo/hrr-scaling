@@ -4,14 +4,13 @@ from bootstrap import Bootstrapper
 
 from ccm.lib import hrr
 
-import random
 import datetime
 import string
 import sys
 import shutil
 
 class AssociativeMemoryTester(object):
-  def __init__(self, id_vectors, semantic_pointers,  associator, seed=1, output_dir=".", unitary=False, verbose=False, outfile_suffix=""):
+  def __init__(self, id_vectors, semantic_pointers,  associator, seed, output_dir=".", unitary=False, verbose=False, outfile_suffix=""):
 
         self.num_jumps = 0
 
@@ -23,11 +22,6 @@ class AssociativeMemoryTester(object):
         self.sentence_results_file=None
         self.jump_results_file=None
         self.hierarchical_results_file=None
-
-        self.seed = seed
-        self.rng = random.Random()
-        self.rng.seed(seed)
-        self.np_rng = numpy.random.RandomState(seed)
 
         self.associator = associator
         self.associator.set_tester(self)
@@ -54,6 +48,8 @@ class AssociativeMemoryTester(object):
         self.jump_plan_relation_indices = []
 
         self.outfile_suffix=outfile_suffix
+
+        self.seed = seed
 
   def unbind_and_associate(self, item, query):
       self.num_jumps += 1
@@ -275,7 +271,7 @@ class AssociativeMemoryTester(object):
       func, statNames=None, file_open_func=None, dataFunc=None, write_raw_data=True):
     start_time = datetime.datetime.now()
 
-    self.bootstrapper = Bootstrapper(self.verbose, write_raw_data)
+    self.bootstrapper = Bootstrapper(self.verbose, write_raw_data, seed = self.seed)
 
     #Now start running the tests
     self.num_jumps = 0

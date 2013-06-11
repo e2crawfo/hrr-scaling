@@ -15,14 +15,16 @@ class CorpusHandler:
     cleanupMemory = None
     knowledgeBase = None
 
-    def __init__(self, try_load, D=512, input_dir=".", relation_symbols=[], seed=1):
+    def __init__(self, try_load, D=512, input_dir=".", relation_symbols=[], vf=VectorFactory(), seed=1):
       self.try_load = try_load
       self.D = D
       self.input_dir = input_dir
       self.relation_symbols = relation_symbols
-      self.seed = seed
-      self.rng = make_rng(seed)
       self.bootstrapper = bootstrap.Bootstrapper()
+
+      self.seed = seed
+      self.rng = random.Random(seed)
+      self.vector_factory = vf
 
     def parseWordnet(self):
         if self.try_load and self.loadCorpusDict(self.input_dir+'/cd1.data'):
@@ -83,7 +85,7 @@ class CorpusHandler:
 
       while size < target_size:
         if queue.empty():
-          queue.put( random.choice(self.corpusDict.keys()))
+          queue.put( self.rng.choice(self.corpusDict.keys()))
 
         next_entry = queue.get()
 
@@ -179,15 +181,15 @@ class CorpusHandler:
 
         for key in self.corpusDict.keys():
           if useUnitary and identityCleanup:
-              self.cleanupMemory[key] = genUnitaryVec(self.D, self.rng)
+              self.cleanupMemory[key] = self.vector_factory.genUnitaryVec(self.D)
           else:
-              self.cleanupMemory[key] = genVec(self.D, self.rng)
+              self.cleanupMemory[key] = self.vector_factory.genVec(self.D)
 
         for symbol in self.relation_symbols:
           if useUnitary:
-              self.cleanupMemory[symbol] = genUnitaryVec(self.D, self.rng)
+              self.cleanupMemory[symbol] = self.vector_factory.genUnitaryVec(self.D)
           else:
-              self.cleanupMemory[symbol] = genVec(self.D, self.rng)
+              self.cleanupMemory[symbol] = self.vector_factory.genVec(self.D)
 
     def formKnowledgeBase(self, identityCleanup=False, useUnitary=False):
         # Check existence of corpus
@@ -248,7 +250,7 @@ class CorpusHandler:
         for key in keyOrder:
 
             if not identityCleanup:
-                self.knowledgeBase[key] = genVec(self.D)
+                self.knowledgeBase[key] = self.vector_factory.genVec(self.D)
 
             for relation in self.corpusDict[key]:
                 if relation[0] not in self.relation_symbols: continue

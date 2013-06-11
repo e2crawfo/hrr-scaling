@@ -112,7 +112,7 @@ class AssociativeMemory(object):
     output_file.write("Num indices: " + str(len(self.indices)) + "\n")
     output_file.write("Dimension: " + str(self.dim) + "\n")
     output_file.write("Threshold: " + str(self.threshold) + "\n")
-    output_file.write("Seed: " + str(self.tester.seed) + "\n")
+    output_file.write("Test Seed: " + str(self.tester.seed) + "\n")
     output_file.write("Associator type: " + str(self._type) + "\n")
 
   def get_similarities_random(self, s, n, dataFunc=None):

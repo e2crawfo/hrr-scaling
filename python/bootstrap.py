@@ -1,42 +1,15 @@
 import random
 
 #bootstrap.py!
-def draw_bootstrap_samples(data, num, rng=random):
-  samples = []
-  for i in range(num):
-
-    sample = []
-    for j in range(len(data)):
-      val = rng.sample(data, 1)
-      sample.extend(val)
-
-    samples.append(sample)
-
-  return samples
-
-def get_bootstrap_stats(stat_func, data, num):
-  samples = draw_bootstrap_samples(data, num)
-
-  stats = []
-  for s in samples:
-    stats.append(stat_func(s))
-
-  return stats
-
-def bootstrap_CI(alpha, stat_func, data, num) :
-  stats = get_bootstrap_stats(stat_func, data, num)
-  stats.sort()
-  lower_CI_bound = stats[int(round((num + 1) * alpha / 2.0 ))]
-  upper_CI_bound = stats[int(round((num + 1) * (1 - alpha/2.0)))]
-
-  return (lower_CI_bound, upper_CI_bound)
 
 class Bootstrapper:
 
-  def __init__(self, verbose=False, write_raw_data=False):
+  def __init__(self, verbose=False, write_raw_data=False, seed=1):
     self.data = {}
     self.verbose = verbose
     self.write_raw_data = write_raw_data
+    self.seed = seed 
+    self.rng = random.Random(seed)
 
   def add_data(self, index, data):
     if not (index in self.data):
@@ -47,6 +20,36 @@ class Bootstrapper:
     if self.verbose:
       print "Bootstrapper adding data ... name: ", index, ", data: ", data
 
+  def draw_bootstrap_samples(self, data, num):
+    samples = []
+    for i in range(num):
+
+      sample = []
+      for j in range(len(data)):
+        val = self.rng.sample(data, 1)
+        sample.extend(val)
+
+      samples.append(sample)
+
+    return samples
+
+  def get_bootstrap_stats(self, stat_func, data, num):
+    samples = self.draw_bootstrap_samples(data, num)
+
+    stats = []
+    for s in samples:
+      stats.append(stat_func(s))
+
+    return stats
+
+  def bootstrap_CI(self, alpha, stat_func, data, num) :
+    stats = self.get_bootstrap_stats(stat_func, data, num)
+    stats.sort()
+    lower_CI_bound = stats[int(round((num + 1) * alpha / 2.0 ))]
+    upper_CI_bound = stats[int(round((num + 1) * (1 - alpha/2.0)))]
+
+    return (lower_CI_bound, upper_CI_bound)
+
   def print_summary(self, output_file):
     mean = lambda x: float(sum(x)) / float(len(x))
 
@@ -55,7 +58,7 @@ class Bootstrapper:
 
     for n in data_keys:
       s = self.data[n]
-      CI = bootstrap_CI(0.05, mean, s, 999)
+      CI = self.bootstrap_CI(0.05, mean, s, 999)
       largest = max(s)
       smallest = min(s)
 
