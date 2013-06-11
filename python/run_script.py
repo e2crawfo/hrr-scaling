@@ -28,6 +28,7 @@ do_relation_stats = argvals.r
 use_bi_relations = argvals.b
 algorithm = argvals.a
 neural = argvals.n and not algorithm
+quick = argvals.q and neural
 graph = argvals.g and can_plot
 
 verbose = argvals.v
@@ -78,7 +79,7 @@ if num_words > 0:
 
 
 if neural:
-  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes, timesteps=steps)
+  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes, timesteps=steps, quick=quick)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 

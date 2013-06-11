@@ -18,12 +18,13 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.005):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, seed=None, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False):
 
     self.useGPU = useGPU
     self.threshold = threshold
     self.transfer_func = lambda x: 1 if x > self.threshold else 0
     self.print_output = print_output
+    self.quick_gpu = quick
 
     self.threads=threads
     if seed is not None:
@@ -92,7 +93,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
 
-    scale = 2.7
+    scale = 10.0 
 
     item_keys = self.items.keys()
     scaled_items = [scale * self.items[key] for key in item_keys]
@@ -102,7 +103,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
       if probe.itemKey :
         probe.itemIndex = item_keys.index(probe.itemKey)
 
-    self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output)
+    self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output, quick=quick)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=pstc)
@@ -113,6 +114,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
   def write_to_runtime_file(self, delta):
     print >> self.runtimes_file, self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
+    print self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
 
   def unbind_and_associate(self, item, query, *args, **kwargs):
     then = datetime.datetime.now()
@@ -238,6 +240,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   def print_config(self, output_file):
     super(NeuralAssociativeMemory, self).print_config(output_file)
 
+    output_file.write("Quick GPU: " + str(self.quick_gpu) + "\n")
     output_file.write("Neurons per item: " + str(self.neurons_per_item) + "\n")
     output_file.write("Neurons per dim: " + str(self.neurons_per_dim) + "\n")
     output_file.write("Min thresh: " + str(self.max_thresh) + "\n")

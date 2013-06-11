@@ -285,17 +285,22 @@ void run_NEFEnsembles(NengoGPUData* nengoData, float startTime, float endTime)
   op = CUBLAS_OP_T;
   status = cublasSgemv(nengoData->handle, op, nengoData->numNeuronsPerItem, nengoData->numItems, &one, nengoData->spikes->array, nengoData->numNeuronsPerItem, nengoData->decoder->array, 1, &zero, nengoData->decodedValues->array, 1);
 
-  // op should not be transposed here
-  // multiplying decoded values by vector
-  // this one...might take a really long time, doing dot-products
-  // of dimension equal to the number of items...so may have to do this
-  // manually
-  op = CUBLAS_OP_N;
-  status = cublasSgemv(nengoData->handle, op, nengoData->dimension, nengoData->numItems, &one, nengoData->result_vectors->array, nengoData->dimension, nengoData->decodedValues->array, 1, &one, nengoData->outputDevice->array, 1);
+  if(nengoData->stop_early){
+    cudaMemcpy(nengoData->decodedValuesHost->array, nengoData->decodedValues->array, (nengoData->numItems) * sizeof(float), cudaMemcpyDeviceToHost);
+  }
+  else
+  {
+    // op should not be transposed here
+    // multiplying decoded values by vector
+    // this one...might take a really long time, doing dot-products
+    // of dimension equal to the number of items...so may have to do this
+    // manually
+    op = CUBLAS_OP_N;
+    status = cublasSgemv(nengoData->handle, op, nengoData->dimension, nengoData->numItems, &one, nengoData->result_vectors->array, nengoData->dimension, nengoData->decodedValues->array, 1, &zero, nengoData->outputDevice->array, 1);
 
-  // move results to host
-  cudaMemcpy(nengoData->outputHost->array, nengoData->outputDevice->array, (nengoData->dimension) * sizeof(float), cudaMemcpyDeviceToHost);
-  
+    // move results to host
+    cudaMemcpy(nengoData->outputHost->array, nengoData->outputDevice->array, (nengoData->dimension) * sizeof(float), cudaMemcpyDeviceToHost);
+  }
 
   if(nengoData->numSpikesToReturn > 0)
   {

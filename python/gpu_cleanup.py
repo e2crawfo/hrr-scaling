@@ -4,7 +4,7 @@ import datetime
 import string
 
 try:
-  import matplotlib.pylab as plt
+  import matplotlib.pyplot as plt
 except:
   pass
 
@@ -36,7 +36,7 @@ class GPUCleanup(nef.ArrayNode):
 
   #index_vectors and result_vectors should both be lists of vectors
   def __init__(self, devices, dt, auto, index_vectors, result_vectors, tau, node, probeFunctions=[], 
-      probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x, print_output=True):
+      probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x, print_output=True, quick=False):
 
       self.libNeuralCleanupGPU = CDLL("libNeuralCleanupGPU.so")
 
@@ -46,6 +46,8 @@ class GPUCleanup(nef.ArrayNode):
 
       self._input = numpy.zeros(self.dimensions)
       self._output = numpy.zeros(self.dimensions)
+
+
       self._all_nodes=None
 
       self._c_input = None
@@ -55,6 +57,9 @@ class GPUCleanup(nef.ArrayNode):
 
       self.numVectors = len(index_vectors)
       self.index_vectors = index_vectors
+
+      #tmep
+      self._decoded_values = numpy.zeros(self.numVectors)
 
       decoder = node.get_decoder(func=transfer)
       encoder = node.basis
@@ -121,7 +126,7 @@ class GPUCleanup(nef.ArrayNode):
                                      c_int(self.dimensions), c_int(int(auto)), c_index_vectors, 
                                      c_result_vectors, c_float(tau), c_encoder, c_decoder, 
                                      c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), 
-                                     c_float(t_rc), c_returnSpikes, c_int(int(print_output)) )
+                                     c_float(t_rc), c_returnSpikes, c_int(int(print_output)), c_int(int(quick)) )
 
       self.mode='gpu_cleanup'
 
@@ -141,9 +146,10 @@ class GPUCleanup(nef.ArrayNode):
       self._c_input = convert_to_carray(self._input, c_float, 1)
       self._c_output = convert_to_carray(numpy.zeros(self.dimensions), c_float, 1)
       self._c_spikes = convert_to_carray(numpy.zeros(self.numItemsReturningSpikes * self.numNeuronsPerItem), c_float, 1)
+      self._c_decoded_values = convert_to_carray(self._decoded_values, c_float, 1)
 
       self.libNeuralCleanupGPU.step(self._c_input, self._c_output, self._c_spikes, 
-                                    c_float(self.elapsed_time), c_float(self.elapsed_time + self.dt))
+                                    c_float(self.elapsed_time), c_float(self.elapsed_time + self.dt), self._c_decoded_values)
 
       #make sure output is NOT scaled by dt_over_tau,
       #we let that happen in the termination of results node
@@ -152,6 +158,17 @@ class GPUCleanup(nef.ArrayNode):
       for i in range(len(self._output)):
         self._output[i] = self._c_output[i]
 
+      for i in range(self.numVectors):
+        self._decoded_values[i] = self._c_decoded_values[i]
+
+#      if int(self.elapsed_time * 1000) % 10 == 0:
+#        fig=plt.figure()
+#        plt.hist(self._decoded_values, bins = 20)
+#        plt.show()
+#        date_time_string = str(datetime.datetime.now())
+#        date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
+#        plt.savefig('graphs/decoded_values'+date_time_string+".png")
+#
       #get spikes
       spikeIndex = 0
       for i in self._spikeIndices:

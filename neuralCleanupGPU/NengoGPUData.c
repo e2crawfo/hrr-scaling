@@ -303,6 +303,7 @@ NengoGPUData* getNewNengoGPUData()
   new->maxTimeStep = 0;
   new->initialized = 0;
   new->do_print = 0;
+  new->stop_early = 0;
 
   new->startTime = 0.0;
   new->endTime = 0.0;
@@ -325,6 +326,7 @@ NengoGPUData* getNewNengoGPUData()
   new->transformResult = NULL;
   new->encodeResult = NULL;
   new->decodedValues = NULL;
+  new->decodedValuesHost = NULL;
   new->outputHost = NULL;
   new->outputDevice = NULL;
 
@@ -367,6 +369,8 @@ void initializeNengoGPUData(NengoGPUData* new)
   new->inputHost = newFloatArray(new->dimension, name);
   name = "outputHost";
   new->outputHost = newFloatArray(new->dimension, name);
+  name = "decodedValuesHost";
+  new->decodedValuesHost = newFloatArray(new->numItems, name);
 
   name = "index_vectors";
   new->index_vectors = newFloatArray(new->dimension * new->numItems, name);
@@ -411,7 +415,12 @@ void moveToDeviceNengoGPUData(NengoGPUData* nengoData)
     initializeDeviceInputAndOutput(nengoData);
 
     moveToDeviceFloatArray(nengoData->index_vectors);
-    moveToDeviceFloatArray(nengoData->result_vectors);
+
+    if(!nengoData->stop_early)
+    {
+      moveToDeviceFloatArray(nengoData->result_vectors);
+    }
+
     moveToDeviceFloatArray(nengoData->encoder);
     moveToDeviceFloatArray(nengoData->decoder);
     moveToDeviceFloatArray(nengoData->alpha);
@@ -430,6 +439,7 @@ void freeNengoGPUData(NengoGPUData* nengoData)
   freeFloatArray(nengoData->transformResult);
   freeFloatArray(nengoData->encodeResult);
   freeFloatArray(nengoData->decodedValues);
+  freeFloatArray(nengoData->decodedValuesHost);
   freeFloatArray(nengoData->outputHost);
   freeFloatArray(nengoData->outputDevice);
 

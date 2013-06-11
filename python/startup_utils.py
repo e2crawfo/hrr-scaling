@@ -29,6 +29,7 @@ def parse_args(print_args=False):
   parser.add_argument('-n', action='store_true', help='Supply this argument to use a neural cleanup')
   parser.add_argument('-g', action='store_true', help='Supply this argument to display graphs (only makes a difference if -n is also supplied)')
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data the is printed to the file')
+  parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run (only makes difference if -n is also supplied)')
   parser.add_argument('test', nargs='*', help='Specify the test type, the number of runs and the number of trials')
 
 

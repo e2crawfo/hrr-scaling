@@ -296,7 +296,7 @@ void run_kill()
 // with ctypes (but can also, of course, be called from c)
 // sizes store number of ensembles, number of network arrays and number of projections
 
-void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data)
+void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data, int stop_early)
 {
 
   int i, j, k;
@@ -340,6 +340,7 @@ void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int
     currentData = nengoDataArray[i];
     
     currentData->device = i;
+    currentData->stop_early = stop_early;
 
     currentData->do_print = do_print;
     currentData->numNeuronsPerItem = num_neurons;
@@ -405,7 +406,7 @@ void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int
 // Called once per step from the External code. Puts the representedInputValues in the proper form for processing, then tells each GPU thread
 // to take a step. Once they've finished the step, this function puts the representedOutputValues and spikes in the appropriate External
 // arrays so that they can be read on the External side when this call returns.
-void step(float* input, float* output, float* spikes, float start, float end)
+void step(float* input, float* output, float* spikes, float start, float end, float* decoded_values)
 {
   startTime = start;
   endTime = end;
@@ -415,7 +416,7 @@ void step(float* input, float* output, float* spikes, float start, float end)
 
   NengoGPUData* currentData;
 
-  int i, j;
+  int i, j, k;
 
   for( i = 0; i < numDevices; i++)
   {
@@ -435,10 +436,44 @@ void step(float* input, float* output, float* spikes, float start, float end)
   for(i = 0; i < numDevices; i++)
   {
     currentData = nengoDataArray[i];
-    
-    for(j = 0; j < currentData->dimension; j++)
+
+    for(k=0; k < currentData->dimension; k++)
     {
-      output[j] += currentData->outputHost->array[j];
+      output[k] = 0.0;
+    }
+
+    if(currentData->stop_early)
+    {
+      printf("GPU Thread %d: Stopping Early\n", currentData->device);
+
+      int num_non_zero = 0;
+      float threshold = 0.000001;
+      for(j = 0; j < currentData->numItems; j++)
+      {
+        float val = currentData->decodedValuesHost->array[j];
+        decoded_values[j] = val;
+
+        if(val > threshold || val < -threshold)
+        {
+          for(k=0; k < currentData->dimension; k++)
+          {
+            output[k] += currentData->result_vectors->array[j * currentData->dimension + k] * val;
+          }
+
+          num_non_zero++;
+        }
+      }
+
+      if(num_non_zero > 0)
+        printf("GPU Thread %d: num nonzero decoded values: %d\n", currentData->device, num_non_zero);
+    }
+    else
+    {
+      printf("GPU Thread %d: Not Stopping Early\n", currentData->device);
+      for(j = 0; j < currentData->dimension; j++)
+      {
+        output[j] += currentData->outputHost->array[j];
+      }
     }
   }
 

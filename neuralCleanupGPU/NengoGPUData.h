@@ -1,6 +1,5 @@
 #ifndef NENGO_GPU_DATA_H
 #define NENGO_GPU_DATA_H
-
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -89,6 +88,7 @@ struct NengoGPUData_t{
   int initialized;
   int device;
   int do_print;
+  int stop_early;
   float maxTimeStep;
 
   float startTime;
@@ -119,6 +119,8 @@ struct NengoGPUData_t{
 
   floatArray* index_vectors;
   floatArray* result_vectors;
+
+  floatArray* decodedValuesHost;
 
   floatArray* encoder;
   floatArray* decoder;
