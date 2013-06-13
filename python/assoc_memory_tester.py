@@ -221,14 +221,18 @@ class AssociativeMemoryTester(object):
             valids.append(c)
           else:
             invalids.append(c)
-      
-        max_invalid_key, max_invalid_match = max(invalids, key=lambda x:x[1])
-        max_valid_key, max_valid_match = max(valids, key=lambda x:x[1])
 
-        if max_invalid_match > max_valid_match:
+        max_invalid_key, max_invalid_match = max(invalids, key=lambda x:x[1])
+
+        if len(valids) == 0:
           second_key, second_match = max_invalid_key, max_invalid_match
         else:
-          second_key, second_match = max_valid_key, max_valid_match
+          max_valid_key, max_valid_match = max(valids, key=lambda x:x[1])
+
+          if max_invalid_match > max_valid_match:
+            second_key, second_match = max_invalid_key, max_invalid_match
+          else:
+            second_key, second_match = max_valid_key, max_valid_match
 
       else:
         second_key, second_match = max(comparisons, key=lambda x: x[1])

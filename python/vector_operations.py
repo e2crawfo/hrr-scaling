@@ -16,7 +16,12 @@ def make_rng(seed):
     return (rng, np_rng)
 
 def normalize(x):
-    return x/numpy.linalg.norm(x)
+    norm = numpy.linalg.norm(x)
+
+    if norm > 0.00001:
+      return x / norm
+    else:
+      return x
 
 def zeroVec(dim):
     return numpy.zeros(dim)
