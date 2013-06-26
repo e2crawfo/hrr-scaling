@@ -89,13 +89,13 @@ if neural:
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 
-isA_symbols = symbol_definitions.isA_symbols()
-partOf_symbols = symbol_definitions.partOf_symbols()
+h_test_symbols = symbol_definitions.hierarchical_test_symbols()
 
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
-                    relation_symbols, associator, test_seed, output_dir, isA_symbols, partOf_symbols, sentence_symbols, vector_factory, unitary, verbose, outfile_suffix)
+                    relation_symbols, associator, test_seed, output_dir, h_test_symbols, 
+                    sentence_symbols, vector_factory, unitary, verbose, outfile_suffix)
 
 if len(words) > 0:
   tester.set_jump_plan(words, relations)
@@ -110,8 +110,8 @@ if test == 'j':
   tester.runBootstrap_jump(num_runs, num_trials, dataFunc = data_display)
 elif test == 'h':
   tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display)
-elif test == 'm':
-  tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display, symbols=partOf_symbols)
+#elif test == 'm':
+#  tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display, symbols=partOf_symbols)
 elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials, dataFunc = data_display)
 elif test == 'c':

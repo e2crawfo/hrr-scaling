@@ -6,8 +6,8 @@ import utilities as util
 import random
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".",
-               isA_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(),
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".", 
+               h_test_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(), 
                unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
@@ -20,7 +20,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         self.corpus = corpus
 
         self.relation_symbols = relation_symbols
-        self.isA_symbols = isA_symbols
+        self.h_test_symbols = h_test_symbols
         self.sentence_symbols = sentence_symbols
 
         self.sentence_vocab = None
@@ -386,7 +386,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     file_open_func()
 
     if not symbols:
-      symbols = self.isA_symbols
+      symbols = self.h_test_symbols
 
     htest = lambda x, y, dataFunc=None: self.hierarchicalTest(x,y, stats_depth, rtype=symbols, dataFunc=dataFunc)
 

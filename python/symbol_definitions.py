@@ -45,6 +45,9 @@ _sentence_role_symbols = {    # (frequency of occurrence, part of speech)
     'ss_oadj'   : (0.3, 'a')  # object adjective
     }
 
+def hierarchical_test_symbols():
+  return ['@']
+
 def isA_symbols():
   """Return isA relation symbols"""
   return _isA_symbols
