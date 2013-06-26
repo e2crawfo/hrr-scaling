@@ -1,0 +1,81 @@
+
+*************** Bootstrap Summary ***************
+
+mean x: 1.85
+lower 95% CI bound: 1.4
+upper 95% CI bound: 2.3
+max: 2.3
+min: 1.4
+num_samples: 2
+raw data: [1.4, 2.3]
+
+mean y: 1.85
+lower 95% CI bound: 1.4
+upper 95% CI bound: 2.3
+max: 2.3
+min: 1.4
+num_samples: 2
+raw data: [1.4, 2.3]
+
+mean z: -0.45
+lower 95% CI bound: -2.3
+upper 95% CI bound: 1.4
+max: 1.4
+min: -2.3
+num_samples: 2
+raw data: [1.4, -2.3]
+*************** End Bootstrap Summary ***************
+
+*************** Bootstrap Summary ***************
+
+mean x: 2.5
+lower 95% CI bound: 1.48
+upper 95% CI bound: 3.6
+max: 4.4
+min: 1.0
+num_samples: 5
+raw data: [1.4, 2.3, 3.4, 4.4, 1.0]
+
+mean y: 1.91666666667
+lower 95% CI bound: 0.35
+upper 95% CI bound: 3.31666666667
+max: 4.4
+min: -1.0
+num_samples: 6
+raw data: [1.4, 2.3, 3.4, 4.4, -1.0, 1.0]
+
+mean z: 0.833333333333
+lower 95% CI bound: -2.3
+upper 95% CI bound: 3.4
+max: 3.4
+min: -2.3
+num_samples: 3
+raw data: [1.4, -2.3, 3.4]
+*************** End Bootstrap Summary ***************
+
+*************** Bootstrap Summary ***************
+
+mean x: 2.5
+lower 95% CI bound: 1.5
+upper 95% CI bound: 3.6
+max: 4.4
+min: 1.0
+num_samples: 5
+raw data: [1.4, 2.3, 3.4, 4.4, 1.0]
+
+mean y: 1.91666666667
+lower 95% CI bound: 0.466666666667
+upper 95% CI bound: 3.21666666667
+max: 4.4
+min: -1.0
+num_samples: 6
+raw data: [1.4, 2.3, 3.4, 4.4, -1.0, 1.0]
+
+mean z: 1.14285714286
+lower 95% CI bound: -1.55714285714
+upper 95% CI bound: 4.11428571429
+max: 8.1
+min: -4.4
+num_samples: 7
+raw data: [1.4, -2.3, 3.4, -4.4, 0.0, 8.1, 1.8]
+*************** End Bootstrap Summary ***************

@@ -1,15 +1,23 @@
-from vector_operations import *
+__author__ = 'e2crawfo'
 
 from corpora_management import CorpusHandler
 from probe import Probe
 
-import sys
 import ConfigParser
 import argparse
 import random
-import numpy
-import time
-import argparse
+
+def print_header(output_file, string, char='*', width=15, left_newline=True):
+  line = char * width
+  string = line + " " + string + " " + line + "\n"
+
+  if left_newline:
+    string = "\n" + string
+
+  output_file.write(string)
+
+def print_footer(output_file, string, char='*', width=15):
+  print_header(output_file, "End " + string, char=char, width=width, left_newline=False)
 
 #Parse args
 def parse_args(print_args=False):
@@ -111,7 +119,7 @@ def gen_probes(corpus_dict, num_words, relation_symbols, words=[], relations=[],
   rng = random.Random(seed)
 
   n = 0
-  while n < num_words: 
+  while n < num_words:
     if n < len(words):
       testableLinks = [r for r in corpus_dict[words[n]] if r[0] in relation_symbols]
       link = testableLinks[relations[n]]
@@ -131,7 +139,7 @@ def gen_probes(corpus_dict, num_words, relation_symbols, words=[], relations=[],
     probes.append(Probe(link[1], None, "identity"))
     probes.append(Probe(link[1], None, "transfer"))
 
-    n+=1 
+    n+=1
 
   return (probes, words, relations)
 

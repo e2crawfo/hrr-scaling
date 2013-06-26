@@ -13,26 +13,26 @@ from nose.plugins.attrib import attr
 class DummyTester(object):
   current_target_keys = None
 
-@attr(speed='slow')
+@attr(slow=1)
 class TestNeuralCleanup(unittest.TestCase):
 
   def setUp(self):
     self.cconv_func = lambda v, t: cconv(t[0], t[1]) + v
     pass
 
-  def test_medium(self):
+  def test_neural_medium(self):
     D = 512
     num_vecs = 4
     seed = 10
-    rng = make_rng(seed)
     threshold = 0.8
+    vf = VectorFactory(seed)
 
-    roles = [genVec(D, rng) for i in range(num_vecs)]
-    items = [genVec(D, rng) for i in range(num_vecs)]
+    roles = [vf.genVec(D) for i in range(num_vecs)]
+    items = [vf.genVec(D) for i in range(num_vecs)]
 
     items_dict = dict(zip(range(num_vecs), items))
 
-    semantic_pointer = reduce(self.cconv_func, zip(roles, items), genVec(D))
+    semantic_pointer = reduce(self.cconv_func, zip(roles, items), vf.genVec(D))
     semantic_pointer = normalize(semantic_pointer)
 
     nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
@@ -46,20 +46,20 @@ class TestNeuralCleanup(unittest.TestCase):
       print "Neural Cleanup Test - Medium : Similarity = ", similarity
       assert(similarity > threshold)
 
-  def test_many_relations(self):
+  def test_neural_many_relations(self):
     D = 512
     num_vecs = 10
     seed = 10
-    rng = make_rng(seed)
     threshold = 0.8
 
-    roles = [genVec(D, rng) for i in range(num_vecs)]
-    items = [genVec(D, rng) for i in range(num_vecs)]
+    vf = VectorFactory(seed)
+
+    roles = [vf.genVec(D) for i in range(num_vecs)]
+    items = [vf.genVec(D) for i in range(num_vecs)]
 
     items_dict = dict(zip(range(num_vecs), items))
 
-    self.cconv_func = lambda v, t: cconv(t[0], t[1]) + v
-    semantic_pointer = reduce(self.cconv_func, zip(roles, items), genVec(D))
+    semantic_pointer = reduce(self.cconv_func, zip(roles, items), vf.genVec(D))
     semantic_pointer = normalize(semantic_pointer)
     nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
@@ -71,23 +71,21 @@ class TestNeuralCleanup(unittest.TestCase):
       print "Neural Cleanup Test - Many Relations : Similarity = ", similarity
       assert(similarity > threshold)
 
-  def test_repeated_roles(self):
+  def test_neural_repeated_roles(self):
     D = 512
     num_vecs = 8
     ratio = 2 #vecs to roles
     seed = 10
-    rng = make_rng(seed)
+    vf = VectorFactory(seed)
     threshold = 0.8
 
-    items = [genVec(D, rng) for i in range(num_vecs)]
-    roles = [genVec(D, rng) for i in range(num_vecs * ratio)]
+    items = [vf.genVec(D) for i in range(num_vecs)]
+    roles = [vf.genVec(D) for i in range(num_vecs * ratio)]
 
     items_dict = dict(zip(range(num_vecs), items))
 
-    self.cconv_func = lambda v, t: cconv(t[0], t[1]) + v
-
     expanded_roles = reduce(lambda x, y: x.extend(y), [roles for i in range(ratio)], [])
-    semantic_pointer = reduce(self.cconv_func, zip(roles, items), genVec(D))
+    semantic_pointer = reduce(self.cconv_func, zip(roles, items), vf.genVec(D))
     semantic_pointer = normalize(semantic_pointer)
     nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
@@ -104,10 +102,10 @@ class TestNeuralCleanup(unittest.TestCase):
     similarities = [hrr_vec.compare(hrr.HRR(data=vecs[v])) for v in vecs if v not in exceptions]
     return similarities
 
-  def test_hierarchical(self):
+  def test_neural_hierarchical(self):
     D = 512
     seed = 10
-    rng = make_rng(seed)
+    vf = VectorFactory(seed)
     threshold = 0.8
     second_threshold = 0.6
     size_threshold = 0.5
@@ -116,15 +114,15 @@ class TestNeuralCleanup(unittest.TestCase):
     # and id-vectors to match the graph structure
     num_vertices = 40
     graph = nx.fast_gnp_random_graph(num_vertices, .1, seed, True)
-    nx.draw_circular(graph)
-    plt.savefig("test_network.png")
+    #nx.draw_circular(graph)
+    #plt.savefig("test_network.png")
 
     max_out_degree_vertex = max(graph, key=lambda x: graph.out_degree(x))
     max_out_degree = graph.out_degree(max_out_degree_vertex)
-    queries = [genVec(D, rng) for i in range(max_out_degree)]
+    queries = [vf.genVec(D) for i in range(max_out_degree)]
 
-    id_vecs = [genVec(D, rng) for i in range(num_vertices)]
-    semantic_pointers = [genVec(D, rng) for i in range(num_vertices)]
+    id_vecs = [vf.genVec(D) for i in range(num_vertices)]
+    semantic_pointers = [vf.genVec(D) for i in range(num_vertices)]
 
     for u in graph:
       i = 0
@@ -146,13 +144,15 @@ class TestNeuralCleanup(unittest.TestCase):
 
     nam = NeuralAssociativeMemory(indices_dict, items_dict, False, False, False, 0.3, print_output=False)
 
+    rng = random.Random(seed)
+
     dummy_tester = DummyTester()
     nam.set_tester(dummy_tester)
 
     second_failures = 0
     sim_failures = 0
     size_failures = 0
-    
+
     for t in range(num_tests):
 
       cur_vertex = max_out_degree_vertex
@@ -161,7 +161,7 @@ class TestNeuralCleanup(unittest.TestCase):
       depth = 0
 
       while graph.out_degree(cur_vertex) > 0 and depth < max_depth:
-        target_vertex = rng[0].sample( graph.successors(cur_vertex), 1)[0]
+        target_vertex = rng.sample( graph.successors(cur_vertex), 1)[0]
 
         dummy_tester.current_target_keys = [target_vertex]
         query_index = graph.edge[cur_vertex][target_vertex]["r"]
@@ -189,9 +189,6 @@ class TestNeuralCleanup(unittest.TestCase):
     assert(sim_failures < 3)
     assert(size_failures < 3)
     assert(second_failures < 3)
-
-  #for test selecting using Attrib nose plugin
-  test_hierarchical.hcal = 1
 
 
 

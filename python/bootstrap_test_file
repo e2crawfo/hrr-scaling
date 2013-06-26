@@ -1,0 +1,28 @@
+
+mean goodbye: 1.5
+lower 95% CI bound: 1.0
+upper 95% CI bound: 2.0
+max: 2.0
+min: 1.0
+num_samples: 2
+
+mean hello: 13.3333333333
+lower 95% CI bound: 10.0
+upper 95% CI bound: 20.0
+max: 20
+min: 10
+num_samples: 3
+
+mean goodbye: 2.75
+lower 95% CI bound: 1.25
+upper 95% CI bound: 4.25
+max: 5.0
+min: 1.0
+num_samples: 4
+
+mean hello: 17.5
+lower 95% CI bound: 10.0
+upper 95% CI bound: 27.5
+max: 30
+min: 10
+num_samples: 4

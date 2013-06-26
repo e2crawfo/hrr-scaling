@@ -1,19 +1,14 @@
 #wordnet assoc memory tester
 from vector_operations import *
-import symbol_definitions
 from assoc_memory_tester import AssociativeMemoryTester
-
-from ccm.lib import hrr
-
-import copy
+import utilities as util
 
 import random
-import datetime
-import string
-import sys
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".", isA_symbols = [], partOf_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(), unitary=False, verbose=False, outfile_suffix=""):
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".",
+               isA_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(),
+               unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
             semantic_pointers, associator, seed, output_dir, unitary, verbose, outfile_suffix)
@@ -65,7 +60,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
                     else:
                       prompt = self.rng.sample(testableLinks, 1)[0]
 
-                    self.print_header(self.jump_results_file, "New Jump Test")
+                    util.print_header(self.jump_results_file, "New Jump Test")
 
                     answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
 
@@ -86,10 +81,10 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         # print the score
         title = "Jump Test Summary"
-        self.print_header(self.jump_results_file, title)
+        util.print_header(self.jump_results_file, title)
         self.jump_results_file.write("valid_score,"+str(valid_score)+":\n")
         self.jump_results_file.write("totaltests,"+str(testNumber)+":\n")
-        self.print_footer(self.jump_results_file, title)
+        util.print_footer(self.jump_results_file, title)
 
         correct_score = float(correct_score) / float(testNumber)
         valid_score = float(valid_score) / float(testNumber)
@@ -146,7 +141,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         #now run the tests!
         title = "New Hierarchical Test - Negative"
         for pair in negative_pairs:
-          self.print_header(self.hierarchical_results_file, title)
+          util.print_header(self.hierarchical_results_file, title)
 
           #for printing
           self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True)
@@ -155,7 +150,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         title = "New Hierarchical Test - Positive"
         for pair in positive_pairs:
-          self.print_header(self.hierarchical_results_file, title)
+          util.print_header(self.hierarchical_results_file, title)
 
           self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True)
           result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True)
@@ -164,7 +159,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         # print the score
         title = "Hierarchical Test Summary"
-        self.print_header(self.hierarchical_results_file, title)
+        util.print_header(self.hierarchical_results_file, title)
         self.hierarchical_results_file.write("Start trial:\n")
         self.hierarchical_results_file.write("FP,"+str(n-n_score)+"\n")#false positive
         self.hierarchical_results_file.write("CR,"+str(n_score)+"\n")#correct rejections
@@ -173,7 +168,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         self.hierarchical_results_file.write("TS,"+str(n_score+p_score)+" out of "+str(n+m)+"\n")#successful tests, out of total
         self.hierarchical_results_file.write("NT,"+str(n)+"\n")#neg tests
         self.hierarchical_results_file.write("PT,"+str(m)+"\n")#pos tests
-        self.print_footer(self.hierarchical_results_file, title)
+        util.print_footer(self.hierarchical_results_file, title)
 
         print "Start trial:\n"
         print "FP,"+str(n-n_score)+"\n"#false positive
@@ -226,7 +221,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
               if print_output:
                 print >> self.hierarchical_results_file, target_key, "found at level ", level
               return level
-            
+
             if use_vecs:
               key = self.get_key_from_vector(word, self.semantic_pointers)
             else:
@@ -304,7 +299,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         for i in range(n):
             title = "New Sentence Test"
-            self.print_header(self.sentence_results_file, title)
+            util.print_header(self.sentence_results_file, title)
             sentence = {}
             sentenceVector = numpy.zeros(self.D)
 
@@ -348,11 +343,11 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         percent = float(score) / float(n)
         title = "Sentence Test Summary"
-        self.print_header(self.sentence_results_file, title)
+        util.print_header(self.sentence_results_file, title)
         print >> self.sentence_results_file, "Correct: ", score
         print >> self.sentence_results_file, "Total: ", n
         print >> self.sentence_results_file, "Percent: ", percent
-        self.print_footer(self.sentence_results_file, title)
+        util.print_footer(self.sentence_results_file, title)
 
         self.add_data("sentence_score", percent)
 
@@ -425,9 +420,9 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
           relation_counts[relation[0]] += 1
 
     title = "Relation Distribution"
-    self.print_header(output_file, title)
+    util.print_header(output_file, title)
     output_file.write("relation_counts: " + str(relation_counts) + " \n")
     output_file.write("relation_count: " + str(relation_count) + " \n")
     output_file.write("relation_hist: " + str(relation_hist) + " \n")
-    self.print_footer(output_file, title)
+    util.print_footer(output_file, title)
 

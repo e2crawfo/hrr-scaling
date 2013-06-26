@@ -1,6 +1,41 @@
 import random
+import re
 
-#bootstrap.py!
+import utilities as util
+
+
+def draw_bootstrap_samples(data, num, rng=random):
+  samples = []
+  for i in range(num):
+
+    sample = []
+    for j in range(len(data)):
+      val = rng.sample(data, 1)
+      sample.extend(val)
+
+    samples.append(sample)
+
+  return samples
+
+
+def get_bootstrap_stats(stat_func, data, num, rng=random):
+  samples = draw_bootstrap_samples(data, num, rng)
+
+  stats = []
+  for s in samples:
+    stats.append(stat_func(s))
+
+  return stats
+
+
+def bootstrap_CI(alpha, stat_func, data, num, rng=random):
+  stats = get_bootstrap_stats(stat_func, data, num, rng)
+  stats.sort()
+  lower_CI_bound = stats[int(round((num + 1) * alpha / 2.0))]
+  upper_CI_bound = stats[int(round((num + 1) * (1 - alpha / 2.0)))]
+
+  return lower_CI_bound, upper_CI_bound
+
 
 class Bootstrapper:
 
@@ -8,49 +43,85 @@ class Bootstrapper:
     self.data = {}
     self.verbose = verbose
     self.write_raw_data = write_raw_data
-    self.seed = seed 
+    self.seed = seed
     self.rng = random.Random(seed)
+    self.float_re = re.compile(r"""-*\d +  # the integral part
+                   \.    # the decimal point
+                   \d *  # some fractional digits""", re.X)
+
+  def read_bootstrap_file(self, filename, match_regex=r".*", ignore_regex=r"a^"):
+    """Collects data from a file previously created from an instance of the Bootstrap class
+    using the print_summary function. Adds that data to the current Bootstrapper instance.
+    Only collects data from the last "Bootstrap Summary" in the file.
+    Also requires that the Bootstrapper objects that wrote the file had write_raw_data=True.
+
+    :param filename: The name of the file to load bootstrap data from.
+    :type string
+
+    :param match_regex: A string specifying a regular expression. The function will only read
+    data fields which match this regex.
+    :type string
+
+    :param ignore_regex: A string specifying a regular expression. The function will ignore
+    all data fields that match this regex.
+    :type string
+    """
+
+    match_regex = re.compile(match_regex)
+    ignore_regex = re.compile(ignore_regex)
+
+    num_summaries = 0
+    with open(filename) as bs_file:
+      for line in bs_file:
+        if "Bootstrap Summary" in line and not "End" in line:
+          num_summaries += 1
+
+    i = 0
+    with open(filename) as bs_file:
+      for line in bs_file:
+        if "Bootstrap Summary" in line and not "End" in line:
+          i += 1
+
+          if i == num_summaries:
+            break
+
+      line = bs_file.next()
+
+      while not "End Bootstrap Summary" in line:
+        name = bs_file.next()
+        name = re.split('\W+', name)[1]
+
+        lCI = bs_file.next()
+        uCI = bs_file.next()
+        mx = bs_file.next()
+        mn = bs_file.next()
+        num_samples = bs_file.next()
+
+        raw_data = bs_file.next()
+
+        if not "raw data" in raw_data:
+          return
+
+        raw_data = self.float_re.findall(raw_data)
+
+        if match_regex.search(name) and not ignore_regex.search(name):
+          for rd in raw_data:
+            self.add_data(name, rd)
+
+        line = bs_file.next()
 
   def add_data(self, index, data):
     if not (index in self.data):
       self.data[index] = []
 
-    self.data[index].append(data)
+    self.data[index].append(float(data))
 
     if self.verbose:
       print "Bootstrapper adding data ... name: ", index, ", data: ", data
 
-  def draw_bootstrap_samples(self, data, num):
-    samples = []
-    for i in range(num):
-
-      sample = []
-      for j in range(len(data)):
-        val = self.rng.sample(data, 1)
-        sample.extend(val)
-
-      samples.append(sample)
-
-    return samples
-
-  def get_bootstrap_stats(self, stat_func, data, num):
-    samples = self.draw_bootstrap_samples(data, num)
-
-    stats = []
-    for s in samples:
-      stats.append(stat_func(s))
-
-    return stats
-
-  def bootstrap_CI(self, alpha, stat_func, data, num) :
-    stats = self.get_bootstrap_stats(stat_func, data, num)
-    stats.sort()
-    lower_CI_bound = stats[int(round((num + 1) * alpha / 2.0 ))]
-    upper_CI_bound = stats[int(round((num + 1) * (1 - alpha/2.0)))]
-
-    return (lower_CI_bound, upper_CI_bound)
-
   def print_summary(self, output_file):
+    title = "Bootstrap Summary"
+    util.print_header(output_file, title)
     mean = lambda x: float(sum(x)) / float(len(x))
 
     data_keys = self.data.keys()
@@ -58,7 +129,7 @@ class Bootstrapper:
 
     for n in data_keys:
       s = self.data[n]
-      CI = self.bootstrap_CI(0.05, mean, s, 999)
+      CI = bootstrap_CI(0.05, mean, s, 999)
       largest = max(s)
       smallest = min(s)
 
@@ -72,3 +143,4 @@ class Bootstrapper:
       if self.write_raw_data:
         output_file.write("raw data: " + str(s) + "\n")
 
+    util.print_footer(output_file, title)

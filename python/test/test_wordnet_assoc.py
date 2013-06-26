@@ -1,19 +1,14 @@
+from python.vector_operations import VectorFactory
 from ..wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
 from ..assoc_memory import AssociativeMemory
 from ..neural_assoc_memory import NeuralAssociativeMemory
 
-from .. import startup_utils
+from .. import utilities
 from .. import symbol_definitions
 
 import unittest
-from nose.plugins.attrib import attr
 
-#for test selecting using Attrib nose plugin
-#@attr(speed='fast')
-class TestWordnetAssoc(unittest.TestCase):
-
-  def createAssociator(self, id_vectors, semantic_pointers):
-    pass
+class TestWordnetAssocNonVector(unittest.TestCase):
 
   def setUp(self):
     self.id = False
@@ -24,18 +19,21 @@ class TestWordnetAssoc(unittest.TestCase):
     seed = 10
     dim = 512
     prop = 0.1
-    input_dir, output_dir = startup_utils.read_config()
+    input_dir, output_dir = utilities.read_config()
     relation_symbols = symbol_definitions.uni_relation_symbols()
+    vector_factory = VectorFactory(seed)
 
     isA_symbols = symbol_definitions.isA_symbols()
     sentence_symbols = symbol_definitions.sentence_role_symbols()
 
-    (self.corpus_dict, self.id_vectors, self.semantic_pointers) = \
-      startup_utils.setup_corpus(input_dir, relation_symbols, seed, dim, self.id, self.uv, prop) 
+    self.corpus_dict, self.id_vectors, self.semantic_pointers = \
+        utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, seed, self.id, self.uv, prop)
 
     self.createAssociator(self.id_vectors, self.semantic_pointers)
     self.tester = WordnetAssociativeMemoryTester(self.corpus_dict, self.id_vectors, self.semantic_pointers,
-        relation_symbols, self.associator, seed, output_dir, isA_symbols, sentence_symbols, self.uv, True)
+                                                 relation_symbols, self.associator, seed, output_dir, isA_symbols,
+                                                 sentence_symbols, VectorFactory(), self.uv, True)
+
 
   def test_jump(self):
     self.tester.runBootstrap_jump(1, 1)
@@ -46,23 +44,20 @@ class TestWordnetAssoc(unittest.TestCase):
   def test_sentence(self):
     self.tester.runBootstrap_sentence(1, 1)
 
-#for test selecting using Attrib nose plugin
-@attr(speed='fast')
-class TestWordnetAssocNonVector(TestWordnetAssoc):
-
   def createAssociator(self, id_vectors, semantic_pointers):
     self.associator = AssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold)
 
-#for test selecting using Attrib nose plugin
-@attr(speed='fast')
-class TestWordnetAssocVector(TestWordnetAssoc):
+
+class TestWordnetAssocVector(TestWordnetAssocNonVector):
 
   def createAssociator(self, id_vectors, semantic_pointers):
-    self.associator = AssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold, return_vec=True)
+    self.associator = AssociativeMemory(id_vectors, semantic_pointers,
+                                        self.id, self.uv, self.ub, self.assoc_threshold, return_vec=True)
 
-#for test selecting using Attrib nose plugin
-@attr(speed='slow')
-class TestWordnetAssocNeural(TestWordnetAssoc):
 
-  def createAssociator(self, id_vectors, semantic_pointers):
-    self.associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, self.id, self.uv, self.ub, self.assoc_threshold, print_output=False)
+#@attr(slow=1)
+#class TestWordnetAssocNeural(TestWordnetAssoc):
+
+#  def createAssociator(self, id_vectors, semantic_pointers):
+#    self.associator = NeuralAssociativeMemory(id_vectors, semantic_pointers,
+#                                              self.id, self.uv, self.ub, self.assoc_threshold, print_output=False)

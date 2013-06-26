@@ -1,6 +1,7 @@
 #assoc memory tester
 from vector_operations import *
 from bootstrap import Bootstrapper
+import utilities as util
 
 from ccm.lib import hrr
 
@@ -60,7 +61,7 @@ class AssociativeMemoryTester(object):
 
   def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
 
-        self.print_header(output_file, "Testing link", char='-')
+        util.print_header(output_file, "Testing link", char='-')
 
         if word_vec is None:
           #should be an error here if neither is supplied
@@ -68,11 +69,11 @@ class AssociativeMemoryTester(object):
 
         if word_key:
           print >> output_file, "start :", word_key
-          self.print_header(sys.stdout, "Start")
+          util.print_header(sys.stdout, "Start")
           print(word_key)
 
         if goal:
-          self.print_header(sys.stdout, "Target")
+          util.print_header(sys.stdout, "Target")
           print(goal)
 
         if relation_is_vec:
@@ -117,7 +118,7 @@ class AssociativeMemoryTester(object):
               self.add_data("rel_"+str(num_relations)+"_second_match", second_match)
               self.add_data("rel_"+str(num_relations)+"_size", size)
               self.add_data("rel_"+str(num_relations)+"_hinv_match", highest_invalid_match)
-            
+
             jump_correct = target_match > self.test_threshold and target_match > highest_invalid_match
 
             if return_vec:
@@ -126,7 +127,7 @@ class AssociativeMemoryTester(object):
               return (cleanResult, jump_correct, False, False)
 
           if return_vec:
-            #here there should be an error about trying to return vectors even though we 
+            #here there should be an error about trying to return vectors even though we
             #don't get them back from the associator
             pass
 
@@ -175,11 +176,11 @@ class AssociativeMemoryTester(object):
     using the soft threshold - usually set to maximize performance
 
     vector is the vector we are testing
-    target is the vector we are comparing to 
+    target is the vector we are comparing to
     """
     hrr_vec = hrr.HRR(data=vector)
-    return hrr_vec.compare(hrr.HRR(data=target)) > self.soft_threshold 
-    
+    return hrr_vec.compare(hrr.HRR(data=target)) > self.soft_threshold
+
   def sufficient_norm(self, vector):
       return numpy.linalg.norm(vector) >= 0.1
 
@@ -202,7 +203,7 @@ class AssociativeMemoryTester(object):
     for key in vector_dict.keys():
       if key not in exempt:
         yield (key, hrr_vec.compare(hrr.HRR(data=vector_dict[key])))
-    
+
   def getStats(self, cleanResultVector, goal, other_answers, fp, threshold = 0.0):
     size = numpy.linalg.norm(cleanResultVector)
 
@@ -297,33 +298,19 @@ class AssociativeMemoryTester(object):
 
   def print_bootstrap_summary(self, sample_index, sample_size, output_file):
 
-    title = "Bootstrap Summary"
-    self.print_header(output_file, title)
     output_file.write("After " + str(sample_index) + " samples out of " + str(sample_size) + "\n")
     self.bootstrapper.print_summary(output_file)
-    self.print_footer(output_file, title)
 
   def print_bootstrap_runtime_summary(self, output_file, time):
-    self.print_header(output_file, "Runtime Summary")
+    util.print_header(output_file, "Runtime Summary")
     output_file.write("Total elapsed time for bootstrap runs: " + str(time) + "\n")
     output_file.write("Total num jumps: " + str(self.num_jumps) + "\n")
 
     if self.num_jumps != 0:
       output_file.write("Average time per jump: " + str(float(time.seconds) / float(self.num_jumps)) + "\n")
 
-    self.print_footer(output_file, "Runtime Summary")
+    util.print_footer(output_file, "Runtime Summary")
 
-  def print_header(self, output_file, string, char='*', width=15, left_newline=True):
-    line = char * width
-    string = line + " " + string + " " + line + "\n"
-
-    if left_newline:
-      string = "\n" + string
-
-    output_file.write(string)
-
-  def print_footer(self, output_file, string, char='*', width=15):
-    self.print_header(output_file, "End " + string, char=char, width=width, left_newline=False)
 
   def finish(self):
     pass

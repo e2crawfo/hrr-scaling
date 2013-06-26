@@ -7,7 +7,7 @@ try:
 except ImportError:
   can_plot = False
 
-import startup_utils
+import utilities
 from vector_operations import *
 import symbol_definitions
 from wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
@@ -15,7 +15,7 @@ from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
 import random
 
-argvals = startup_utils.parse_args(True)
+argvals = utilities.parse_args(True)
 
 steps = argvals.steps
 vector_seed = argvals.vector_seed
@@ -37,7 +37,7 @@ verbose = argvals.v
 id_vecs = argvals.i
 unitary = argvals.u
 
-outfile_suffix = startup_utils.create_outfile_suffix(neural, unitary, id_vecs, use_bi_relations, algorithm)
+outfile_suffix = utilities.create_outfile_suffix(neural, unitary, id_vecs, use_bi_relations, algorithm)
 
 if vector_seed == -1:
   vector_seed = random.randrange(1000)
@@ -57,34 +57,35 @@ num_runs = int(argvals.test[1]) if len(argvals.test) > 1 else 1
 num_trials = int(argvals.test[2]) if len(argvals.test) > 2 else 1
 print test, num_runs, num_trials
 
-input_dir, output_dir = startup_utils.read_config(config_name)
+input_dir, output_dir = utilities.read_config(config_name)
 
 vector_factory = VectorFactory(vector_seed)
 
 (corpus_dict, id_vectors, semantic_pointers) = \
-    startup_utils.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
+    utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
 
 #change these to use specific words/relations
 num_words = 0
 probes = []
 #words = [('n', 2606384)]
 #relations = [0]
-words  = []
+words = []
 relations = []
 
 if num_words > 0:
-  (probes, words, relations) = startup_utils.gen_probes(corpus_dict, num_words, relation_symbols, words, relations)
+  (probes, words, relations) = utilities.gen_probes(corpus_dict, num_words, relation_symbols, words, relations)
 
   if not (len(relations) == len(words) and len(words) > 0):
     words = []
     relations = []
 
 #if do_relation_stats:
-#  kwargs["relation_stats"] = startup_utils.setup_relation_stats()
+#  kwargs["relation_stats"] = utilities.setup_relation_stats()
 
 
 if neural:
-  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, output_dir = output_dir, probes=probes, timesteps=steps, quick=quick)
+  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
+                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 
@@ -100,7 +101,7 @@ if len(words) > 0:
   tester.set_jump_plan(words, relations)
 
 if graph:
-  data_display = startup_utils.draw_associator_graph
+  data_display = utilities.draw_associator_graph
 else:
   data_display = lambda x: x
 
