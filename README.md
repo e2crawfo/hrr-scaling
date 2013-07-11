@@ -3,7 +3,7 @@ Purpose
 -------
 
 **cleanup-scaling** is intended to demonstrate the scaling capabilities of the Semantic Pointer Architecture (SPA) 
-and its approach to connectionist knowledge representation [(Eliasmith 2013)](http://amazon.com/How-Build-Brain-Architecture-Architectures/dp/0199794545). We accomplish this by creating a spiking neural network capable of encoding  WordNet, a lexical database consisting of ~117,000 items, and traversing the primary relations therein. We show that our technique can encode this human-scale structured knowledge base using much fewer neural resources than any previous approach would require.
+and its approach to connectionist knowledge representation [(Eliasmith 2013)](http://compneuro.uwaterloo.ca/research/spa.html). We accomplish this by creating a spiking neural network capable of encoding  WordNet, a lexical database consisting of ~117,000 items, and traversing the primary relations therein. We show that our technique can encode this human-scale structured knowledge base using much fewer neural resources than any previous approach would require.
 
 Methods
 ------
@@ -25,7 +25,7 @@ amounts to traversing an edge in the WordNet graph.
 
 Our goal is to encode the WordNet graph in *spiking neurons*, and so we require some way to relate the above scheme to a spiking neural network. 
 Our tool for this purpose is the Neural Engineering Framework (NEF), a principled approach to constructing populations of
-spiking neurons that represent and manipulate high-level vectors [(Eliasmith & Anderson 2003)](http://www.amazon.com/Neural-Engineering-Representation-Neurobiological-Computational/dp/0262550601). The NEF makes it straightforward to implement the mathematically defined HRR extraction operation in spiking neurons.
+spiking neurons that represent and manipulate high-level vectors (Eliasmith & Anderson 2003). An overview of the NEF can be found [here](http://compneuro.uwaterloo.ca/research/nef.html). The NEF makes it straightforward to implement the mathematically defined HRR extraction operation in spiking neurons.
 Moreover, the operation can be implemented using a number of neurons linear in the dimensionality of the vectors used in the HRR scheme, which is fixed at 512 for our model.
 
 The other required ingredient is a *neural cleanup memory*. This is required because the HRR operation that extracts the information stored in the vectors is inherently noisy.
