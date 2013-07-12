@@ -22,6 +22,7 @@ def print_footer(output_file, string, char='*', width=15):
 #Parse args
 def parse_args(print_args=False):
   parser = argparse.ArgumentParser(description='Test an associative memory.')
+  parser.add_argument('--gpus', default=1, type=int, help='Number of gpus to use to run the neural model.')
   parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
   parser.add_argument('--vector-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
@@ -40,7 +41,6 @@ def parse_args(print_args=False):
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data the is printed to the file')
   parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run (only makes difference if -n is also supplied)')
   parser.add_argument('test', nargs='*', help='Specify the test type, the number of runs and the number of trials')
-
 
   argvals = parser.parse_args()
 

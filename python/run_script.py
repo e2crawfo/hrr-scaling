@@ -31,6 +31,7 @@ algorithm = argvals.a
 neural = argvals.n and not algorithm
 quick = argvals.q and neural
 graph = argvals.g and can_plot
+num_gpus = max(argvals.gpus, 0)
 
 verbose = argvals.v
 
@@ -85,7 +86,7 @@ if num_words > 0:
 
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
-                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick)
+                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick, num_gpus=num_gpus)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 

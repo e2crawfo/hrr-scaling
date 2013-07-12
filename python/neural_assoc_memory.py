@@ -17,7 +17,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False, num_gpus=1):
 
     self.useGPU = useGPU
     self.threshold = threshold
@@ -44,6 +44,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
       self.runtimes_file=open(self.output_dir+'/neural_runtimes2', 'a')
 
     #in the "core" case, indices will be the id vectors, items will be the structured vectors.
+    #in the other cases, they're identical...and use the same memory
     self.indices=indices
     self.items=items
 
@@ -90,7 +91,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
 
-    scale = 10.0 
+    scale = 10.0
 
     item_keys = self.items.keys()
     scaled_items = [scale * self.items[key] for key in item_keys]
@@ -100,7 +101,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
       if probe.itemKey :
         probe.itemIndex = item_keys.index(probe.itemKey)
 
-    self.associator_node = GPUCleanup(4, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output, quick=quick)
+    self.associator_node = GPUCleanup(num_gpus, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output, quick=quick)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=pstc)

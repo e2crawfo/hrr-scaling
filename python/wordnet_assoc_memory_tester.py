@@ -90,7 +90,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         valid_score = float(valid_score) / float(testNumber)
         exact_score = float(exact_score) / float(testNumber)
 
-        print "score,"+str(valid_score)
+        print "score,"+str(correct_score)
 
         self.add_data("jump_score_correct", correct_score)
         self.add_data("jump_score_valid", valid_score)
