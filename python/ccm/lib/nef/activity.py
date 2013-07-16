@@ -1,5 +1,5 @@
 import numpy
-#import pylab
+import matplotlib.pyplot as plt
 from .core import ArrayNode
 from .generate import makeGenerator
 from .storage import Storage
@@ -197,9 +197,10 @@ class ActivityNode(ArrayNode):
           numpy.seterr(invalid='ignore',divide='ignore')
           G=self.t_ref-self.t_rc*numpy.log(1-self.J_threshold/J)
           G=numpy.where(G>0.001,1/G,0)
-          #pylab.plot(x,G)
+          plt.plot(x,G)
 
-        #pylab.show()
+        plt.show()
+        plt.savefig("tuning_curve.png")
 
     def current_to_activity(self,J):
         if not self.lif:

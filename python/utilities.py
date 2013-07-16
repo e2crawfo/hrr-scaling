@@ -23,6 +23,7 @@ def print_footer(output_file, string, char='*', width=15):
 def parse_args(print_args=False):
   parser = argparse.ArgumentParser(description='Test an associative memory.')
   parser.add_argument('--gpus', default=1, type=int, help='Number of gpus to use to run the neural model.')
+  parser.add_argument('--numwords', default=0, type=int, help='Number of planned words. Only has an effect on neural jump tests.')
   parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
   parser.add_argument('--vector-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')

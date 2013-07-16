@@ -176,9 +176,6 @@ class GPUCleanup(nef.ArrayNode):
         for j in range(self.numNeuronsPerItem):
           s[j] = self._c_spikes[ spikeIndex + j ] * self.dt
 
-        #print self._spikes[i]
-        #print "********************"
-
         spikeIndex += self.numNeuronsPerItem
 
       #update probes
@@ -187,13 +184,11 @@ class GPUCleanup(nef.ArrayNode):
           start, end, history = self.probeData[probe]
           
           #this is from when we were actually probing the stuff from the GPU
-          #itemIndex = probe.itemIndex
           if self.probeFromGPU:
             start._set_spikes( self._spikes[probe.itemIndex] )
             start.tick()
 
           history.append( copy.deepcopy(end.value() ))
-          #print "Probe :", probe, ", val: ", end.value()
 
       return 
 
@@ -229,7 +224,6 @@ class GPUCleanup(nef.ArrayNode):
     if self.probeFromGPU:
       return
 
-    #print "connecting to probes!"
     for p in self.probes:
       weight = self.index_vectors[p.itemIndex]
       node.connect( self.probeData[p][0], weight=copy.deepcopy(weight))

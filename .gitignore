@@ -13,7 +13,7 @@
 ########
 data
 goodData
-wordnetData
+#wordnetData
 nef_data
 neural_runtimes
 

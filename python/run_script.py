@@ -32,6 +32,7 @@ neural = argvals.n and not algorithm
 quick = argvals.q and neural
 graph = argvals.g and can_plot
 num_gpus = max(argvals.gpus, 0)
+num_words = argvals.numwords
 
 verbose = argvals.v
 
@@ -66,10 +67,7 @@ vector_factory = VectorFactory(vector_seed)
     utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
 
 #change these to use specific words/relations
-num_words = 0
 probes = []
-#words = [('n', 2606384)]
-#relations = [0]
 words = []
 relations = []
 
@@ -106,23 +104,14 @@ if graph:
 else:
   data_display = lambda x: x
 
-#short tests
 if test == 'j':
   tester.runBootstrap_jump(num_runs, num_trials, dataFunc = data_display)
 elif test == 'h':
   tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display)
-#elif test == 'm':
-#  tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display, symbols=partOf_symbols)
 elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials, dataFunc = data_display)
 elif test == 'c':
   tester.get_similarities()
 else:
   pass
-
-
-#For paper:
-#tester.runBootstrap_jump(20, 100, dataFunc = data_display, **kwargs)
-#tester.runBootstrap_hierarchical(20, 20, dataFunc = data_display, **kwargs)
-#tester.runBootstrap_sentence(20, 30, dataFunc = data_display, **kwargs)
 

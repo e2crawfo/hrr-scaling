@@ -17,7 +17,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False, num_gpus=1):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.005, quick=False, num_gpus=1):
 
     self.useGPU = useGPU
     self.threshold = threshold
@@ -61,6 +61,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     print "Creating item_node array"
     self.item_node = nef.make_array_HRR('Item', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum, pstc=pstc)
+
 
     print "Creating query_node array"
     self.query_node = nef.make_array_HRR('Query', neurons_per_dim, self.dim, 1, minimum, maximum, maximum=maximum, minimum=minimum, pstc=pstc)
@@ -142,7 +143,6 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
       i += 1
 
-    #vector = self.results_node.array()
     vector = self.results_node.array()
 
     #reset them all so they can be used again right away next time
@@ -197,7 +197,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   def print_debug_info(self):
     print >> sys.stderr, "printing results_node norm: ", numpy.linalg.norm(self.results_node_spiking.array())
 
-    print >> sys.stderr, "printing agreements" 
+    print >> sys.stderr, "printing agreements"
     agreements = []
     for i, vec in enumerate(self.items):
       agreements.append((i,hrr.HRR(data=self.items[vec]).compare(hrr.HRR(data=self.results_node_spiking.array()))))
