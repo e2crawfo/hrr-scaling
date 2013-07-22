@@ -76,6 +76,9 @@ class Bootstrapper:
         if "Bootstrap Summary" in line and not "End" in line:
           num_summaries += 1
 
+    if not num_summaries:
+      return
+
     i = 0
     with open(filename) as bs_file:
       for line in bs_file:
@@ -85,6 +88,7 @@ class Bootstrapper:
           if i == num_summaries:
             break
 
+      line = bs_file.next()
       line = bs_file.next()
 
       while not "End Bootstrap Summary" in line:
@@ -120,6 +124,12 @@ class Bootstrapper:
       print "Bootstrapper adding data ... name: ", index, ", data: ", data
 
   def print_summary(self, output_file):
+    
+    close = False
+    if isinstance(output_file, str):
+      output_file = open(output_file,'w')
+      close = True
+
     title = "Bootstrap Summary"
     util.print_header(output_file, title)
     mean = lambda x: float(sum(x)) / float(len(x))
@@ -144,3 +154,6 @@ class Bootstrapper:
         output_file.write("raw data: " + str(s) + "\n")
 
     util.print_footer(output_file, title)
+
+    if close:
+      output_file.close()
