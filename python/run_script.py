@@ -1,4 +1,3 @@
-
 try:
   import matplotlib as mpl
   mpl.use('Agg')
@@ -14,6 +13,7 @@ from wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
 from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
 import random
+from collections import OrderedDict
 
 argvals = utilities.parse_args(True)
 
@@ -33,6 +33,9 @@ quick = argvals.q and neural
 graph = argvals.g and can_plot
 num_gpus = max(argvals.gpus, 0)
 num_words = argvals.numwords
+pick_devices = argvals.pick_devices
+if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
+else: pick_devices = range(num_gpus)
 
 verbose = argvals.v
 
@@ -85,6 +88,9 @@ if num_words > 0:
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
                                        output_dir = output_dir, probes=probes, timesteps=steps, quick=quick, num_gpus=num_gpus)
+=======
+                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick, devices=pick_devices)
+>>>>>>> Added --pick-devices command line arg
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 

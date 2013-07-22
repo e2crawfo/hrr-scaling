@@ -121,8 +121,10 @@ class GPUCleanup(nef.ArrayNode):
       c_returnSpikes = convert_to_carray(returnSpikes, c_int, 1)
 
       print "Print output:", print_output, " ", int(print_output)
+      c_devices = convert_to_carray(devices, c_int, 1)
+      num_devices = len(devices)
 
-      self.libNeuralCleanupGPU.setup(c_int(devices), c_float(dt), c_int(self.numVectors), 
+      self.libNeuralCleanupGPU.setup(c_int(num_devices), c_devices, c_float(dt), c_int(self.numVectors), 
                                      c_int(self.dimensions), c_int(int(auto)), c_index_vectors, 
                                      c_result_vectors, c_float(tau), c_encoder, c_decoder, 
                                      c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), 

@@ -296,7 +296,7 @@ void run_kill()
 // with ctypes (but can also, of course, be called from c)
 // sizes store number of ensembles, number of network arrays and number of projections
 
-void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data, int stop_early)
+void setup(int numDevicesRequested, int* devicesToUse, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data, int stop_early)
 {
 
   int i, j, k;
@@ -339,7 +339,7 @@ void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int
   {
     currentData = nengoDataArray[i];
     
-    currentData->device = i;
+    currentData->device = devicesToUse[i];
     currentData->stop_early = stop_early;
 
     currentData->do_print = do_print;
@@ -433,14 +433,14 @@ void step(float* input, float* output, float* spikes, float start, float end, fl
 
   memset(output, 0, nengoDataArray[0]->dimension * sizeof(float));
 
+  for(k=0; k < currentData->dimension; k++)
+  {
+    output[k] = 0.0;
+  }
+
   for(i = 0; i < numDevices; i++)
   {
     currentData = nengoDataArray[i];
-
-    for(k=0; k < currentData->dimension; k++)
-    {
-      output[k] = 0.0;
-    }
 
     if(currentData->stop_early)
     {

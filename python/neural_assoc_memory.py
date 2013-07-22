@@ -17,7 +17,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.005, quick=False, num_gpus=1):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.005, quick=False, devices=[0]):
 
     self.useGPU = useGPU
     self.threshold = threshold
@@ -102,7 +102,10 @@ class NeuralAssociativeMemory(AssociativeMemory):
       if probe.itemKey :
         probe.itemIndex = item_keys.index(probe.itemKey)
 
-    self.associator_node = GPUCleanup(num_gpus, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output, quick=quick)
+    if devices is None:
+      devices = [0]
+
+    self.associator_node = GPUCleanup(devices, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output, quick=quick)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=pstc)

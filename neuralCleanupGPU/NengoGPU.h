@@ -27,7 +27,7 @@ void* start_GPU_thread(void* arg);
 void run_start();
 void run_kill();
 
-void setup(int numDevicesRequested, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data, int stop_early);
+void setup(int numDevicesRequested, int* devicesToUse, float dt, int numVectors, int dimension, int autoassociative, int** index_vectors, int** result_vectors, float tau, float* encoder, float* decoder, int num_neurons, float* alpha, float* Jbias, float tau_ref, float tau_rc, int* return_spikes, int print_data, int stop_early);
 
 void step(float* input, float* output, float* spikes, float start, float end, float* decoded_values);
 
