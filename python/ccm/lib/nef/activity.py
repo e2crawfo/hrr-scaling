@@ -1,5 +1,6 @@
 import numpy
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from .core import ArrayNode
 from .generate import makeGenerator
 from .storage import Storage
@@ -188,19 +189,44 @@ class ActivityNode(ArrayNode):
         self.Jbias.shape=self.Jbias.shape[0]
         self.alpha.shape=self.alpha.shape[0]
 
-    def plot_tuning_curves(self, low_x, step, high_x):
+    def plot_tuning_curves(self, low_x, step, high_x, title="Tuning Curves", filename="tuning_curves", subplot=None, ticks=None):
+
+        mpl.rcParams.update({'font.size': 8})
+        first = True
+        last = True
+        if subplot is not None:
+          first = subplot % 10 == 1
+          last = (int(subplot / 100)) * (int(subplot / 10) % 10) == (subplot % 10)
+
+        if first:
+          fig = plt.figure(figsize=(5, 2.6))
+
+        if subplot:
+          plt.subplot(subplot)
+
         x = numpy.arange(low_x, high_x, step)
-        
+
         for a,b in zip(self.alpha, self.Jbias):
-          J = x * a + b 
+          J = x * a + b
           J=numpy.maximum(J,0)
           numpy.seterr(invalid='ignore',divide='ignore')
           G=self.t_ref-self.t_rc*numpy.log(1-self.J_threshold/J)
           G=numpy.where(G>0.001,1/G,0)
-          plt.plot(x,G)
+          plt.plot(x,G, linewidth=.5)
 
-        plt.show()
-        plt.savefig("tuning_curve.png")
+        plt.xlim((low_x, high_x))
+        plt.xlabel("$\mathbf{e_i x}$")
+
+        if first:
+          plt.ylabel("Firing rate (spikes/s)")
+
+        plt.title(title)
+        if ticks is not None:
+          plt.xticks(ticks)
+
+        if last:
+          plt.show()
+          plt.savefig(filename+".pdf")
 
     def current_to_activity(self,J):
         if not self.lif:

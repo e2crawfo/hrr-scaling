@@ -24,7 +24,7 @@ except:
 import numpy
 from operator import *
 
-fig = plt.figure(figsize=(5,3))
+fig = plt.figure(figsize=(5,2.2.55))
 
 mpl.rcParams.update({'font.size': 9})
 
@@ -38,23 +38,9 @@ y_vals = [[100.0, 95.5, 99.6], [17.9, 74.9, 51.8], [81.0, 96.4, 93.2]]
 error_lo = [[100.0, 94.3, 99.3], [16.2, 71.5, 50.3], [79.4, 95.4, 91.9]]
 error_hi = [[100.0, 96.9, 99.8], [19.7, 78.1, 53.3], [82.6, 97.5, 94.5]]
 
-
-
-#y_vals = zip(*data)
-#y_vals = [i for y in y_vals for i in list(y) ]
-
-#error_lo = zip(*error_lo)
-#error_lo = [i for el in error_lo for i in el]
 error_lo = [[y - el for y, el in zip(yvl, ell)] for yvl, ell in zip(y_vals, error_lo)]
-
-#error_hi = zip(*error_hi)
-#error_hi = [i for eh in error_hi for i in eh]
 error_hi = [[eh - y for y, eh in zip(yvl, ehl)] for yvl, ehl in zip(y_vals, error_hi)]
 
-
-print y_vals
-print error_lo
-print error_hi
 
 hatch = ['/', '|||||', '\\', 'xxx', '||', '--', '+', 'OO', '...', '**']
 labels = ["Core", "Consistent", "Unitary"]
@@ -92,35 +78,13 @@ print bar_left_positions
 
 for blp, yv, cl, el, eh, lb in zip(bar_left_positions, y_vals, color, error_lo, error_hi, labels):
   plt.bar(blp, yv, color=cl, width = bar_width, linewidth=0.2, yerr=[el, eh], ecolor="black", label=lb, error_kw = {"linewidth":0.5, "capsize":1.5})
-#plt.legend(loc=0)
-legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':9}, handlelength=.75, handletextpad=.5)
-#print "yo"
-#print legend
-#print legend.get_patches()
-#print legend.get_patches()[0]
-#print dir(legend.get_patches()[0])
-##legend.get_patches()[0].set_width(10)
-#for p in legend.get_patches():
-#  p.set_width(10)
-#print dir(legend)
-#
-#print "P"
-#print dir(legend.get_frame().set_width(2))
-#
-#print fig.axes
+
+legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':9}, handlelength=.75, handletextpad=.5, shadow=False, frameon=False)
+
 ax = fig.axes[0]
 box = ax.get_position()
 ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 handles, labels = ax.get_legend_handles_labels()
-
-#print labels
-#
-#print handles
-#print dir(handles[0].patches)
-#print handles[0].patches[0].set_color('green')
-#print dir(handles[0].patches[0])
-#print type(handles[0])
-#so handles are just the bars themselves
 
 ticks = middles
 tick_labels = ["Single Edge", "Hierarchal", "Sentence"]

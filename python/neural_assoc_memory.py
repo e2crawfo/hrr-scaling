@@ -90,6 +90,9 @@ class NeuralAssociativeMemory(AssociativeMemory):
     associator_node.configure(neurons=self.neurons_per_item,threshold_min=self.min_thresh,threshold_max=self.max_thresh,
                     saturation_range=(200,200),apply_noise=False)
 
+    #associator_node.plot_tuning_curves(-0.9, .001, 0.9, "Cleanup Population", "cl_tuning_curves", 121)
+    #self.item_node.nodes[0].plot_tuning_curves(minimum, .0001, maximum, "Standard Population", "st_tuning_curves", 122, ticks=[-0.04, -0.02, 0.0, 0.02, 0.04])
+
     probeFunctions = [lambda x: x, self.transfer_func]
     probeFunctionNames = ["identity", "transfer"]
 
