@@ -34,6 +34,7 @@ graph = argvals.g and can_plot
 num_gpus = max(argvals.gpus, 0)
 num_words = argvals.numwords
 pick_devices = argvals.pick_devices
+pstc = argvals.pstc
 if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
 else: pick_devices = range(num_gpus)
 
@@ -87,7 +88,7 @@ if num_words > 0:
 
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
-                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick, devices=pick_devices)
+                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick, devices=pick_devices, pstc=pstc)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 

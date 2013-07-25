@@ -29,6 +29,7 @@ def parse_args(print_args=False):
   parser.add_argument('--vector-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
   parser.add_argument('--save', default=False, type=bool, help='Whether to save the results of parsing the Wordnet files')
+  parser.add_argument('--pstc', default=0.02, type=float, help='Post-synaptic time constant. Controls the shape of the post-synaptic current. Only applies if -n is supplied.')
   parser.add_argument('-p', default=1.0, type=float, help='Specify the proportion of Wordnet synsets to use.')
   parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold.')
   parser.add_argument('-c', default='config', help='Specifiy the name of the config file')
