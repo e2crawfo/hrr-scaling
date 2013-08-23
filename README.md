@@ -25,7 +25,20 @@ The code in this package constructs the described neural network, and provides a
 
 How to use
 ---------
-Coming soon...
+Running this package requires python 2.7, numpy, and scipy. matplotlib is required for creating graphical views of the results.
+
+The model can be run either with or without GPU support. GPU support is all but required for running a model storing
+all ~117,000 concepts in WordNet. However, you can modify the number of concepts used by the model to make it more
+tractable, and still get a feel for how the model works.
+
+To run the model without GPU support, simply cd into the *python* directory and type *python run_script.py*. To decrease
+the number of concepts, add *-p X*, where X is a number between 0 and 1 specifying the proportion of the total number
+of concepts to include. X = 0.1 might be a good bet.
+
+If you have a CUDA capable NVIDIA GPU, the full model as described in the paper can be run in very reasonable amounts of time.
+...More coming soon.
+
+
 
 References
 ----------
