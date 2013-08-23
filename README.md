@@ -1,4 +1,3 @@
-
 Purpose
 -------
 
@@ -37,4 +36,4 @@ Elasimith, C., & Anderson, C. H. (2003). *Neural engineering: Computation, repre
 
 Plate, T. A. (2003). *Holographic reduced representations*. Stanford, CA: CSLI Publication.
 
-Stewart, T., Tang, Y., & Eliasmith, C. (2010). A biologically realistic cleanup memory: Autoassociation in spiking neurons. *Cognitive Systems Research*.
+Stewart, T., Tang, Y., and Eliasmith, C. A biologically realistic cleanup memory: autoassociation in spiking neurons. *Cognitive Systems Research*, 12:84-92, 2011.
