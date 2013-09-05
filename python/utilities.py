@@ -13,21 +13,24 @@ def parse_args(print_args=False):
 
   parser.add_argument('test', nargs='*', help="Specify the test type (one of 'j', 'h' or 's'), the number of runs and the number of trials per run (e.g. python run_script.py j 10 100).")
 
+  #parameters of the experiment
   parser.add_argument('-u', action='store_true', help='Supply this argument to use unitary vectors.')
   parser.add_argument('-i', action='store_true', help='Supply this argument to require that the semantic pointers be used as the index vectors.')
   parser.add_argument('-d', default=512, type=int, help='Specify the number of dimensions to use.')
-
-  parser.add_argument('-n', action='store_true', help='Supply this argument to use a neural cleanup')
-  parser.add_argument('-a', action='store_true', help='Supply this argument to use the neural cleanup algorithm, but no neurons. This trumps -n.')
-
   parser.add_argument('-p', default=1.0, type=float, help='Specify the proportion of Wordnet synsets to use. A float between 0 and 1.')
-  parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold. A float between 0 and 1.')
-  parser.add_argument('--pstc', default=0.02, type=float, help='Post-synaptic time constant. Controls the shape of the post-synaptic current. Only applies if -n is supplied.')
-  parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
-
   parser.add_argument('--vector-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
 
+  #picking the type of cleanup memory
+  parser.add_argument('-l', action='store_true', help='Supply this argument do cleanup using pure linear algebra rather than neurons. If neither -a nor -l is specified, cleanup is performed by a neural network.')
+  parser.add_argument('-a', action='store_true', help='Supply this argument to use the neural cleanup algorithm, but without neurons. If neither -a nor -l is specified, cleanup is performed by a neural network.')
+
+  #parameters for the neural network
+  parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold. A float between 0 and 1.')
+  parser.add_argument('--pstc', default=0.02, type=float, help='Post-synaptic time constant. Controls the shape of the post-synaptic current.')
+  parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
+
+  #configuring gpus
   parser.add_argument('--gpus', default=1, type=int, help='Number of gpus to use to run the neural model.')
   parser.add_argument('--pick-devices', nargs='+', type=int, help='Specify the devices (gpus) to use. Specified as a list of integers' 
       ' (e.g. "python run_script.py j 10 100 --pick-devices 0 2 3" would use 3 devices, skipping the device with index 1).')
@@ -35,10 +38,11 @@ def parse_args(print_args=False):
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data that is printed to the file')
   parser.add_argument('--numwords', default=0, type=int, help='Number of planned words. Only has an effect on jump tests.')
 
+  #not used very often
   parser.add_argument('-b', action='store_true', help='Supply this argument to use bidirectional relations.')
   parser.add_argument('-r', action='store_true', help='Supply this argument to collect the relation stats.')
-  parser.add_argument('-g', action='store_true', help='Supply this argument to display graphs (only makes a difference if -n is also supplied)')
-  parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run (only makes difference if -n is also supplied)')
+  parser.add_argument('-g', action='store_true', help='Supply this argument to display graphs (only works in the neural case).')
+  parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run.')
 
   argvals = parser.parse_args()
 
