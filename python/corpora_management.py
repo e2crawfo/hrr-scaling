@@ -1,7 +1,6 @@
 import sys
 import random
 import Queue
-import cPickle as pickle
 import bootstrap
 
 #temporary
@@ -15,8 +14,7 @@ class CorpusHandler:
     cleanupMemory = None
     knowledgeBase = None
 
-    def __init__(self, try_load, D=512, input_dir=".", relation_symbols=[], vf=VectorFactory(), seed=1):
-      self.try_load = try_load
+    def __init__(self, D=512, input_dir=".", relation_symbols=[], vf=VectorFactory(), seed=1):
       self.D = D
       self.input_dir = input_dir
       self.relation_symbols = relation_symbols
@@ -27,8 +25,6 @@ class CorpusHandler:
       self.vector_factory = vf
 
     def parseWordnet(self):
-        if self.try_load and self.loadCorpusDict(self.input_dir+'/cd1.data'):
-          return
 
         fileposmap = {self.input_dir+'/data.noun': 'n', self.input_dir+'/data.verb': 'v', self.input_dir+'/data.adj' : 'a', self.input_dir+'/data.adv' : 'r'}
         if self.corpusDict is not None:
@@ -66,16 +62,16 @@ class CorpusHandler:
                     line = f.readline()
 
     def createCorpusSubset(self, proportion):
-      subset_dict = {}
-
-      #randomly pick a starting point, following all links from that node,
+      # randomly pick a starting point, following all links from that node,
       # do the same recursively for each node we just added. 
-      # once we have enough nodes, have to go back through and correct 
-      # the keys so they point to the right place...maybe...actually we don't even have to do that, since its just done with keys.
 
-      #just have to make sure we remove all the dangling links...so once we've determined that we have enough nodes, have to go through
-      # all the nodes we have added to the graph but have yet to recurse on and delete all the links they have which link to something which isn't
+      # just have to make sure we remove all the dangling links...
+      # so once we've determined that we have enough nodes, have to go through
+      # all the nodes we have added to the graph but have yet to recurse on 
+      # and delete all their links that point to something which isn't
       # in the subset
+
+      subset_dict = {}
       proportion = max(0.0,min(1.0, proportion))
 
       size = 0
@@ -110,22 +106,6 @@ class CorpusHandler:
           subset_dict[key].remove(item)
 
       self.corpusDict = subset_dict
-
-    def saveCorpusDict(self, filename):
-        if self.corpusDict is None:
-            raise Exception("Attempted to save corpus dictionary before it was created.")
-
-        with open(filename, 'w') as cfile:
-            pickle.dump(self.corpusDict, cfile)
-
-    def loadCorpusDict(self, filename):
-      try:
-        with open(filename, 'r') as cfile:
-            self.corpusDict = pickle.load(cfile)
-        print "Loaded corpus dict"
-        return True
-      except:
-        return False
 
     #currently this never gets called
     def processCorpus(self):
@@ -270,45 +250,6 @@ class CorpusHandler:
         if identityCleanup:
             self.knowledgeBase = self.cleanupMemory
 
-
-        # Iterate a few more times to try to get 
-
-    def saveCleanup(self, filename):
-        if self.cleanupMemory is None:
-            raise Exception("Attempted to save corpus dictionary before it was created.")
-
-        with open(filename, 'w') as cfile:
-            pickle.dump(self.cleanupMemory, cfile)
-
-    def loadCleanup(self, filename):
-      try:
-        with open(filename, 'r') as cfile:
-            self.cleanupMemory = pickle.load(cfile)
-        print "Loaded cleanup"
-
-        return True
-
-      except:
-        return False
-
-    def saveKnowledgeBase(self, filename):
-        if self.knowledgeBase is None:
-            raise Exception("Attempted to save corpus dictionary before it was created.")
-
-        with open(filename, 'w') as kfile:
-            pickle.dump(self.knowledgeBase, kfile)
-
-    def loadKnowledgeBase(self, filename):
-      try:
-        with open(filename, 'r') as kfile:
-            self.knowledgeBase = pickle.load(kfile)
-
-        print "Loaded knowledge base"
-        return True
-
-      except:
-        return False
-
     # File parsing utilities
     def skipNotice(self, f):
         '''Seeks to the beginning of actual data in data files
@@ -318,3 +259,4 @@ class CorpusHandler:
             f.readline()
             c = f.read(1)
         f.seek(-1, 1)
+

@@ -20,7 +20,6 @@ argvals = utilities.parse_args(True)
 steps = argvals.steps
 vector_seed = argvals.vector_seed
 test_seed = argvals.test_seed
-save = argvals.save
 dim = argvals.d
 proportion = argvals.p
 threshold = argvals.t
