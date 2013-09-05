@@ -9,7 +9,7 @@ import random
 
 
 def parse_args(print_args=False):
-  parser = argparse.ArgumentParser(description='Test an associative memory.')
+  parser = argparse.ArgumentParser(description='Test a cleanup memory.')
 
   parser.add_argument('test', nargs='*', help="Specify the test type (one of 'j', 'h' or 's'), the number of runs and the number of trials per run (e.g. python run_script.py j 10 100).")
 
