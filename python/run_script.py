@@ -23,7 +23,6 @@ test_seed = argvals.test_seed
 dim = argvals.d
 proportion = argvals.p
 threshold = argvals.t
-config_name = argvals.c
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
 algorithm = argvals.a
@@ -62,7 +61,7 @@ num_runs = int(argvals.test[1]) if len(argvals.test) > 1 else 1
 num_trials = int(argvals.test[2]) if len(argvals.test) > 2 else 1
 print test, num_runs, num_trials
 
-input_dir, output_dir = utilities.read_config(config_name)
+input_dir, output_dir = utilities.read_config()
 
 vector_factory = VectorFactory(vector_seed)
 

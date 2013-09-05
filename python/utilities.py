@@ -35,7 +35,6 @@ def parse_args(print_args=False):
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data that is printed to the file')
   parser.add_argument('--numwords', default=0, type=int, help='Number of planned words. Only has an effect on jump tests.')
 
-  parser.add_argument('-c', default='config', help='Specifiy the name of the config file.')
   parser.add_argument('-b', action='store_true', help='Supply this argument to use bidirectional relations.')
   parser.add_argument('-r', action='store_true', help='Supply this argument to collect the relation stats.')
   parser.add_argument('-g', action='store_true', help='Supply this argument to display graphs (only makes a difference if -n is also supplied)')
