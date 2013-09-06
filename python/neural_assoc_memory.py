@@ -1,6 +1,7 @@
 #NeuralAssociativeMemory!
 from assoc_memory import AssociativeMemory
 from gpu_cleanup import GPUCleanup
+from cleanup import Cleanup
 
 import ccm
 import string
@@ -11,19 +12,18 @@ from ccm.lib import nef
 import numpy
 import datetime
 import sys
+import exceptions
 
 class NeuralAssociativeMemory(AssociativeMemory):
 
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, useGPU = True, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False, devices=[0]):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False, devices=[0]):
 
     self.pstc = pstc
-    self.useGPU = useGPU
     self.threshold = threshold
     self.transfer_func = lambda x: 1 if x > self.threshold else 0
-    self.print_output = print_output
     self.quick_gpu = quick
 
     self.threads=threads
@@ -85,42 +85,58 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.max_thresh = .9
     self.min_thresh = 0
 
-    #create a single associator ensemble to use as a template for the GPUCleanup class. 
-    associator_node = nef.ScalarNode(min=self.min_thresh, max=self.max_thresh)
-    associator_node.configure(neurons=self.neurons_per_item,threshold_min=self.min_thresh,threshold_max=self.max_thresh,
-                    saturation_range=(200,200),apply_noise=False)
-
-    #associator_node.plot_tuning_curves(-0.9, .001, 0.9, "Cleanup Population", "cl_tuning_curves", 121)
-    #self.item_node.nodes[0].plot_tuning_curves(minimum, .0001, maximum, "Standard Population", "st_tuning_curves", 122, ticks=[-0.04, -0.02, 0.0, 0.02, 0.04])
-
-    probeFunctions = [lambda x: x, self.transfer_func]
-    probeFunctionNames = ["identity", "transfer"]
-
     scale = 10.0
 
     item_keys = self.items.keys()
     scaled_items = [scale * self.items[key] for key in item_keys]
     indices = [self.indices[key] for key in item_keys]
 
+    probeFunctions = {"identity": lambda x: x, "transfer": self.transfer_func}
+
     for probe in probes:
       if probe.itemKey :
         probe.itemIndex = item_keys.index(probe.itemKey)
 
-    if devices is None:
-      devices = [0]
+    self.useGPU = True
 
-    self.associator_node = GPUCleanup(devices, self.dt, False, indices, scaled_items, self.unbind_results_node.pstc, associator_node, probeFunctions = probeFunctions, probeFunctionNames = probeFunctionNames, probes = probes, probeFromGPU=True, transfer=self.transfer_func, print_output=print_output, quick=quick)
+    if devices:
+      try:
+        associator_node = nef.ScalarNode(min = self.min_thresh, max = self.max_thresh)
+
+        associator_node.configure(neurons = self.neurons_per_item, threshold_min = self.min_thresh,
+                                  threshold_max = self.max_thresh, saturation_range = (200,200),
+                                  apply_noise = False)
+
+        self.associator_node = GPUCleanup(devices, self.dt, False, indices, scaled_items,
+                                          associator_node, probeFunctions, probes, pstc,
+                                          probeFromGPU = True, print_output = print_output,
+                                          quick = quick)
+
+      except exceptions.OSError as e:
+        print "Couldn't load GPU cleanup library: ", e
+        print "Using CPU to run simulation."
+
+        devices = []
+
+
+    if not devices:
+        self.useGPU = False
+
+        associator_node = nef.ScalarNode(min = self.min_thresh, max = self.max_thresh)
+
+        associator_node.configure(neurons = self.neurons_per_item, threshold_min = self.min_thresh,
+                                  threshold_max = self.max_thresh, saturation_range = (200,200),
+                                  apply_noise = False)
+
+        self.associator_node = Cleanup(self.dt, False, indices, scaled_items, associator_node,
+                                       probeFunctions, probes, pstc, print_output)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=pstc)
     self.results_node_spiking.connect(self.results_node)
-    self.associator_node.connectToProbes(self.unbind_results_node)
 
     print "Done creating network"
 
-  def write_to_runtime_file(self, delta):
-    print >> self.runtimes_file, self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
-    print self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
 
   def unbind_and_associate(self, item, query, *args, **kwargs):
     then = datetime.datetime.now()
@@ -186,13 +202,18 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.drawGraph(["identity", "transfer"], indices)
 
   def drawGraph(self, functions, indices=None):
-    if self.useGPU:
+    if indices:
+      item_keys = self.items.keys()
+      indices = [item_keys.index(i) if type(i) is tuple else i for i in indices]
 
-      if indices:
-        item_keys = self.items.keys()
-        indices = [item_keys.index(i) if type(i) is tuple else i for i in indices]
+    self.associator_node.drawGraph(functions, indices=indices)
 
-      self.associator_node.drawGraph(functions, indices=indices)
+
+  def write_to_runtime_file(self, delta):
+    print >> self.runtimes_file, self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
+    print self.threads,",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
+
+
 
   def print_unbind_results_node_agreement(self):
     if len(self.tester.current_target_keys) > 0:

@@ -11,7 +11,7 @@ class NetworkArrayNode(ArrayNode):
     def __init__(self,name,nodes,noise=0):
         #order of nodes is important, so make sure its right when its passed in
         #dim is the total dimension of the network array
-          
+
         self.nodes=[]
         self.name=name
         self.nodes=nodes
@@ -27,13 +27,13 @@ class NetworkArrayNode(ArrayNode):
         self.inputs=[]
         self.outputs=[]
         self.array_noise=noise
-        
+
         self._all_nodes=None
-        
+
         self.mode = 'networkarray'
         self._output = []
         self._array = None
-    
+
     def clear_state(self):
       self._array = None
       for n in self.nodes:
@@ -52,24 +52,15 @@ class NetworkArrayNode(ArrayNode):
 
       i = 0 
       for n in self.nodes:
-        #print "ticking accumulator in networkarray:" + self.name + ", " + str(i) + " of " + str(len(self.nodes))
         n.tick_accumulator(dt)
         i = i + 1
 
     def _calc_output(self):
-      i = 0
       for n in self.nodes:
-        #print "calc output in networkarray:" + self.name + ",  " + str(i) + " of " + str(len(self.nodes))
         n._calc_output()
-        i = i + 1
 
     def get_output_array_networkarray(self, conn, dt):
-        #print "in get_output_array in networkarray:" + self.name
         decoder = None
-
-        i = 0
-        #print self.last_func
-        #print conn.func
 
         if conn.func is None:
           if self._array is not None and self.last_func == "NoFunc":
@@ -86,22 +77,14 @@ class NetworkArrayNode(ArrayNode):
         self._array = []
 
         for n in self.nodes:
-          #print "get_output_array in networkarray:" + self.name + ",  " + str(i) + " of " + str(len(self.nodes))
-          #notice how the decoders are taken to be stored in the network array
-
           if n.mode == 'spike' or n.mode == 'rate':
 
             if decoder is None:
               decoder = n.get_decoder(conn.func)
 
-            #decoder = n.get_decoder(conn.func)
             self._array.extend(n.activity_to_array(n._output, decoder=decoder)/dt)
-            #self._array = numpy.append( _array, n.actvity_to_array(n._output, decoder=decoder))
           else:
             self._array.extend(conn.apply_func(n._output))
-            #self._array = numpy.append( _array, conn.apply_func(n._output))
-
-          i = i + 1
 
         self._array = numpy.array(self._array)
 
@@ -110,13 +93,11 @@ class NetworkArrayNode(ArrayNode):
 
     def add_input_array_networkarray(self, conn, tau, dt):
         i=0
-        #print "add_input_array in networkarray:" + self.name 
         array = conn.apply_weight(conn.array)
 
         d = 0
 
         for n in self.nodes:
-          #print "add_input_array in networkarray:" + self.name + ",  " + str(i) + " of " + str(len(self.nodes))
           n.accumulator.add(array[d:d+n.dimensions], tau, dt)
           d = d + n.dimensions
           i=i+1
@@ -164,12 +145,7 @@ def make_array_HRR(name, neurons, length, dimensions, thresh_min=-0.9, thresh_ma
 
 #      if reuse_params and not saturations:
 #        saturations = n.data_saturations
-      
 
-
-    
     return NetworkArrayNode(name, nodes)
-
-
 
 

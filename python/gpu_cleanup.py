@@ -35,8 +35,8 @@ def convert_to_carray(l, t, depth):
 class GPUCleanup(nef.ArrayNode):
 
   #index_vectors and result_vectors should both be lists of vectors
-  def __init__(self, devices, dt, auto, index_vectors, result_vectors, tau, node, probeFunctions=[], 
-      probeFunctionNames=[], probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x, print_output=True, quick=False):
+  def __init__(self, devices, dt, auto, index_vectors, result_vectors, node, probeFunctions={},
+      probes=[], pstc=0.02, probeFromGPU=False, transfer = lambda x: x, print_output=True, quick=False):
 
       self.libNeuralCleanupGPU = CDLL("libNeuralCleanupGPU.so")
 
@@ -47,7 +47,7 @@ class GPUCleanup(nef.ArrayNode):
       self._input = numpy.zeros(self.dimensions)
       self._output = numpy.zeros(self.dimensions)
 
-
+      #this is required for nodes
       self._all_nodes=None
 
       self._c_input = None
@@ -86,8 +86,6 @@ class GPUCleanup(nef.ArrayNode):
       self.probeFromGPU = probeFromGPU
       self.probes = []
       if len(probes) > 0:
-        self.probeFunctions = dict(zip(probeFunctionNames, probeFunctions))
-        #setup probes
         self.probeData = {}
         self.probes = filter(lambda p: p.name in self.probeFunctions, probes)
 
@@ -112,7 +110,7 @@ class GPUCleanup(nef.ArrayNode):
       else:
         returnSpikes = [0 for i in range(self.numVectors)]
 
-        #for displaying graphs
+      #for displaying graphs
       self.numItemsReturningSpikes = len(filter(lambda x: x, returnSpikes))
 
       self._spikeIndices = numpy.where(returnSpikes)[0]
@@ -156,7 +154,7 @@ class GPUCleanup(nef.ArrayNode):
       #make sure output is NOT scaled by dt_over_tau,
       #we let that happen in the termination of results node
       self.time_points.append( self.elapsed_time )
-      self.elapsed_time = self.elapsed_time + self.dt
+      self.elapsed_time += self.dt
       for i in range(len(self._output)):
         self._output[i] = self._c_output[i]
 
@@ -184,7 +182,7 @@ class GPUCleanup(nef.ArrayNode):
       if len(self.probes) > 0:
         for probe in self.probes:
           start, end, history = self.probeData[probe]
-          
+
           #this is from when we were actually probing the stuff from the GPU
           if self.probeFromGPU:
             start._set_spikes( self._spikes[probe.itemIndex] )
@@ -192,7 +190,7 @@ class GPUCleanup(nef.ArrayNode):
 
           history.append( copy.deepcopy(end.value() ))
 
-      return 
+      return
 
   def drawGraph(self, functionNames, indices=None):
     fig = plt.figure()
@@ -221,14 +219,6 @@ class GPUCleanup(nef.ArrayNode):
     date_time_string = str(datetime.datetime.now())
     date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
     plt.savefig('graphs/neurons_'+date_time_string+".png")
-  
-  def connectToProbes(self, node):
-    if self.probeFromGPU:
-      return
-
-    for p in self.probes:
-      weight = self.index_vectors[p.itemIndex]
-      node.connect( self.probeData[p][0], weight=copy.deepcopy(weight))
 
   def kill(self):
       self.libNeuralCleanupGPU.kill()
@@ -238,7 +228,7 @@ class GPUCleanup(nef.ArrayNode):
       self.time_points = []
 
       self.elapsed_time = 0.0
-      
+
       if len(self.probes) > 0:
         for p in self.probeData:
 
@@ -254,4 +244,4 @@ class GPUCleanup(nef.ArrayNode):
 
       self.libNeuralCleanupGPU.reset()
 
-  
+
