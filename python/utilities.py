@@ -31,7 +31,7 @@ def parse_args(print_args=False):
   parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
 
   #configuring gpus
-  parser.add_argument('--gpus', default=1, type=int, help='Number of gpus to use to run the neural model.')
+  parser.add_argument('--gpus', default=0, type=int, help='Number of gpus to use to run the neural model.')
   parser.add_argument('--pick-devices', nargs='+', type=int, help='Specify the devices (gpus) to use. Specified as a list of integers' 
       ' (e.g. "python run_script.py j 10 100 --pick-devices 0 2 3" would use 3 devices, skipping the device with index 1).')
 
