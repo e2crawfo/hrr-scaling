@@ -3,6 +3,9 @@
 import numpy
 import datetime
 import string
+from probe import Probe
+
+import collections
 
 try:
   import matplotlib.pyplot as plt
@@ -17,9 +20,11 @@ threshold_func = lambda x: (x > 0.3 and x) or 0.0
 
 class Cleanup(nef.ArrayNode):
 
-  def __init__(self, dt, auto, index_vectors, result_vectors, cleanup_node, probeFunctions={}, probes=[], 
+  def __init__(self, dt, auto, index_vectors, result_vectors, cleanup_node, probe_spec=[], 
                pstc=0.02, print_output=True):
 
+      print "index vectors type: ", type(index_vectors)
+      print "result vectors type: ", type(result_vectors)
       self.inputs=[]
       self.outputs=[]
       self.dimensions=len(index_vectors[0])
@@ -42,24 +47,20 @@ class Cleanup(nef.ArrayNode):
       for cn in self.cleanup_nodes:
         cleanup_node.configure_spikes(pstc=self.pstc, dt=self.dt)
 
-      #setup probes
-      self.probes = []
-      self.probeFunctions = probeFunctions
+      self.probe_data = {}
 
-      if len(probes) > 0:
-        self.probeData = {}
-        self.probes = filter(lambda p: p.name in self.probeFunctions, probes)
+      for ps in probe_spec:
+        item_index, name, func = ps
 
-        self.history = {}
-        for p in probes:
-          recorder = nef.ArrayNode(1)
-          self.cleanup_nodes[p.itemIndex].connect(recorder, func=self.probeFunctions[p.name])
+        if not item_index in self.probe_data:
+          self.probe_data[item_index] = []
 
-          self.probeData[p] = (recorder, [])
-          self.history[p] = []
+        probe = Probe(name)
+        probe.probe_by_connection(self.cleanup_nodes[item_index], func)
+
+        self.probe_data[item_index].append(probe)
 
       self.mode='cleanup'
-
       self.time_points = []
 
   def tick_accumulator(self, dt):
@@ -130,45 +131,34 @@ class Cleanup(nef.ArrayNode):
       self.time_points.append( self.elapsed_time )
       self.elapsed_time += self.dt
 
-      if len(self.probes) > 0:
-        for probe in self.probes:
-          recorder, history = self.probeData[probe]
-          history.append( copy.deepcopy(recorder.value()) )
+      for key in self.probe_data:
+        probes = self.probe_data[key]
 
+        for p in probes:
+          p.probe()
 
-  def drawGraph(self, functionNames, indices=None):
-    """
-    Draw a graph of the decoded value reprsented by a node that was being probed.
+      return
 
-    :param functionNames: Valid function names for the nodes picked out by indices
-    :type (listof string):
+  #currently have to graph all probes on a given node at once
+  def plot(self, item_indices, run_index):
 
-    :param indices: List of indices of nodes in the cleanup memory. If None, then data from
-    all probes are plotted. Otherwise, only those whose index appears in this list are plotted
-    data from the the
-    :type (listof int)
-    """
+    indices_to_probe = item_indices
+    if not indices_to_probe:
+      indices_to_probe = self.probe_data
 
-    fig = plt.figure()
+    line_types = ["-", "--"]
 
-    line_types = ["-", "--", "-.", ":"]
-    line_types = line_types[0:min(len(functionNames), len(line_types))]
-    ltd = {}
-    for i, fn in enumerate(functionNames):
-      ltd[fn] = line_types[ i % len(functionNames)]
+    first = True
 
-    if indices:
-      indices = filter(lambda x: x < self.numVectors and x >= 0, indices)
+    for key in item_indices:
+      probes = self.probe_data[key]
 
-    l = []
+      for i in range(len(probes)):
+        p = probes[i]
 
-    for probe in self.probes:
-      if indices is None or probe.itemIndex in indices:
-        if probe.name in functionNames:
-          plt.plot(self.time_points_prev, self.history[probe][-1], ltd[probe.name])
-          l.append(str(probe.itemKey) + ", " + probe.name)
+        p.plot(run_index, line_types[i], draw = True, init=first)
 
-    plt.legend(l, loc=2)
+        first = False
 
     plt.show()
 
@@ -176,26 +166,15 @@ class Cleanup(nef.ArrayNode):
     date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
     plt.savefig('graphs/neurons_'+date_time_string+".png")
 
-  def reset(self, probes=None):
+  def reset(self):
 
-      for cn in self.cleanup_nodes:
-        if cn.node == "spike":
-          cn.reset()
+    self.elapsed_time = 0.0
 
-      self.time_points_prev = self.time_points
-      self.time_points = []
+    for cn in self.cleanup_nodes:
+      cn.reset()
 
-      self.elapsed_time = 0.0
-
-      if len(self.probes) > 0:
-        for p in self.probeData:
-
-          recorder = self.probeData[p][0]
-          history = self.probeData[p][1]
-
-          recorder.reset()
-          self.history[p].append( history )
-
-          self.probeData[p] = (recorder, [])
-
+    for key in self.probe_data:
+      probes = self.proba_data[key] 
+      for p in probes:
+        p.reset()
 

@@ -19,7 +19,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
   _type = "Neural"
 
   def __init__(self, indices, items, identity, unitary, bidirectional=False, threshold=0.3, neurons_per_item=20, neurons_per_dim=50, thresh_min=-0.9,
-      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, output_dir=".", probes = [], print_output=True, pstc=0.02, quick=False, devices=[0]):
+      thresh_max=0.9, use_func=False, timesteps=100, dt=0.001, threads=1, output_dir=".", probe_indices = [], print_output=True, pstc=0.02, quick=False, devices=[0], plot=False):
 
     self.pstc = pstc
     self.threshold = threshold
@@ -56,6 +56,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.use_func=use_func
     self.dt=dt
     self.timesteps=timesteps
+    self.plot = plot
 
     maximum = numpy.sqrt(1.0 / self.dim)
     minimum = -maximum
@@ -91,13 +92,16 @@ class NeuralAssociativeMemory(AssociativeMemory):
     scaled_items = [scale * self.items[key] for key in item_keys]
     indices = [self.indices[key] for key in item_keys]
 
-    probeFunctions = {"identity": lambda x: x, "transfer": self.transfer_func}
+    probe_spec = []
 
-    for probe in probes:
-      if probe.itemKey :
-        probe.itemIndex = item_keys.index(probe.itemKey)
+    for pi in probe_indices:
+      probe_spec.append((pi, "identity", lambda x: x))
+      probe_spec.append((pi, "transfer", self.transfer_func))
 
-    self.useGPU = True
+      #probe.itemIndex = item_keys.index(probe.itemKey)
+
+
+    self.use_gpu = True
 
     if devices:
       try:
@@ -108,9 +112,9 @@ class NeuralAssociativeMemory(AssociativeMemory):
                                   apply_noise = False)
 
         self.associator_node = GPUCleanup(devices, self.dt, False, indices, scaled_items,
-                                          associator_node, probeFunctions, probes, pstc,
-                                          probeFromGPU = True, print_output = print_output,
-                                          quick = quick)
+                                          associator_node, probe_spec, pstc, 
+                                          transfer=self.transfer_func,
+                                          print_output = print_output, quick = quick)
 
       except exceptions.OSError as e:
         print "Couldn't load GPU cleanup library: ", e
@@ -120,7 +124,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
 
     if not devices:
-        self.useGPU = False
+        self.use_gpu = False
 
         associator_node = nef.ScalarNode(min = self.min_thresh, max = self.max_thresh)
 
@@ -129,7 +133,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
                                   apply_noise = False)
 
         self.associator_node = Cleanup(self.dt, False, indices, scaled_items, associator_node,
-                                       probeFunctions, probes, pstc, print_output)
+                                       probe_spec, pstc, print_output)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=pstc)
@@ -161,7 +165,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
       if print_debug_info:
         self.print_debug_info()
-      if print_neuron_data and not self.useGPU:
+      if print_neuron_data and not self.use_gpu:
         self.print_neuron_data()
 
       i += 1
@@ -173,6 +177,9 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     now = datetime.datetime.now()
     self.write_to_runtime_file(now - then)
+
+    if self.plot:
+      self.plot_cleanup_activities(-1)
 
     return [vector]
 
@@ -192,21 +199,16 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     self.associator_node.reset()
 
-  def drawTransferGraph(self, indices=None):
-    self.drawGraph(["transfer"], indices)
+  def plot_cleanup_activities(self, item_indices=[], run_index=-1):
+    """
+    run_index is an index into the history of the probes
+    """
 
-  def drawIdentityGraph(self, indices=None):
-    self.drawGraph(["identity"], indices)
-
-  def drawCombinedGraph(self, indices=None):
-    self.drawGraph(["identity", "transfer"], indices)
-
-  def drawGraph(self, functions, indices=None):
-    if indices:
+    if item_indices:
       item_keys = self.items.keys()
-      indices = [item_keys.index(i) if type(i) is tuple else i for i in indices]
+      item_indices = [item_keys.index(i) if type(i) is tuple else i for i in item_indices]
 
-    self.associator_node.drawGraph(functions, indices=indices)
+    self.associator_node.plot(item_indices, run_index)
 
 
   def write_to_runtime_file(self, delta):

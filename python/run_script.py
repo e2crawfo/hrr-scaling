@@ -29,7 +29,7 @@ lin_alg = argvals.l
 algorithm = argvals.a and not lin_alg
 neural = not lin_alg and not algorithm
 quick = argvals.q and neural
-graph = argvals.g and can_plot and neural
+plot = argvals.plot and can_plot and neural
 num_gpus = max(argvals.gpus, 0)
 num_words = argvals.numwords
 pick_devices = argvals.pick_devices
@@ -70,12 +70,12 @@ vector_factory = VectorFactory(vector_seed)
     utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
 
 #change these to use specific words/relations
-probes = []
+probe_indices = []
 words = []
 relations = []
 
 if num_words > 0:
-  (probes, words, relations) = utilities.gen_probes(corpus_dict, num_words, relation_symbols, words, relations)
+  probe_indices, words, relations = utilities.gen_probe_indices(corpus_dict, num_words, relation_symbols, words, relations)
 
   if not (len(relations) == len(words) and len(words) > 0):
     words = []
@@ -84,10 +84,9 @@ if num_words > 0:
 #if do_relation_stats:
 #  kwargs["relation_stats"] = utilities.setup_relation_stats()
 
-
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
-                                       output_dir = output_dir, probes=probes, timesteps=steps, quick=quick, devices=pick_devices, pstc=pstc)
+                                       output_dir = output_dir, probe_indices=probe_indices, timesteps=steps, quick=quick, devices=pick_devices, pstc=pstc, plot=plot)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 
@@ -102,17 +101,12 @@ tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointe
 if len(words) > 0:
   tester.set_jump_plan(words, relations)
 
-if graph:
-  data_display = utilities.draw_associator_graph
-else:
-  data_display = lambda x: x
-
 if test == 'j':
-  tester.runBootstrap_jump(num_runs, num_trials, dataFunc = data_display)
+  tester.runBootstrap_jump(num_runs, num_trials)
 elif test == 'h':
-  tester.runBootstrap_hierarchical(num_runs, num_trials, dataFunc = data_display)
+  tester.runBootstrap_hierarchical(num_runs, num_trials)
 elif test == 's':
-  tester.runBootstrap_sentence(num_runs, num_trials, dataFunc = data_display)
+  tester.runBootstrap_sentence(num_runs, num_trials)
 elif test == 'c':
   tester.get_similarities()
 else:

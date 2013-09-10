@@ -6,7 +6,7 @@ import utilities as util
 import random
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".", 
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".",
                h_test_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(), 
                unitary=False, verbose=False, outfile_suffix=""):
 
@@ -36,7 +36,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
       self.jump_plan_words = w
       self.jump_plan_relation_indices = ri
 
-  def jumpTest(self, testName, n, dataFunc=None):
+  def jumpTest(self, testName, n):
         # select a key, follow a hyp/hol link, record success / failure
 
         testNumber = 0
@@ -70,9 +70,6 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
                     print >> self.jump_results_file, "Valid answers? ",valid
                     print >> self.jump_results_file, "Exact goal? ",exact
 
-                    if dataFunc:
-                      dataFunc(self.associator)
-
                     testNumber += 1
 
                     if correct: correct_score += 1
@@ -96,7 +93,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         self.add_data("jump_score_valid", valid_score)
         self.add_data("jump_score_exact", exact_score)
 
-  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False, dataFunc=None):
+  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False):
         """Check whether word A is a type of word B. Test with n cases in which
         word A IS NOT a descendant of word B and m cases where word A IS a
         descendent of word B. The rtype parameter specifies which relationships
@@ -272,7 +269,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         else:
             return -1
 
-  def sentenceTest(self, testName, n, dataFunc=None):
+  def sentenceTest(self, testName, n):
         # check that POS lists exist (form them if required)
         if self.sentence_vocab is None:
             self.nouns = []
@@ -373,14 +370,14 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     if self.hierarchical_results_file:
       self.hierarchical_results_file.close()
 
-  def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None):
+  def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999):
 
     self.openJumpResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest, dataFunc=dataFunc)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest)
 
 
-  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, dataFunc=None, symbols=None):
+  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, symbols=None):
 
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
@@ -388,16 +385,16 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     if not symbols:
       symbols = self.h_test_symbols
 
-    htest = lambda x, y, dataFunc=None: self.hierarchicalTest(x,y, stats_depth, rtype=symbols, dataFunc=dataFunc)
+    htest = lambda x, y: self.hierarchicalTest(x,y, stats_depth, rtype=symbols)
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func, dataFunc=dataFunc)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func)
 
 
-  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, dataFunc=None):
+  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999):
 
     self.openSentenceResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest, dataFunc=dataFunc)
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest)
 
   def print_relation_stats(self, output_file):
     relation_counts = {}

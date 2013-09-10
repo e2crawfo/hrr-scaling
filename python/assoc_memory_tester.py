@@ -270,10 +270,9 @@ class AssociativeMemoryTester(object):
 
 #Run a series of bootstrap runs, then combine the success rate from each
 #individual run into a total mean success rate with confidence intervals
-#dataFunc is a function that takes an associator, and is called after every trial. Allows data about
 #the associator on the run to be displayed
   def runBootstrap(self, sample_size, num_trials_per_sample, num_bootstrap_samples, output_file,
-      func, statNames=None, file_open_func=None, dataFunc=None, write_raw_data=True):
+      func, statNames=None, file_open_func=None, write_raw_data=True):
     start_time = datetime.datetime.now()
 
     self.bootstrapper = Bootstrapper(self.verbose, write_raw_data, seed = self.seed)
@@ -285,7 +284,7 @@ class AssociativeMemoryTester(object):
 
     for i in range(sample_size):
       output_file.write("Begin run " + str(i + 1) + " out of " + str(sample_size) + ":\n")
-      func("", num_trials_per_sample, dataFunc=dataFunc)
+      func("", num_trials_per_sample)
 
       self.print_bootstrap_summary(i + 1, sample_size, output_file)
       output_file.flush()

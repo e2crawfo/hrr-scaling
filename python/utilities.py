@@ -41,7 +41,7 @@ def parse_args(print_args=False):
   #not used very often
   parser.add_argument('-b', action='store_true', help='Supply this argument to use bidirectional relations.')
   parser.add_argument('-r', action='store_true', help='Supply this argument to collect the relation stats.')
-  parser.add_argument('-g', action='store_true', help='Supply this argument to display graphs (only works in the neural case).')
+  parser.add_argument('--plot', action='store_true', help='Supply this argument to display plots of the activities of the cleanup populations (only works in neural mode). The graphs are stored in the "graphs" directory.')
   parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run.')
 
   argvals = parser.parse_args()
@@ -96,18 +96,17 @@ def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unit
 #pick some key that i want to test...note this has to be the TARGET of something i decode
 # then add a word/relation combo to the jump test that will decode to that key
 # then add a probe on that key so we can see what happens!
+def gen_probe_indices(corpus_dict, num_words, relation_symbols, words=[], relations=[], seed=1):
+  """Generate probe indices for an associative memory test.
 
-def gen_probes(corpus_dict, num_words, relation_symbols, words=[], relations=[], seed=1):
-  """Generate probes for an associative memory test.
-
-  Specify links to be tested ahead of time, and put probes on the
-  populations that will be activated.
+  Specify links to be tested ahead of time, return indices for those, which get passed to the
+  neural associator and the cleanup memory, which handle the creation of probes.
 
   param int num_words: the number of populations to monitor
   param list relation_symbols : the usable relation symbols
   """
 
-  probes = []
+  probe_indices = []
 
   rng = random.Random(seed)
 
@@ -129,19 +128,14 @@ def gen_probes(corpus_dict, num_words, relation_symbols, words=[], relations=[],
       words.append(word)
       relations.append(index)
 
-    probes.append(Probe(link[1], None, "identity"))
-    probes.append(Probe(link[1], None, "transfer"))
-
+    probe_indices.append(link[1])
     n+=1
 
-  return (probes, words, relations)
+  return (probe_indices, words, relations)
 
 def setup_relation_stats(largest_degree = 1000):
   relation_stats = dict(zip(range(largest_degree), [[[],[],[],0] for i in range(largest_degree)]))
   return relation_stats
-
-def draw_associator_graph(associator):
-  associator.drawCombinedGraph()
 
 def print_header(output_file, string, char='*', width=15, left_newline=True):
   line = char * width
