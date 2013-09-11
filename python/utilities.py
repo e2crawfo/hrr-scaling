@@ -87,9 +87,9 @@ def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unit
   print "Knowledge base formed."
 
   corpusDict = corpus.corpusDict
-  id_vectors = corpus.cleanupMemory
+  id_vectors = corpus.id_vectors
   relation_type_vectors = corpus.relation_type_vectors
-  semantic_pointers = corpus.knowledgeBase
+  semantic_pointers = corpus.semantic_pointers
 
   return (corpusDict, id_vectors, semantic_pointers, relation_type_vectors)
 
@@ -105,6 +105,8 @@ def gen_probe_indices(corpus_dict, num_words, relation_symbols, words=[], relati
 
   param int num_words: the number of populations to monitor
   param list relation_symbols : the usable relation symbols
+
+  The returned probe index is a key into the item dictionaries
   """
 
   probe_indices = []

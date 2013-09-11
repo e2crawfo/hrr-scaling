@@ -8,6 +8,7 @@ from vector_operations import *
 from bootstrap import Bootstrapper
 import heapq
 import random
+import collections
 
 class AssociativeMemory(object):
 
@@ -20,11 +21,12 @@ class AssociativeMemory(object):
     self.indices = indices
     self.items = items
     self.threshold = threshold
-    self.dim= len(items.values()[1])
-    self.hrr_vecs = dict([(key, hrr.HRR(data=self.indices[key])) for key in self.indices.keys()])
+    self.dim= len(indices.values()[0])
+    self.hrr_vecs = collections.OrderedDict([(key, hrr.HRR(data=self.indices[key])) for key in self.indices])
+    self.similarities = collections.OrderedDict(zip(self.indices, [0 for i in range(len(indices))] ))
+
     self.unitary = unitary
     self.identity = identity
-    self.similarities = dict(zip(indices.keys(), [0 for i in range(len(indices))]))
     self.return_vec = return_vec
     self.bidirectional = bidirectional
 

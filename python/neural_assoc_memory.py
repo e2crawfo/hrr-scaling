@@ -49,7 +49,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.indices=indices
     self.items=items
 
-    self.dim = len(self.indices[self.indices.keys()[0]])
+    self.dim = len(self.indices.values()[0])
     self.num_items = len(self.indices)
     self.neurons_per_item = neurons_per_item
     self.neurons_per_dim = neurons_per_dim
@@ -88,18 +88,10 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
     scale = 10.0
 
-    item_keys = self.items.keys()
-    scaled_items = [scale * self.items[key] for key in item_keys]
-    indices = [self.indices[key] for key in item_keys]
-
     probe_spec = []
-
     for pi in probe_indices:
       probe_spec.append((pi, "identity", lambda x: x))
       probe_spec.append((pi, "transfer", self.transfer_func))
-
-      #probe.itemIndex = item_keys.index(probe.itemKey)
-
 
     self.use_gpu = True
 
@@ -111,10 +103,10 @@ class NeuralAssociativeMemory(AssociativeMemory):
                                   threshold_max = self.max_thresh, saturation_range = (200,200),
                                   apply_noise = False)
 
-        self.associator_node = GPUCleanup(devices, self.dt, False, indices, scaled_items,
+        self.associator_node = GPUCleanup(devices, self.dt, False, self.indices, self.items,
                                           associator_node, probe_spec, pstc, 
                                           transfer=self.transfer_func,
-                                          print_output = print_output, quick = quick)
+                                          print_output = print_output, quick = quick, scale=scale)
 
       except exceptions.OSError as e:
         print "Couldn't load GPU cleanup library: ", e
@@ -132,8 +124,8 @@ class NeuralAssociativeMemory(AssociativeMemory):
                                   threshold_max = self.max_thresh, saturation_range = (200,200),
                                   apply_noise = False)
 
-        self.associator_node = Cleanup(self.dt, False, indices, scaled_items, associator_node,
-                                       probe_spec, pstc, print_output)
+        self.associator_node = Cleanup(self.dt, False, self.indices, self.items, associator_node,
+                                       probe_spec, pstc, print_output, scale=scale)
 
     self.associator_node.connect(self.results_node_spiking)
     self.unbind_results_node.connect(self.associator_node, tau=pstc)
@@ -179,7 +171,7 @@ class NeuralAssociativeMemory(AssociativeMemory):
     self.write_to_runtime_file(now - then)
 
     if self.plot:
-      self.plot_cleanup_activities(-1)
+      self.plot_cleanup_activities()
 
     return [vector]
 
@@ -201,12 +193,9 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
   def plot_cleanup_activities(self, item_indices=[], run_index=-1):
     """
+    item_indices is wordnet key, e.g. ('n', 120304)
     run_index is an index into the history of the probes
     """
-
-    if item_indices:
-      item_keys = self.items.keys()
-      item_indices = [item_keys.index(i) if type(i) is tuple else i for i in item_indices]
 
     self.associator_node.plot(item_indices, run_index)
 

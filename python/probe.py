@@ -1,13 +1,13 @@
 #probe.py
 
 import copy
-
 from ccm.lib import nef
+import matplotlib.pyplot as plt
 
 class Probe:
-  def __init__(self, name):
+  def __init__(self, name, dt):
     self.filter_node = nef.ArrayNode(1)
-    self.dt = None
+    self.dt = dt
 
     self.time_constant = 0.01
 
@@ -20,10 +20,6 @@ class Probe:
 
     self.reset()
 
-    #self.probe_function = None
-    #self.probe_args = None
-
-#for printing on graphs
     self.name = name
 
   def probe_by_connection(self, node, func):
@@ -37,14 +33,17 @@ class Probe:
     self.current_times.append( self.elapsed_time )
     self.elapsed_time += self.dt
 
-    self.current_values.append( copy.deepcopy(end.value()))
+    self.current_values.append( copy.deepcopy(self.filter_node.value()))
 
-  def plot(self, index, line_type="-", init=False, shutdown=False):
+  def plot(self, index, line_type="-", init=False, shutdown=False, legend=None):
     if init:
       fig = plt.figure()
 
     h = self.history[index]
-    plt.plot(self.hist, self.history[probe], line_type)
+    plt.plot(h[0], h[1], line_type)
+
+    if legend is not None:
+      legend.append(self.name)
 
     if shutdown:
       plt.show()
@@ -52,9 +51,6 @@ class Probe:
       date_time_string = str(datetime.datetime.now())
       date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
       plt.savefig('graphs/neurons_'+date_time_string+".png")
-
-  def kill(self):
-    self.libNeuralCleanupGPU.kill()
 
   def reset(self):
     self.elapsed_time = 0.0

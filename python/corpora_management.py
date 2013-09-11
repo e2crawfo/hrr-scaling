@@ -2,6 +2,7 @@ import sys
 import random
 import Queue
 import bootstrap
+import collections
 
 #temporary
 from ccm.lib import hrr
@@ -11,8 +12,6 @@ from vector_operations import *
 class CorpusHandler:
     #D = 512 # number of dimensions per vocab vector
     corpusDict = None
-    cleanupMemory = None
-    knowledgeBase = None
 
     def __init__(self, D=512, input_dir=".", relation_symbols=[], vf=VectorFactory(), seed=1):
       self.D = D
@@ -155,16 +154,6 @@ class CorpusHandler:
 
         processed.update(localProcessed)
 
-    def generateRandomCleanup(self, identityCleanup=False, useUnitary=False):
-
-        self.cleanupMemory = {}
-
-        for key in self.corpusDict.keys():
-          if useUnitary and identityCleanup:
-              self.cleanupMemory[key] = self.vector_factory.genUnitaryVec(self.D)
-          else:
-              self.cleanupMemory[key] = self.vector_factory.genVec(self.D)
-
     def generate_relation_type_vectors(self, use_unitary=False):
 
         self.relation_type_vectors = {}
@@ -185,13 +174,8 @@ class CorpusHandler:
           print "Processing Corpus"
           self.processCorpus()
 
-        print "Generating random cleanup"
-        self.generateRandomCleanup(identityCleanup, useUnitary)
-
         print "Generating relation type symbols"
         self.generate_relation_type_vectors(useUnitary)
-
-        self.knowledgeBase = {}
 
         # Order words by the dependencies of their definitions - only have to do it
         # if we're forming an identity cleanup
@@ -230,29 +214,34 @@ class CorpusHandler:
             if len(keyOrder) < len(self.corpusDict):
                 raise Exception("Dependency resolution failed.")
 
+        if useUnitary:
+          vector_function = self.vector_factory.genUnitaryVec
+        else:
+          vector_function = self.vector_factory.genVec
 
-        for key in keyOrder:
-
-            if not identityCleanup:
-                self.knowledgeBase[key] = self.vector_factory.genVec(self.D)
-
-            for relation in self.corpusDict[key]:
-                if relation[0] not in self.relation_symbols: continue
-
-                if identityCleanup:
-                    pair = cconv(self.relation_type_vectors[relation[0]], self.cleanupMemory[relation[1]])
-                    self.cleanupMemory[key] += pair
-                else:
-                    pair = cconv(self.relation_type_vectors[relation[0]], self.cleanupMemory[relation[1]])
-                    self.knowledgeBase[key] += pair
-
-            if identityCleanup:
-                self.cleanupMemory[key] = normalize(self.cleanupMemory[key])
-            else:
-                self.knowledgeBase[key] = normalize(self.knowledgeBase[key])
+        self.semantic_pointers = collections.OrderedDict()
 
         if identityCleanup:
-            self.knowledgeBase = self.cleanupMemory
+            self.id_vectors = self.semantic_pointers
+        else:
+            self.id_vectors = collections.OrderedDict()
+            for key in keyOrder:
+                self.id_vectors[key] = vector_function(self.D)
+
+        for key in keyOrder:
+            semantic_pointer = vector_function(self.D)
+
+            for relation in self.corpusDict[key]:
+                if relation[0] not in self.relation_type_vectors: continue
+
+                vector = self.id_vectors[relation[1]]
+
+                pair = cconv(self.relation_type_vectors[relation[0]], vector)
+                semantic_pointer += pair
+
+            normalize(semantic_pointer)
+
+            self.semantic_pointers[key] = semantic_pointer
 
     # File parsing utilities
     def skipNotice(self, f):

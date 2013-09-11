@@ -2,6 +2,8 @@ from ctypes import *
 import numpy
 import datetime
 import string
+import collections
+from probe import Probe
 
 try:
   import matplotlib.pyplot as plt
@@ -34,15 +36,15 @@ def convert_to_carray(l, t, depth):
 
 class GPUCleanup(nef.ArrayNode):
 
-  #index_vectors and result_vectors should both be lists of vectors
-  def __init__(self, devices, dt, auto, index_vectors, result_vectors, node, probe_spec=[],
-      pstc=0.02, transfer = lambda x: x, print_output=True, quick=False):
+  #index_vectors and item_vectors should both be lists of vectors
+  def __init__(self, devices, dt, auto, index_vectors, item_vectors, node, probe_spec=[],
+      pstc=0.02, transfer = lambda x: x, print_output=True, quick=False, scale=1.0):
 
       self.libNeuralCleanupGPU = CDLL("libNeuralCleanupGPU.so")
 
       self.inputs=[]
       self.outputs=[]
-      self.dimensions=len(index_vectors[0])
+      self.dimensions=len(index_vectors.values()[0])
 
       self._input = numpy.zeros(self.dimensions)
       self._output = numpy.zeros(self.dimensions)
@@ -71,8 +73,8 @@ class GPUCleanup(nef.ArrayNode):
 
       self.dt = dt
 
-      c_index_vectors = convert_to_carray(index_vectors, c_float, 2)
-      c_result_vectors = convert_to_carray(result_vectors, c_float, 2)
+      c_index_vectors = convert_to_carray(index_vectors.values(), c_float, 2)
+      c_item_vectors = convert_to_carray(item_vectors.values(), c_float, 2)
 
       c_encoder = convert_to_carray(encoder, c_float, 1)
       c_decoder = convert_to_carray(decoder, c_float, 1)
@@ -82,44 +84,53 @@ class GPUCleanup(nef.ArrayNode):
 
       self.elapsed_time = 0.0
 
+      key_indices = {}
+      i = 0
+      for key in item_vectors:
+        key_indices[key] = i
+        i+=1
 
       self.probe_data = {}
       return_spikes = [0 for i in range(self.numVectors)]
+      self._spikes = []
 
       for ps in probe_spec:
         item_index, name, func = ps
 
-        if item_index not in probe_data:
+        index = key_indices[item_index]
+
+        if item_index not in self.probe_data:
           start = nef.ScalarNode(min=node.min, max=node.max)
           start.configure(neurons=self.numNeuronsPerItem, threshold_min=node.min,
               threshold_max=node.max, saturation_range=(200,200), apply_noise=False)
           start.configure_spikes(pstc=self.pstc, dt=self.dt)
 
-          self.probe_data[item_index] = (start, [])
+          self.probe_data[item_index] = (start, [], numpy.zeros(self.numNeuronsPerItem))
         else:
           start = self.probe_data[item_index][0]
 
-        probe = Probe(name)
+        probe = Probe(str(item_index) + "," + name, self.dt)
         probe.probe_by_connection(start, func)
 
         self.probe_data[item_index][1].append(probe)
 
-        return_spikes[item_index] = 1
+        self._spikes.append((item_index, index))
 
+        return_spikes[index] = 1
 
-      self.numItemsReturningSpikes = len(filter(lambda x: x, return_spikes))
-
-      self._spikeIndices = numpy.where(return_spikes)[0]
-      self._spikes = dict((i, numpy.zeros(self.numNeuronsPerItem)) for i in self._spikeIndices)
+      self._spikes = collections.OrderedDict( [ (x[0], self.probe_data[x[0]][2]) for x in sorted(self._spikes, key = lambda x:x[1]) ] )
 
       c_return_spikes = convert_to_carray(return_spikes, c_int, 1)
+
+      del key_indices
+
 
       c_devices = convert_to_carray(devices, c_int, 1)
       num_devices = len(devices)
 
       self.libNeuralCleanupGPU.setup(c_int(num_devices), c_devices, c_float(dt), c_int(self.numVectors), 
                                      c_int(self.dimensions), c_int(int(auto)), c_index_vectors, 
-                                     c_result_vectors, c_float(self.pstc), c_encoder, c_decoder, 
+                                     c_item_vectors, c_float(self.pstc), c_encoder, c_decoder, 
                                      c_int(self.numNeuronsPerItem), c_alpha, c_Jbias, c_float(t_ref), 
                                      c_float(t_rc), c_return_spikes, c_int(int(print_output)), c_int(int(quick)) )
 
@@ -138,7 +149,7 @@ class GPUCleanup(nef.ArrayNode):
   def _calc_output(self):
       self._c_input = convert_to_carray(self._input, c_float, 1)
       self._c_output = convert_to_carray(numpy.zeros(self.dimensions), c_float, 1)
-      self._c_spikes = convert_to_carray(numpy.zeros(self.numItemsReturningSpikes * self.numNeuronsPerItem), c_float, 1)
+      self._c_spikes = convert_to_carray(numpy.zeros(len(self._spikes) * self.numNeuronsPerItem), c_float, 1)
       self._c_decoded_values = convert_to_carray(self._decoded_values, c_float, 1)
 
       self.libNeuralCleanupGPU.step(self._c_input, self._c_output, self._c_spikes, 
@@ -153,20 +164,20 @@ class GPUCleanup(nef.ArrayNode):
         self._decoded_values[i] = self._c_decoded_values[i]
 
       #get spikes
-      spikeIndex = 0
-      for i in self._spikeIndices:
-        s = self._spikes[i]
+      spike_offset = 0
+      print self._spikes
+      for i in self._spikes:
         for j in range(self.numNeuronsPerItem):
-          s[j] = self._c_spikes[ spikeIndex + j ] * self.dt
+          self._spikes[i][j] = self._c_spikes[ spike_offset + j ] * self.dt
 
-        spikeIndex += self.numNeuronsPerItem
+        spike_offset += self.numNeuronsPerItem
 
       #update probes
       for key in self.probe_data:
-        node, probes = self.probe_data[key]
+        node, probes, spikes = self.probe_data[key]
 
-        start._set_spikes( self._spikes[key] )
-        start.tick()
+        node._set_spikes( spikes )
+        node.tick()
 
         for p in probes:
           p.probe()
@@ -177,29 +188,41 @@ class GPUCleanup(nef.ArrayNode):
   def plot(self, item_indices, run_index):
 
     indices_to_probe = item_indices
-    if not indices_to_probe:
-      indices_to_probe = self.probe_data
+  #currently have to graph all probes on a given node at once
+  def plot(self, item_indices=[], run_index=-1):
+
+    indices_to_plot = item_indices
+    if not indices_to_plot:
+      indices_to_plot = self.probe_data
+    else:
+      indices_to_plot = filter(lambda x: x in probe_data, indices_to_plot)
+
+    if not indices_to_plot:
+      return
 
     line_types = ["-", "--"]
 
     first = True
 
-    for key in item_indices:
-      s, probes = self.probe_data[key]
+    legend = []
+
+    for key in indices_to_plot:
+      s, probes, spikes = self.probe_data[key]
 
       for i in range(len(probes)):
         p = probes[i]
 
-        p.plot(run_index, line_types[i], init=first)
+        p.plot(run_index, line_types[i], init=first, legend=legend)
 
         first = False
+    
+    plt.legend(legend, loc=2)
 
     plt.show()
 
-    date_time_string = str(datetime.datetime.now())
+    date_time_string = str(datetime.datetime.now()).split('.')[0]
     date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
-    plt.savefig('graphs/neurons_'+date_time_string+".png")
-
+    plt.savefig('../graphs/neurons_'+date_time_string+".png")
 
 #
 #  def drawGraph(self, functionNames, indices=None):
@@ -238,8 +261,8 @@ class GPUCleanup(nef.ArrayNode):
     self.elapsed_time = 0.0
 
     for key in self.probe_data:
-      start, probes = p
-      start.reset()
+      node, probes, spikes = self.probe_data[key]
+      node.reset()
       for p in probes:
         p.reset()
 

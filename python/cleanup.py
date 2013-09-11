@@ -3,9 +3,8 @@
 import numpy
 import datetime
 import string
-from probe import Probe
-
 import collections
+from probe import Probe
 
 try:
   import matplotlib.pyplot as plt
@@ -20,14 +19,12 @@ threshold_func = lambda x: (x > 0.3 and x) or 0.0
 
 class Cleanup(nef.ArrayNode):
 
-  def __init__(self, dt, auto, index_vectors, result_vectors, cleanup_node, probe_spec=[], 
-               pstc=0.02, print_output=True):
+  def __init__(self, dt, auto, index_vectors, item_vectors, cleanup_node, probe_spec=[],
+               pstc=0.02, print_output=True, scale=1.0):
 
-      print "index vectors type: ", type(index_vectors)
-      print "result vectors type: ", type(result_vectors)
       self.inputs=[]
       self.outputs=[]
-      self.dimensions=len(index_vectors[0])
+      self.dimensions=len(index_vectors.values()[0])
 
       self._all_nodes=None
 
@@ -35,7 +32,7 @@ class Cleanup(nef.ArrayNode):
 
       self.numVectors = len(index_vectors)
       self.index_vectors = index_vectors
-      self.result_vectors = result_vectors
+      self.item_vectors = item_vectors
 
       self.dt = dt
 
@@ -47,6 +44,12 @@ class Cleanup(nef.ArrayNode):
       for cn in self.cleanup_nodes:
         cleanup_node.configure_spikes(pstc=self.pstc, dt=self.dt)
 
+      key_indices = {}
+      i = 0
+      for key in self.item_vectors:
+        key_indices[key] = i
+        i+=1
+
       self.probe_data = {}
 
       for ps in probe_spec:
@@ -55,10 +58,12 @@ class Cleanup(nef.ArrayNode):
         if not item_index in self.probe_data:
           self.probe_data[item_index] = []
 
-        probe = Probe(name)
-        probe.probe_by_connection(self.cleanup_nodes[item_index], func)
+        probe = Probe(str(item_index) + "," + name, self.dt)
+        probe.probe_by_connection(self.cleanup_nodes[key_indices[item_index]], func)
 
         self.probe_data[item_index].append(probe)
+
+      del key_indices
 
       self.mode='cleanup'
       self.time_points = []
@@ -74,7 +79,7 @@ class Cleanup(nef.ArrayNode):
       self._array = numpy.zeros(self.dimensions)
 
       sims = []
-      for cn, rv, i in zip(self.cleanup_nodes, self.result_vectors, range(len(self.result_vectors))):
+      for cn, iv, i in zip(self.cleanup_nodes, self.item_vectors.values(), range(len(self.item_vectors))):
         decoder = cn.get_decoder(threshold_func)
 
         #not sure if i'm supposed to divide by dt here or not
@@ -85,7 +90,7 @@ class Cleanup(nef.ArrayNode):
         #  print i, ", ", similarity
 
         if similarity > 0.0:
-          self._array += rv * similarity
+          self._array += iv * similarity
 
       #if int(self.elapsed_time * 1000) % 10 == 0:
       argmax = max(range(len(sims)), key = lambda x: sims[x])
@@ -111,7 +116,7 @@ class Cleanup(nef.ArrayNode):
       """
       print "in add input array"
 
-      sims = [numpy.dot(iv, conn.array) for iv in self.index_vectors]
+      sims = [numpy.dot(iv, conn.array) for iv in self.index_vectors.values()]
 
       #if int(self.elapsed_time * 1000) % 10 == 0:
       argmax = max(range(len(sims)), key = lambda x: sims[x])
@@ -140,31 +145,36 @@ class Cleanup(nef.ArrayNode):
       return
 
   #currently have to graph all probes on a given node at once
-  def plot(self, item_indices, run_index):
+  def plot(self, item_indices=[], run_index=-1):
 
-    indices_to_probe = item_indices
-    if not indices_to_probe:
-      indices_to_probe = self.probe_data
+    indices_to_plot = item_indices
+    if not indices_to_plot:
+      indices_to_plot = self.probe_data
+    else:
+      indices_to_plot = filter(lambda x: x in probe_data, indices_to_plot)
+
+    if not indices_to_plot:
+      return
 
     line_types = ["-", "--"]
 
     first = True
 
-    for key in item_indices:
+    for key in indices_to_plot:
       probes = self.probe_data[key]
 
       for i in range(len(probes)):
         p = probes[i]
 
-        p.plot(run_index, line_types[i], draw = True, init=first)
+        p.plot(run_index, line_types[i], init=first)
 
         first = False
 
     plt.show()
 
-    date_time_string = str(datetime.datetime.now())
+    date_time_string = str(datetime.datetime.now()).split('.')[0]
     date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
-    plt.savefig('graphs/neurons_'+date_time_string+".png")
+    plt.savefig('../graphs/neurons_'+date_time_string+".png")
 
   def reset(self):
 
@@ -174,7 +184,7 @@ class Cleanup(nef.ArrayNode):
       cn.reset()
 
     for key in self.probe_data:
-      probes = self.proba_data[key] 
+      probes = self.probe_data[key] 
       for p in probes:
         p.reset()
 
