@@ -165,18 +165,22 @@ class CorpusHandler:
           else:
               self.cleanupMemory[key] = self.vector_factory.genVec(self.D)
 
+    def generate_relation_type_vectors(self, use_unitary=False):
+
+        self.relation_type_vectors = {}
+
         for symbol in self.relation_symbols:
-          if useUnitary:
-              self.cleanupMemory[symbol] = self.vector_factory.genUnitaryVec(self.D)
+          if use_unitary:
+              self.relation_type_vectors[symbol] = self.vector_factory.genUnitaryVec(self.D)
           else:
-              self.cleanupMemory[symbol] = self.vector_factory.genVec(self.D)
+              self.relation_type_vectors[symbol] = self.vector_factory.genVec(self.D)
 
     def formKnowledgeBase(self, identityCleanup=False, useUnitary=False):
         # Check existence of corpus
         if self.corpusDict is None:
             raise Exception("Attempted to form the knowledge base without a corpus.")
 
-        print "Length!", len(self.corpusDict)
+        print "Number of items in knowledge base:", len(self.corpusDict)
         if identityCleanup:
           print "Processing Corpus"
           self.processCorpus()
@@ -184,9 +188,13 @@ class CorpusHandler:
         print "Generating random cleanup"
         self.generateRandomCleanup(identityCleanup, useUnitary)
 
+        print "Generating relation type symbols"
+        self.generate_relation_type_vectors(useUnitary)
+
         self.knowledgeBase = {}
 
-        # Order words by the dependencies of their definitions
+        # Order words by the dependencies of their definitions - only have to do it
+        # if we're forming an identity cleanup
         if not identityCleanup:
             keyOrder = self.corpusDict.keys()
         else:
@@ -223,10 +231,6 @@ class CorpusHandler:
                 raise Exception("Dependency resolution failed.")
 
 
-        # Define the knowledge base in terms of the cleanup memory
-        #for symbol in self.relation_symbols:
-        #    self.knowledgeBase[symbol] = self.cleanupMemory[symbol]
-
         for key in keyOrder:
 
             if not identityCleanup:
@@ -236,10 +240,10 @@ class CorpusHandler:
                 if relation[0] not in self.relation_symbols: continue
 
                 if identityCleanup:
-                    pair = cconv(self.cleanupMemory[relation[0]], self.cleanupMemory[relation[1]])
+                    pair = cconv(self.relation_type_vectors[relation[0]], self.cleanupMemory[relation[1]])
                     self.cleanupMemory[key] += pair
                 else:
-                    pair = cconv(self.cleanupMemory[relation[0]], self.cleanupMemory[relation[1]])
+                    pair = cconv(self.relation_type_vectors[relation[0]], self.cleanupMemory[relation[1]])
                     self.knowledgeBase[key] += pair
 
             if identityCleanup:

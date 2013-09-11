@@ -25,7 +25,7 @@ proportion = argvals.p
 threshold = argvals.t
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
-lin_alg = argvals.l 
+lin_alg = argvals.l
 algorithm = argvals.a and not lin_alg
 neural = not lin_alg and not algorithm
 quick = argvals.q and neural
@@ -66,7 +66,7 @@ input_dir, output_dir = utilities.read_config()
 
 vector_factory = VectorFactory(vector_seed)
 
-(corpus_dict, id_vectors, semantic_pointers) = \
+(corpus_dict, id_vectors, semantic_pointers, relation_type_vectors) = \
     utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
 
 #change these to use specific words/relations
@@ -86,7 +86,8 @@ if num_words > 0:
 
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
-                                       output_dir = output_dir, probe_indices=probe_indices, timesteps=steps, quick=quick, devices=pick_devices, pstc=pstc, plot=plot)
+                                       output_dir = output_dir, probe_indices=probe_indices, timesteps=steps, quick=quick,
+                                       devices=pick_devices, pstc=pstc, plot=plot)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
 
@@ -95,7 +96,7 @@ h_test_symbols = symbol_definitions.hierarchical_test_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
-                    relation_symbols, associator, test_seed, output_dir, h_test_symbols, 
+                    relation_type_vectors, associator, test_seed, output_dir, h_test_symbols,
                     sentence_symbols, vector_factory, unitary, verbose, outfile_suffix)
 
 if len(words) > 0:

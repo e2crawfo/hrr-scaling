@@ -6,7 +6,7 @@ import utilities as util
 import random
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_symbols, associator, seed, output_dir=".",
+  def __init__(self, corpus, id_vectors, semantic_pointers, relation_type_vectors, associator, seed, output_dir=".",
                h_test_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(), 
                unitary=False, verbose=False, outfile_suffix=""):
 
@@ -19,7 +19,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         self.corpus = corpus
 
-        self.relation_symbols = relation_symbols
+        self.relation_type_vectors = relation_type_vectors
         self.h_test_symbols = h_test_symbols
         self.sentence_symbols = sentence_symbols
 
@@ -52,7 +52,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
               words = self.rng.sample(self.corpus, n-testNumber)
 
             for word in words:
-                testableLinks = [r for r in self.corpus[word] if r[0] in self.relation_symbols]
+                testableLinks = [r for r in self.corpus[word] if r[0] in self.relation_type_vectors]
 
                 if len(testableLinks) > 0:
                     if testNumber < len(self.jump_plan_relation_indices):
@@ -63,8 +63,9 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
                     util.print_header(self.jump_results_file, "New Jump Test")
 
                     answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
+                    relation_vec = self.relation_type_vectors[prompt[0]]
 
-                    result, correct, valid, exact = self.testLink(prompt[0], None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers, threshold=self.test_threshold)
+                    result, correct, valid, exact = self.testLink(relation_vec, None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers, threshold=self.test_threshold)
 
                     print >> self.jump_results_file, "Correct goal? ",correct
                     print >> self.jump_results_file, "Valid answers? ",valid
@@ -238,19 +239,20 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
               else:
                 for symbol in rtype:
                   answers = [r[1] for r in self.corpus[key] if r[0] == symbol]
+                  relation_vec = self.relation_type_vectors[symbol]
 
                   if len(answers) == 0:
                     target = None
                   else:
                     target = answers[0]
 
-                  num_relations = len(filter(lambda x: x[0] in self.relation_symbols, self.corpus[key]))
+                  num_relations = len(filter(lambda x: x[0] in self.relation_type_vectors, self.corpus[key]))
 
                   if use_vecs:
-                    result = self.testLink(symbol, word, key, target, self.hierarchical_results_file, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
+                    result = self.testLink(relation_vec, word, key, target, self.hierarchical_results_file, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
                     links.append( result )
                   else:
-                    results = self.testLink(symbol, None, key, target, self.hierarchical_results_file, return_vec=False, depth=level, num_relations=num_relations, answers=answers)
+                    results = self.testLink(relation_vec, None, key, target, self.hierarchical_results_file, return_vec=False, depth=level, num_relations=num_relations, answers=answers)
                     if answers:
                       results=results[0]
                     links.extend( results )
@@ -408,7 +410,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         relation_hist[len(self.corpus[key])] += 1
 
       for relation in self.corpus[key]:
-        if relation[0] not in self.relation_symbols: continue
+        if relation[0] not in self.relation_type_vectors: continue
 
         relation_count += 1
         if not relation[0] in relation_counts:

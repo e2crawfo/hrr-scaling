@@ -88,9 +88,10 @@ def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unit
 
   corpusDict = corpus.corpusDict
   id_vectors = corpus.cleanupMemory
+  relation_type_vectors = corpus.relation_type_vectors
   semantic_pointers = corpus.knowledgeBase
 
-  return (corpusDict, id_vectors, semantic_pointers)
+  return (corpusDict, id_vectors, semantic_pointers, relation_type_vectors)
 
 
 #pick some key that i want to test...note this has to be the TARGET of something i decode

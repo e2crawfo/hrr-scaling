@@ -59,7 +59,7 @@ class AssociativeMemoryTester(object):
       return result
 
 
-  def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, relation_is_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
+  def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
 
         util.print_header(output_file, "Testing link", char='-')
 
@@ -76,12 +76,7 @@ class AssociativeMemoryTester(object):
           util.print_header(sys.stdout, "Target")
           print(goal)
 
-        if relation_is_vec:
-          print >> output_file, "relation is a vector"
-        else:
-          print >> output_file, "relation: ", relation
-          relation_key = relation
-          relation = self.id_vectors[relation]
+        #print >> output_file, "relation: ", relation
 
         print >> output_file, "goal: ", goal
         print >> output_file, "depth: ", depth
