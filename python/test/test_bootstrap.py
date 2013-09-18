@@ -45,6 +45,42 @@ class TestBootstrapFunctions(unittest.TestCase):
     sample = draw_bootstrap_samples([], 0, self.rng)
     self.assertEqual(sample, [])
 
+  def test_boot_get_stats(self):
+    b = Bootstrapper()
+    x = range(10)
+    y = range(20)
+    z = [self.rng.random() for r in range(5)]
+
+    for xi in x:
+      b.add_data("x", x)
+
+    for yi in y:
+      b.add_data("y", y)
+
+    for zi in z:
+      b.add_data("z", z)
+
+    mean = lambda x: float(sum(x)) / float(len(x))
+
+    x_stats = b.get_stats("x")
+    y_stats = b.get_stats("y")
+    z_stats = b.get_stats("z")
+
+    self.assertEqual(x_stats[0], x)
+    self.assertEqual(x_stats[1], mean(x))
+    self.assertEqual(x_stats[3], min(x))
+    self.assertEqual(x_stats[4], max(x))
+
+    self.assertEqual(y_stats[0], y)
+    self.assertEqual(y_stats[1], mean(y))
+    self.assertEqual(y_stats[3], min(y))
+    self.assertEqual(y_stats[4], max(y))
+
+    self.assertEqual(z_stats[0], z)
+    self.assertEqual(z_stats[1], mean(z))
+    self.assertEqual(z_stats[3], min(z))
+    self.assertEqual(z_stats[4], max(z))
+
   def test_boot_read_bootstrap_file(self):
     b = Bootstrapper()
     b.read_bootstrap_file("test_bootstrap_file")
@@ -76,7 +112,6 @@ class TestBootstrapFunctions(unittest.TestCase):
 
   def test_boot_bootstrap_CI(self):
     reference_CI = (0.0, 1.0)
-
 
 if __name__ == '__main__':
   unittest.main()

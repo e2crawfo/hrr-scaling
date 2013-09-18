@@ -115,6 +115,19 @@ class Bootstrapper:
         line = bs_file.next()
 
   def add_data(self, index, data):
+    """
+    Add data to the bootstrapper. data gets appended to the end of the list
+    referred to by index. If such a list doesn't yet exist in the current
+    bootstrapper, one is created.
+
+    :param index: The index of the list that data is to be appended to.
+    :type hashable:
+
+    :param data: The data to add to the list reffered to by index
+    :type data:
+
+    """
+
     if not (index in self.data):
       self.data[index] = []
 
@@ -123,8 +136,40 @@ class Bootstrapper:
     if self.verbose:
       print "Bootstrapper adding data ... name: ", index, ", data: ", data
 
+  def get_stats(self, index):
+    """
+    Retrieve a set of stats about the numbers in the list referred to by
+    index. The stats are returned in a tuple, whose order is:
+      (raw data, mean, (low_CI, hi_CI), largest, smallest).
+    If index is not in the current bootstrapper, None is returned.
+
+    :param index: The index of the list whose stats are to be reported
+    :type hashable:
+
+    """
+
+    if index not in data:
+      return None
+
+    mean = lambda x: float(sum(x)) / float(len(x))
+
+    s = self.data[index]
+    m = mean(s)
+    CI = bootstrap_CI(0.05, mean, s, 999)
+    largest = max(s)
+    smallest = min(s)
+    return (s, m, CI, largest, smallest)
+
   def print_summary(self, output_file):
-    
+    """
+    Prints a summary of the data currently stored in the bootstrapper.
+    Basically, we call get_stats on each index in the bootstrapper.
+
+    :param outfile: Place to send the summary data
+    :type fileobject or string (filename):
+
+    """
+
     close = False
     if isinstance(output_file, str):
       output_file = open(output_file,'w')
@@ -132,18 +177,14 @@ class Bootstrapper:
 
     title = "Bootstrap Summary"
     util.print_header(output_file, title)
-    mean = lambda x: float(sum(x)) / float(len(x))
 
     data_keys = self.data.keys()
     data_keys.sort()
 
     for n in data_keys:
-      s = self.data[n]
-      CI = bootstrap_CI(0.05, mean, s, 999)
-      largest = max(s)
-      smallest = min(s)
+      s, m, CI, largest, smallest = self.get_stats(n)
 
-      output_file.write("\nmean " + str(n) + ": " + str(mean(s)) + "\n")
+      output_file.write("\nmean " + str(n) + ": " + str(m) + "\n")
       output_file.write("lower 95% CI bound: " + str(CI[0]) + "\n")
       output_file.write("upper 95% CI bound: " + str(CI[1]) + "\n")
       output_file.write("max: " + str(largest) + "\n")
