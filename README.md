@@ -1,14 +1,11 @@
-Purpose
-=====
+##Purpose
 
 **cleanup-scaling** is intended to demonstrate the scaling capabilities of the Semantic Pointer Architecture (SPA) and its approach to connectionist knowledge representation [(Eliasmith 2013)](http://compneuro.uwaterloo.ca/research/spa.html). We accomplish this by creating a spiking neural network capable of encoding WordNet, a lexical database consisting of ~117,000 items, and traversing the primary relations therein. We show that our technique can encode this human-scale structured knowledge base using much fewer neural resources than any previous approach would require. Our results were outlined in a [paper presented at CogSci 2013](http://mindmodeling.org/cogsci2013/papers/0099/paper0099.pdf). A longer, more detailed version featuring additional empirical data is currently in review.
 
-Methods
-=======
+##Methods
 See our CogSci 2013 paper for a detailed over view of our methods. Briefly, we use a particular vector symbolic architecture, called the Semantic Pointer Architecture (which can be viewed as a neural varient of Holographic Reduced Representations (Plate, 2003)), to encode the WordNet graph in vectorial form. We then employ the [Neural Engineering Framework](http://compneuro.uwaterloo.ca/research/nef.html), a principled approach to creating populations of spiking neurons that represent and transform vectors (Eliasmith and Anderson, 2003), to create a spiking neural network capable of traversing this vectorial representation of the WordNet graph in a biologically plausible number of neurons.
 
-Setup
-==========
+##Setup
 Running this package requires [python 2.7](http://www.python.org/getit/) and [numpy/scipy](http://www.scipy.org/install.html). For displaying graphical views of results, [matplotlib](http://matplotlib.org/users/installing.html) is required, though it can be omitted if you're fine with viewing the data textually.
 
 The model supports GPU acceleration through nVidia's CUDA API, and indeed this is all but required for running the model with all ~117,000 concepts in WordNet. 
@@ -24,8 +21,7 @@ on your CUDA-capable GPU(s). Note that this has only been tested on Ubuntu.
 
 2. Compile the *neuralGPUCleanup* shared library. The source code for this library can be found in the *neuralGPUCleanup* subdirectory of this repository. If step 1 was completed properly, it should be as simple as typing ``make``, though one does sometimes run into pitfalls. More info on this coming soon, in particular, a FAQ addressing common errors encountered in the process of compiling CUDA libraries.
 
-Running Experiments
-==========
+##Running Experiments
 Users interact with the package through a python script called ``run_script.py`` which is located in the ``python`` subdirectory. ``run_script.py`` handles all the heavy lifting of loading the WordNet graph into memory, converting it into 
 a vectorial representation, and, finally, creating a spiking neural network capable of traversing the edges in the WordNet graph encoded by those vectors. A number of command line options are provided which provide control over which experiments are run and under what conditions.
 
@@ -65,8 +61,7 @@ To tell the package to use GPU acceleration when running experiments, supply the
 python run_script.py s 20 30 --gpus 1
 ```
 
-Viewing Results
-==========
+##Viewing Results
 Running simulations wouldn't be of much use if we couldn't gather cold hard stats summarizing the results. Such data is stored in the aptly named ``results`` directory. Each time ``run_script.py`` is invoked, a file is generated in this directory. The filename is a concatenation of the test type (i.e. jump, hierarchical or sentence), the time the invocation occurred (with coarser units occuring closing to the front of the string), and a string indicating some of the parameters of the test. For example, a Jump Test that was started on September 19, 2013 at 12:58:42 AM has the name:
 
 ```
@@ -80,8 +75,7 @@ Each results file is divided into a number of sections. The first section contai
 ####Viewing Results Graphically
 Coming soon...
 
-Command Line Options
-==========
+##Command Line Options
 This section provides more complete descriptions of the most important command line options. An exhaustive list can be obtained by running ``python run_script.py -h``.
 
 -p P : P is a float between 0 and 1. Permits specification of the percentage of the total number of WordNet synsets to use. Defaults to 1.0. Useful for running smaller versions of the full model, particularly if you don't have access to a GPU.
@@ -94,8 +88,7 @@ This section provides more complete descriptions of the most important command l
 
 -u : Specifies that all randomly generated vectors used in the vectorial encoding of Wordnet be *unitary vectors*, as defined in (Plate 2003). This directly addresses the problem with requiring the id vectors be used as semantic pointers, as it reduces the average similarity of the semantic pointers. So specifying ``-i -u`` will typically build a model that is more successful than one built with ``-u`` alone. These phenomena are investigated in our forthcoming paper.
 
-References
-=========
+##References
 
 Eliasmith, C. (2013). *How to build a brain: A neural architecture for biological cognition*. New York, NY: Oxford University Press.
 
