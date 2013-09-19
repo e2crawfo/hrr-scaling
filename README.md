@@ -20,7 +20,7 @@ To obtain the package, simply clone this repository onto your machine using the 
 If you don't intend to use a GPU to run simulations, this section can be safely skipped. Otherwise read on, and in just a few simple steps you can be running simulations at GPU-accelerated speeds
 on your CUDA-capable GPU(s). Note that this has only been tested on Ubuntu. 
 
-1. Install the CUDA runtime libraries. Detailed instructions for this process can be found [here]().
+1. Install the [CUDA toolkit](https://developer.nvidia.com/cuda-downloads).
 
 2. Compile the *neuralGPUCleanup* shared library. The source code for this library can be found in the *neuralGPUCleanup* subdirectory of this repository. If step 1 was completed properly, it should be as simple as typing ``make``, though one does sometimes run into pitfalls. More info on this coming soon, in particular, a FAQ addressing common errors encountered in the process of compiling CUDA libraries.
 
