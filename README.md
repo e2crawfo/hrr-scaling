@@ -67,7 +67,7 @@ python run_script.py s 20 30 --gpus 1
 
 Viewing Results
 ==========
-Running simulations wouldn't be much use if we couldn't gather cold hard stats summarizing the results. Such data is stored in the aptly named ``results`` directory. Each time ``run_script.py`` is invoked, a file is generated in this directory. The filename is a concatenation of the test type (i.e. jump, hierarchical or sentence), the time the invocation occurred (with coarser units occuring closing to the front of the string), and a string indicating some of the parameters of the test. For example, a Jump Test that was started on September 19, 2013 at 12:58:42 AM has the name:
+Running simulations wouldn't be of much use if we couldn't gather cold hard stats summarizing the results. Such data is stored in the aptly named ``results`` directory. Each time ``run_script.py`` is invoked, a file is generated in this directory. The filename is a concatenation of the test type (i.e. jump, hierarchical or sentence), the time the invocation occurred (with coarser units occuring closing to the front of the string), and a string indicating some of the parameters of the test. For example, a Jump Test that was started on September 19, 2013 at 12:58:42 AM has the name:
 
 ```
 jump_results_2013_09_19_12_58_42_n
@@ -75,7 +75,7 @@ jump_results_2013_09_19_12_58_42_n
 
 The *n* on the end simply signifies that we performed the task using a neural network. Best not to worry about this too much.
 
-The results file contains a number of sections. At the beginning, there is a list of all the parameter values of the network that was used in that experiment. This is followed by data printed to the file detailing the results of each file. Most importantly, after the completion of each batch, a *Bootsrap Summary* is printed out. This gives summary gives various stats that the system is recording, including the mean performance, as well as more specific information such as the average match between the output vector and the desired vector for starting vectors with various out-degrees, etc. The final section gives a histogram of the distribution of the out-degree of the WordNet concepts.
+Each results file is divided into a number of sections. The first section contains list of the parameter values that were used in that experiment. This is followed by the main section, which gives detailed results about each indivdual trial. Most importantly, this section contains a number of *Bootsrap Summaries*, which are created after the completion of each batch. These summaries contain various statistics that the experimental system is recording about the network's performance. This includes the mean performance on the batches that have been executed so far, as well as more specific information such as the average match between the output vector and the desired vector for starting vectors with various out-degrees, etc. The final section gives a histogram of the distribution of the out-degree of the WordNet concepts, as well as the total number of each relation-type in the current WordNet graph.
 
 ####Viewing Results Graphically
 Coming soon...
@@ -92,7 +92,7 @@ This section provides more complete descriptions of the most important command l
 
 -i : Specifies that the id vectors of the cleanup be identical to the semantic pointers, rather than randomly chosen vectors as is the default. Typically, this makes cleanup noisier since the average similarity of two semantic pointers is much higher than that of two randomly chosen vectors.
 
--u : Requires that all semantic pointers be defined in terms of unitary vectors, as defined in (Plate 2003). This directly addresses the problem with requiring the id vectors be used as semantic pointers, as it reduces the average similarity of the semantic pointers. So specifying ``-i -u`` will typically build a model that is more successful than one built with ``-u`` alone. These phenomena are investigated in our forthcoming paper.
+-u : Specifies that all randomly generated vectors used in the vectorial encoding of Wordnet be *unitary vectors*, as defined in (Plate 2003). This directly addresses the problem with requiring the id vectors be used as semantic pointers, as it reduces the average similarity of the semantic pointers. So specifying ``-i -u`` will typically build a model that is more successful than one built with ``-u`` alone. These phenomena are investigated in our forthcoming paper.
 
 References
 =========
