@@ -148,7 +148,7 @@ class Bootstrapper:
 
     """
 
-    if index not in data:
+    if index not in self.data:
       return None
 
     mean = lambda x: float(sum(x)) / float(len(x))
