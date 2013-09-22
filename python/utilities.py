@@ -11,7 +11,7 @@ import random
 def parse_args(print_args=False):
   parser = argparse.ArgumentParser(description='Test a cleanup memory.')
 
-  parser.add_argument('test', nargs='*', help="Specify the test type (one of 'j', 'h' or 's'), the number of runs and the number of trials per run (e.g. python run_script.py j 10 100).")
+  parser.add_argument('test', nargs='*', help="Specify the test type (one of 'j', 'h' or 's'), the number of runs and the number of trials per run (e.g. python run.py j 10 100).")
 
   #parameters of the experiment
   parser.add_argument('-u', action='store_true', help='Supply this argument to use unitary vectors.')
@@ -33,7 +33,7 @@ def parse_args(print_args=False):
   #configuring gpus
   parser.add_argument('--gpus', default=0, type=int, help='Number of gpus to use to run the neural model.')
   parser.add_argument('--pick-devices', nargs='+', type=int, help='Specify the devices (gpus) to use. Specified as a list of integers' 
-      ' (e.g. "python run_script.py j 10 100 --pick-devices 0 2 3" would use 3 devices, skipping the device with index 1).')
+      ' (e.g. "python run.py j 10 100 --pick-devices 0 2 3" would use 3 devices, skipping the device with index 1).')
 
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data that is printed to the file')
   parser.add_argument('--numwords', default=0, type=int, help='Number of planned words. Only has an effect on jump tests.')

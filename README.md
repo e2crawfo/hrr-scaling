@@ -22,47 +22,47 @@ on your CUDA-capable GPU(s). Note that this has only been tested on Ubuntu.
 2. Compile the *neuralGPUCleanup* shared library. The source code for this library can be found in the *neuralGPUCleanup* subdirectory of this repository. If step 1 was completed properly, it should be as simple as typing ``make``, though one does sometimes run into pitfalls. More info on this coming soon, in particular, a FAQ addressing common errors encountered in the process of compiling CUDA libraries.
 
 ##Running Experiments
-Users interact with the package through a python script called ``run_script.py`` which is located in the ``python`` subdirectory. ``run_script.py`` handles all the heavy lifting of loading the WordNet graph into memory, converting it into 
+Users interact with the package through a python script called ``run.py`` which is located in the ``python`` subdirectory. ``run.py`` handles all the heavy lifting of loading the WordNet graph into memory, converting it into 
 a vectorial representation, and, finally, creating a spiking neural network capable of traversing the edges in the WordNet graph encoded by those vectors. A number of command line options are provided which provide control over which experiments are run and under what conditions.
 
 In our CogSci 2013, paper we outline 3 experiments that we perform on our model to ensure that it encodes the WordNet graph. These are the Single Edge Traversal, Hierarchy Traversal and
-Sentence Encoding. In the code, these are nicknamed ``Jump Test``, ``Hierarchy Test`` and ``Sentence Test``, respectively. To construct the model and run a test on it, call ``run_script.py`` as follows:
+Sentence Encoding. In the code, these are nicknamed ``Jump Test``, ``Hierarchy Test`` and ``Sentence Test``, respectively. To construct the model and run a test on it, call ``run.py`` as follows:
 
 ```
-python run_script.py <test-type> <batches> <trials>
+python run.py <test-type> <batches> <trials>
 ```
 
 where **test-type** is one of j, h or s indicating the type of test to run, **batches** is a positive integer indicating the number of batches to run, and **trials** is a positive integer indicating the number of trials of the chosen test per batch. For example to run 10 batches of the Jump test with 100 trials each, one would type:
 
 ```
-python run_script.py j 10 100
+python run.py j 10 100
 ```
 
 ####Experiments from paper
 The experiments in our CogSci 2013 paper can be run with the following commands:
 
 ```
-python run_script.py j 20 100 
-python run_script.py h 20 20 
-python run_script.py s 20 30
+python run.py j 20 100 
+python run.py h 20 20 
+python run.py s 20 30
 ```
 
 ####Non-GPU Notes
 If not using a GPU, you'll probably want to run your experiments with the -p command line argument, which builds a model containing only a subset of the concepts in WordNet. For example, to run the Hierarchy Test experiment from the paper, but using only 10% of the concepts in Wordnet, one would type
 
 ```
-python run_script.py h 20 20 -p 0.1
+python run.py h 20 20 -p 0.1
 ```
 
 ####GPU Notes
 To tell the package to use GPU acceleration when running experiments, supply the --gpus command line argument, followed by the number of GPU's you want to use to run the model (e.g. --gpus 1). For example, to run the Sentence Test experiment from the paper using 1 GPU (assuming the the GPU library has been installed properly), one would type:
 
 ```
-python run_script.py s 20 30 --gpus 1
+python run.py s 20 30 --gpus 1
 ```
 
 ##Viewing Results
-Running simulations wouldn't be of much use if we couldn't gather cold hard stats summarizing the results. Such data is stored in the aptly named ``results`` directory. Each time ``run_script.py`` is invoked, a file is generated in this directory. The filename is a concatenation of the test type (i.e. jump, hierarchical or sentence), the time the invocation occurred (with coarser units occuring closing to the front of the string), and a string indicating some of the parameters of the test. For example, a Jump Test that was started on September 19, 2013 at 12:58:42 AM has the name:
+Running simulations wouldn't be of much use if we couldn't gather cold hard stats summarizing the results. Such data is stored in the aptly named ``results`` directory. Each time ``run.py`` is invoked, a file is generated in this directory. The filename is a concatenation of the test type (i.e. jump, hierarchical or sentence), the time the invocation occurred (with coarser units occuring closing to the front of the string), and a string indicating some of the parameters of the test. For example, a Jump Test that was started on September 19, 2013 at 12:58:42 AM has the name:
 
 ```
 jump_results_2013_09_19_12_58_42_n
@@ -76,7 +76,7 @@ Each results file is divided into a number of sections. The first section contai
 Coming soon...
 
 ##Command Line Options
-This section provides more complete descriptions of the most important command line options. An exhaustive list can be obtained by running ``python run_script.py -h``.
+This section provides more complete descriptions of the most important command line options. An exhaustive list can be obtained by running ``python run.py -h``.
 
 -p P : P is a float between 0 and 1. Permits specification of the percentage of the total number of WordNet synsets to use. Defaults to 1.0. Useful for running smaller versions of the full model, particularly if you don't have access to a GPU.
 
