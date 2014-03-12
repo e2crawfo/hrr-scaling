@@ -8,7 +8,6 @@ import collections
 from ccm.lib import hrr
 
 from vector_operations import *
-
 class CorpusHandler:
     #D = 512 # number of dimensions per vocab vector
     corpusDict = None
@@ -174,7 +173,9 @@ class CorpusHandler:
           print "Processing Corpus"
           self.processCorpus()
 
-        print "Generating relation type symbols"
+        print "Generating relation type vectors"
+        print "Using relation types: ", self.relation_symbols
+
         self.generate_relation_type_vectors(useUnitary)
 
         # Order words by the dependencies of their definitions - only have to do it
@@ -221,6 +222,7 @@ class CorpusHandler:
 
         self.semantic_pointers = collections.OrderedDict()
 
+        print "Generating ID-vectors"
         if identityCleanup:
             self.id_vectors = self.semantic_pointers
         else:
@@ -228,6 +230,7 @@ class CorpusHandler:
             for key in keyOrder:
                 self.id_vectors[key] = vector_function(self.D)
 
+        print "Generating HRR vectors"
         for key in keyOrder:
             semantic_pointer = vector_function(self.D)
 
@@ -252,4 +255,5 @@ class CorpusHandler:
             f.readline()
             c = f.read(1)
         f.seek(-1, 1)
+
 
