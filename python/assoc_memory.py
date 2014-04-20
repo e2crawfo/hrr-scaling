@@ -71,9 +71,11 @@ class AssociativeMemory(object):
         result = zeroVec(self.dim)
 
         for key in result_keys:
-          result += self.similarities[key] * self.items[key]
+          sim = self.similarities[key]
+          sim = 0.0 if sim < self.threshold else sim
+          result += sim * self.items[key]
 
-        result = normalize(result)
+        #result = normalize(result)
 
         results = [result]
 

@@ -326,7 +326,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
                 result, correct, valid, exact = self.testLink(self.sentence_vocab[symbol], sentenceVector, None, answer,
                     output_file = self.sentence_results_file, return_vec=False,
-                    relation_is_vec=True, num_relations=len(sentence), answers=[answer], threshold = self.test_threshold)
+                    num_relations=len(sentence), answers=[answer], threshold = self.test_threshold)
 
                 if correct:
                     sentence_score += 1

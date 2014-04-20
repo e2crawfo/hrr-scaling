@@ -22,8 +22,8 @@ def parse_args(print_args=False):
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
 
   #picking the type of cleanup memory
-  parser.add_argument('-l', action='store_true', help='Supply this argument do cleanup using pure linear algebra rather than neurons. If neither -a nor -l is specified, cleanup is performed by a neural network.')
-  parser.add_argument('-a', action='store_true', help='Supply this argument to use the neural cleanup algorithm, but without neurons. If neither -a nor -l is specified, cleanup is performed by a neural network.')
+  parser.add_argument('-l', action='store_true', help='Supply this argument do cleanup using pure linear algebra rather than neurons. If -l is not supplied, cleanup is performed by a neural network.')
+  parser.add_argument('-a', action='store_true', help='Supply this argument do cleanup using pure linear algebra, but using the neural algorithm (i.e. thresholding and summing). Only has effect if -l is also supplied.')
 
   #parameters for the neural network
   parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold. A float between 0 and 1.')

@@ -312,4 +312,3 @@ class AssociativeMemoryTester(object):
   def get_similarities(self):
     self.similarities_file=open(self.output_dir+'/similarities_' + self.date_time_string , 'w')
     self.runBootstrap(1, 1, 999, self.similarities_file, self.associator.get_similarities_sample, write_raw_data=False)
-
