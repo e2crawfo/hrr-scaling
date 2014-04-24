@@ -242,7 +242,7 @@ class CorpusHandler:
                 pair = cconv(self.relation_type_vectors[relation[0]], vector)
                 semantic_pointer += pair
 
-            normalize(semantic_pointer)
+            semantic_pointer = normalize(semantic_pointer)
 
             self.semantic_pointers[key] = semantic_pointer
 
