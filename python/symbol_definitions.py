@@ -51,7 +51,6 @@ def hierarchical_test_symbols():
 def isA_symbols():
   """Return isA relation symbols"""
   return _isA_symbols
-  #return ['@']
 
 def partOf_symbols():
   return holonym_symbols
