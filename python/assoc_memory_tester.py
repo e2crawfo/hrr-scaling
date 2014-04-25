@@ -42,7 +42,7 @@ class AssociativeMemoryTester(object):
         self.current_relation_keys = None
         self.current_num_relations = None
 
-        self.test_threshold = 0.8
+        self.test_threshold = 0.7
         self.soft_threshold = 0.4
 
         self.jump_plan_words = []
