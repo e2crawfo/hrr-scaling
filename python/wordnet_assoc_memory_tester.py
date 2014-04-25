@@ -4,6 +4,8 @@ from assoc_memory_tester import AssociativeMemoryTester
 import utilities as util
 
 import random
+from collections import defaultdict
+import numpy as np
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
   def __init__(self, corpus, id_vectors, semantic_pointers, relation_type_vectors, associator, seed, output_dir=".",
@@ -271,7 +273,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         else:
             return -1
 
-  def sentenceTest(self, testName, n):
+  def sentenceTest(self, testName, n, deep=False):
         # check that POS lists exist (form them if required)
         if self.sentence_vocab is None:
             self.nouns = []
@@ -294,61 +296,96 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
 
-        score = 0
+        score = defaultdict(float)
 
         for i in range(n):
             title = "New Sentence Test"
+            if deep:
+                title += "- Deep"
+
             util.print_header(self.sentence_results_file, title)
+
+            included_roles = []
+
+            for symbol in self.sentence_symbols:
+                if self.rng.random() < self.sentence_symbols[symbol][0]:
+                    included_roles.append((symbol,))
+
+            if deep:
+                embed = self.rng.sample(included_roles, 1)[0]
+                included_roles.remove(embed)
+                for symbol in self.sentence_symbols:
+                    if self.rng.random() < self.sentence_symbols[symbol][0]:
+                        included_roles.append((embed[0], symbol))
+
             sentence = {}
+            tag_vectors = {}
             sentenceVector = numpy.zeros(self.D)
 
+            # Pick role-fillers and create HRR representing the sentence
+            for role in included_roles:
+                print >> self.sentence_results_file, role
+                pos = self.sentence_symbols[role[-1]][1]
+                word = (pos, self.rng.sample(posmap[pos], 1)[0])
+
+                sentence[role] = word
+
+                tag_vector = [self.sentence_vocab[x] for x in role]
+                tag_vector = reduce(lambda x, y: cconv(x, y), tag_vector)
+                tag_vectors[role] = tag_vector
+
+                sentenceVector = sentenceVector + cconv(tag_vector, self.id_vectors[word])
+
+            sentenceVector /= np.linalg.norm(sentenceVector)
+
             print >> self.sentence_results_file, "Roles in sentence:"
-            for symbol in self.sentence_symbols:
+            print >> self.sentence_results_file, sentence
 
-                if self.rng.random() < self.sentence_symbols[symbol][0]: # choose lexical items to include
-                    print >> self.sentence_results_file, symbol
-                    pos = self.sentence_symbols[symbol][1] # determine the POS for this lexical item
-                    word = (pos, self.rng.sample(posmap[pos], 1)[0]) # choose words
-                    sentence[symbol] = word    # build the sentence in a python dictionary
-                    sentenceVector = sentenceVector + cconv(self.sentence_vocab[symbol],
-                                                            self.id_vectors[word]) # build the sentence as an HRR vector
             # ask about parts of the sentence
-            sentence_score = 0
-            for symbol in sentence.keys():
+            sentence_score = defaultdict(float)
+            sentence_length = defaultdict(float)
+            for role in sentence.keys():
 
-                answer = sentence[symbol]
+                answer = sentence[role]
 
                 self.current_start_key = None
                 self.current_target_keys = [answer]
                 self.current_num_relations = len(sentence)
 
-                print >> self.sentence_results_file, "Testing ", symbol
+                print >> self.sentence_results_file, "\nTesting ", role
 
-                result, correct, valid, exact = self.testLink(self.sentence_vocab[symbol], sentenceVector, None, answer,
+                result, correct, valid, exact = self.testLink(tag_vectors[role], sentenceVector, None, answer,
                     output_file = self.sentence_results_file, return_vec=False,
                     num_relations=len(sentence), answers=[answer], threshold = self.test_threshold)
 
+                depth = len(role)
                 if correct:
-                    sentence_score += 1
+                    sentence_score[depth] += 1
                     print >> self.sentence_results_file, "Correct."
                 else:
                     print >> self.sentence_results_file, "Incorrect."
 
-            sentence_percent = float(sentence_score) / float(len(sentence))
-            print >> self.sentence_results_file, "Percent correct for current sentence: "
-            score = score + sentence_percent
+                sentence_length[depth] += 1
 
-        print "sentence test score:", score, "out of", n
+            for d in sentence_score:
+                sentence_percent = sentence_score[d] / sentence_length[d]
+                print >> self.sentence_results_file, "Percent correct for \
+                        current sentence at depth %d: %f" %(d, sentence_percent)
+                score[d] = score[d] + sentence_percent
 
-        percent = float(score) / float(n)
-        title = "Sentence Test Summary"
-        util.print_header(self.sentence_results_file, title)
-        print >> self.sentence_results_file, "Correct: ", score
-        print >> self.sentence_results_file, "Total: ", n
-        print >> self.sentence_results_file, "Percent: ", percent
-        util.print_footer(self.sentence_results_file, title)
+        for d in score:
+            print "Sentence test score at depth %d: %f out of %d" %(d, score[d], n)
 
-        self.add_data("sentence_score", percent)
+            percent = score[d] / n
+
+            title = "Sentence Test Summary - Depth = %d" % d
+            util.print_header(self.sentence_results_file, title)
+            print >> self.sentence_results_file, "Correct: ", score[d]
+            print >> self.sentence_results_file, "Total: ", n
+            print >> self.sentence_results_file, "Percent: ", percent
+            util.print_footer(self.sentence_results_file, title)
+
+            self.add_data("sentence_score_%d" % d, percent)
 
   def openJumpResultsFile(self, mode='w'):
     if not self.jump_results_file:

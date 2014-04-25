@@ -11,7 +11,7 @@ import random
 def parse_args(print_args=False):
   parser = argparse.ArgumentParser(description='Test a cleanup memory.')
 
-  parser.add_argument('test', nargs='*', help="Specify the test type (one of 'j', 'h' or 's'), the number of runs and the number of trials per run (e.g. python run.py j 10 100).")
+  parser.add_argument('test', nargs='*', help="Specify the test type (one of 'j', 'h', 's' or 'd'), the number of runs and the number of trials per run (e.g. python run.py j 10 100).")
 
   #parameters of the experiment
   parser.add_argument('-u', action='store_true', help='Supply this argument to use unitary vectors.')
@@ -62,7 +62,6 @@ def create_outfile_suffix(neural, unitary, identity, bidirectional, algorithm):
 
   return suff
 
-#Read config
 def read_config(config_name="config"):
   configParser = ConfigParser.SafeConfigParser()
   configParser.readfp( open(config_name) )

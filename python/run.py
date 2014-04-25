@@ -108,6 +108,8 @@ elif test == 'h':
   tester.runBootstrap_hierarchical(num_runs, num_trials)
 elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials)
+elif test == 'd':
+  tester.runBootstrap_sentence(num_runs, num_trials, deep=True)
 elif test == 'c':
   tester.get_similarities()
 else:
