@@ -3,6 +3,7 @@ import random
 import Queue
 import bootstrap
 import collections
+import numpy as np
 
 #temporary
 from ccm.lib import hrr
@@ -215,10 +216,7 @@ class CorpusHandler:
             if len(keyOrder) < len(self.corpusDict):
                 raise Exception("Dependency resolution failed.")
 
-        if useUnitary:
-          vector_function = self.vector_factory.genUnitaryVec
-        else:
-          vector_function = self.vector_factory.genVec
+        vector_function = self.vector_factory.genVec
 
         self.semantic_pointers = collections.OrderedDict()
 
