@@ -34,6 +34,7 @@ num_gpus = max(argvals.gpus, 0)
 num_words = argvals.numwords
 pick_devices = argvals.pick_devices
 pstc = argvals.pstc
+noneg = argvals.noneg
 if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
 else: pick_devices = range(num_gpus)
 
@@ -105,7 +106,7 @@ if len(words) > 0:
 if test == 'j':
   tester.runBootstrap_jump(num_runs, num_trials)
 elif test == 'h':
-  tester.runBootstrap_hierarchical(num_runs, num_trials)
+  tester.runBootstrap_hierarchical(num_runs, num_trials, do_neg=not noneg)
 elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials)
 elif test == 'd':

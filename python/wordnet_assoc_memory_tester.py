@@ -96,17 +96,21 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         self.add_data("jump_score_valid", valid_score)
         self.add_data("jump_score_exact", exact_score)
 
-  def hierarchicalTest(self, testName, n, stat_depth = 0, m=None, rtype=[], startFromParent=False):
+  def hierarchicalTest(self, testName, p, stat_depth = 0, n=None, rtype=[], startFromParent=False, do_neg=True):
         """Check whether word A is a type of word B. Test with n cases in which
         word A IS NOT a descendant of word B and m cases where word A IS a
         descendent of word B. The rtype parameter specifies which relationships
         to use in the search (by default, only the isA relationships)."""
 
-        if m is None:
-          m = n
+        if n is None:
+          n = p
 
+        if not do_neg:
+            n = 0
+
+        p_count = 0
         n_count = 0
-        m_count = 0
+
         p_score = 0
         n_score = 0
 
@@ -121,14 +125,14 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
           parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False)
 
           pair = (start, target)
-          if target in parent_list and m_count < m:
+          if target in parent_list and p_count < p:
             positive_pairs.append(pair)
-            m_count += 1
+            p_count += 1
           elif not (target in parent_list):
             negative_pairs.append(pair)
             n_count += 1
 
-        while m_count < m:
+        while p_count < p:
           start = self.rng.sample(self.corpus, 1)[0]
           parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False)
 
@@ -136,7 +140,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
           target = self.rng.sample(parent_list, 1)[0]
           positive_pairs.append((start, target))
-          m_count += 1
+          p_count += 1
 
         #now run the tests!
         title = "New Hierarchical Test - Negative"
@@ -161,25 +165,25 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         title = "Hierarchical Test Summary"
         util.print_header(self.hierarchical_results_file, title)
         self.hierarchical_results_file.write("Start trial:\n")
-        self.hierarchical_results_file.write("FP,"+str(n-n_score)+"\n")#false positive
+        self.hierarchical_results_file.write("FP,"+str(n - n_score)+"\n")#false positive
         self.hierarchical_results_file.write("CR,"+str(n_score)+"\n")#correct rejections
         self.hierarchical_results_file.write("hits,"+str(p_score)+"\n")
-        self.hierarchical_results_file.write("misses,"+str(m-p_score)+"\n")
-        self.hierarchical_results_file.write("TS,"+str(n_score+p_score)+" out of "+str(n+m)+"\n")#successful tests, out of total
+        self.hierarchical_results_file.write("misses,"+str(p - p_score)+"\n")
+        self.hierarchical_results_file.write("TS,"+str(n_score + p_score)+" out of "+str(n+p)+"\n")#successful tests, out of total
         self.hierarchical_results_file.write("NT,"+str(n)+"\n")#neg tests
-        self.hierarchical_results_file.write("PT,"+str(m)+"\n")#pos tests
+        self.hierarchical_results_file.write("PT,"+str(p)+"\n")#pos tests
         util.print_footer(self.hierarchical_results_file, title)
 
         print "Start trial:\n"
         print "FP,"+str(n-n_score)+"\n"#false positive
         print "CR,"+str(n_score)+"\n"#correct negative
         print "hits,"+str(p_score)+"\n"#correct positive
-        print "misses,"+str(m-p_score)+"\n"#false negative
-        print "TS,"+str(n_score+p_score)+" out of "+str(n+m)+"\n"#successful tests, out of total
+        print "misses,"+str(p-p_score)+"\n"#false negative
+        print "TS,"+str(n_score+p_score)+" out of "+str(n+p)+"\n"#successful tests, out of total
         print "NT,"+str(n)+"\n"#neg tests
-        print "PT,"+str(m)+"\n"#pos tests
+        print "PT,"+str(p)+"\n"#pos tests
 
-        overall_score = float(n_score + p_score) / float(m + n)
+        overall_score = float(n_score + p_score) / float(p + n)
         self.add_data("hierarchical_score", overall_score)
 
         return result
@@ -416,7 +420,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest)
 
 
-  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, symbols=None):
+  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, symbols=None, do_neg=True):
 
     file_open_func = self.openHierarchicalResultsFile
     file_open_func()
@@ -424,31 +428,39 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     if not symbols:
       symbols = self.h_test_symbols
 
-    htest = lambda x, y: self.hierarchicalTest(x,y, stats_depth, rtype=symbols)
+    htest = lambda x, y: self.hierarchicalTest(x, y, stats_depth, rtype=symbols, do_neg=do_neg)
 
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func)
 
 
-  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999):
+  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, deep=False):
 
     self.openSentenceResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, self.sentenceTest)
+    stest = lambda x, y: self.sentenceTest(x,y, deep=deep)
+
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, stest)
 
   def print_relation_stats(self, output_file):
     relation_counts = {}
     relation_count = 0
     relation_hist = {}
 
+    lt_x = 0
+    x = 20
     for key in self.corpus:
-      if not len(self.corpus[key]) in relation_hist:
-        relation_hist[len(self.corpus[key])] = 1
+      #lst = filter(lambda x: x in self.relation_type_vectors, self.corpus[key])
+      lst = self.corpus[key]
+      length = len(lst)
+
+      if not length in relation_hist:
+        relation_hist[length] = 1
       else:
-        relation_hist[len(self.corpus[key])] += 1
+        relation_hist[length] += 1
+      if length < x:
+        lt_x += 1
 
-      for relation in self.corpus[key]:
-        if relation[0] not in self.relation_type_vectors: continue
-
+      for relation in lst:
         relation_count += 1
         if not relation[0] in relation_counts:
           relation_counts[relation[0]] = 1
@@ -460,5 +472,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     output_file.write("relation_counts: " + str(relation_counts) + " \n")
     output_file.write("relation_count: " + str(relation_count) + " \n")
     output_file.write("relation_hist: " + str(relation_hist) + " \n")
+    output_file.write("lt"+str(x)+": " + str(float(lt_x)/float(len(relation_hist))) + " \n")
+    print float(sum(relation_hist.values())) / float(len(relation_hist))
     util.print_footer(output_file, title)
 
