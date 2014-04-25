@@ -40,10 +40,10 @@ else: pick_devices = range(num_gpus)
 
 verbose = argvals.v
 
-id_vecs = argvals.i
+use_pure_cleanup = argvals.i
 unitary = argvals.u
 
-outfile_suffix = utilities.create_outfile_suffix(neural, unitary, id_vecs, use_bi_relations, algorithm)
+outfile_suffix = utilities.create_outfile_suffix(neural, unitary, use_pure_cleanup, use_bi_relations, algorithm)
 
 if vector_seed == -1:
   vector_seed = random.randrange(1000)
@@ -51,7 +51,7 @@ if vector_seed == -1:
 if test_seed == -1:
   test_seed = random.randrange(1000)
 
-use_bi_relations = use_bi_relations and not id_vecs
+use_bi_relations = use_bi_relations and not use_pure_cleanup
 
 if use_bi_relations:
   relation_symbols = symbol_definitions.bi_relation_symbols()
@@ -68,7 +68,7 @@ input_dir, output_dir = utilities.read_config()
 vector_factory = VectorFactory(vector_seed)
 
 (corpus_dict, id_vectors, semantic_pointers, relation_type_vectors) = \
-    utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, id_vecs, unitary, proportion)
+    utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, use_pure_cleanup, unitary, proportion)
 
 #change these to use specific words/relations
 probe_indices = []
@@ -86,11 +86,13 @@ if num_words > 0:
 #  kwargs["relation_stats"] = utilities.setup_relation_stats()
 
 if neural:
-  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold,
-                                       output_dir = output_dir, probe_indices=probe_indices, timesteps=steps, quick=quick,
+  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
+                                       use_bi_relations, threshold, output_dir = output_dir,
+                                       probe_indices=probe_indices, timesteps=steps, quick=quick,
                                        devices=pick_devices, pstc=pstc, plot=plot)
 else:
-  associator = AssociativeMemory(id_vectors, semantic_pointers, id_vecs, unitary, use_bi_relations, threshold, algorithm)
+  associator = AssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
+                                 use_bi_relations, threshold, algorithm)
 
 h_test_symbols = symbol_definitions.hierarchical_test_symbols()
 
