@@ -24,19 +24,34 @@ from operator import *
 
 fig = plt.figure(figsize=(5,2.55))
 
-mpl.rcParams.update({'font.size': 9})
+mpl.rcParams.update({'font.size': 7})
 
-#this is the number of different bar locations...typically a single measure
-num_vals = 3
+#this is the number of different bar locations...typically each location is a measure
+num_vals = 4
 
 #this is the number of bars at each location...typically  series of conditions that we want to compare on multiple measures
 bars_per_val = 2
 
 #condition (down) by measure(across)
-y_vals = [[97.7, 99.625, 99.85556], [100.0, 95.5, 99.6]]#, [17.9, 74.9, 51.8], [81.0, 96.4, 93.2]]
-error_lo = [[97.1, 99.25, 99.73889], [100.0, 94.3, 99.3]] #[16.2, 71.5, 50.3], [79.4, 95.4, 91.9]]
-error_hi = [[98.3, 100.0, 99.96667], [100.0, 96.9, 99.8]] #, [19.7, 78.1, 53.3], [82.6, 97.5, 94.5]]
-tick_labels = ["Simple", "Hierarchical", "Sentence"]
+y_vals = [[99.25, 96.125, 86.7611, 55.24722],
+          [100.0, 95.5, 99.6, 99.6]]
+error_lo = [[98.75, 94.375, 85.5888, 53.486],
+            [100.0, 94.3, 99.3, 99.2]]
+error_hi = [[99.7, 97.75, 88.069, 56.986],
+            [100.0, 96.9, 99.8, 99.7]]
+
+#y_vals = [[97.7, 99.625, 99.85556, 99.88556],
+#          [100.0, 95.5, 99.6, 99.6]]
+#error_lo = [[97.1, 99.25, 99.7, 99.73888],
+#            [100.0, 94.3, 99.3, 99.2]]
+#error_hi = [[98.3, 100.0, 99.9, 99.96666],
+#            [100.0, 96.9, 99.8, 99.7]]
+
+#, [17.9, 74.9, 51.8], [81.0, 96.4, 93.2]]
+#[16.2, 71.5, 50.3], [79.4, 95.4, 91.9]]
+#, [19.7, 78.1, 53.3], [82.6, 97.5, 94.5]]
+
+tick_labels = ["Simple", "Hierarchical", "Sentence\n(Surface)", "Sentence\n(Embedded)"]
 measure_labels = ["Abstract", "Neural"]
 
 error_lo = [[y - el for y, el in zip(yvl, ell)] for yvl, ell in zip(y_vals, error_lo)]
@@ -46,12 +61,12 @@ error_hi = [[eh - y for y, eh in zip(yvl, ehl)] for yvl, ehl in zip(y_vals, erro
 hatch = ['/', '|||||', '\\', 'xxx', '||', '--', '+', 'OO', '...', '**']
 color = [[0.33] * 3, [0.5] * 3, [0.66] * 3]
 
-cross_measurement_spacing = 0.3 
-within_measurement_spacing = 0.0 
+cross_measurement_spacing = 0.4
+within_measurement_spacing = 0.0
 bar_width = 0.4
 
 #plt.figure(figsize=(4,2))
-plt.title("Model Performance")
+#plt.title("Model Performance")
 plt.ylabel("% Correct")
 
 bar_left_positions = [[] for b in range(bars_per_val)]
