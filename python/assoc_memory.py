@@ -3,12 +3,12 @@ try:
 except:
   pass
 
-from ccm.lib import hrr
-from vector_operations import *
+from mytools import hrr
 from bootstrap import Bootstrapper
 import heapq
 import random
 import collections
+import numpy as np
 
 class AssociativeMemory(object):
 
@@ -34,53 +34,35 @@ class AssociativeMemory(object):
       self.tester = tester
 
   def unbind_and_associate(self, item, query, key=None):
-      messy = cconv(item, pInv(query))
-      return self.associate(messy)
+      item_hrr = hrr.HRR(data=item)
+      query_hrr = hrr.HRR(data=query)
+      noisy_hrr = item_hrr.convolve(~query_hrr)
+      return self.associate(noisy_hrr.v)
 
-  def associate(self, messyVector):
+  def associate(self, noisy_vector):
 
       print("********In Associate*********")
 
       keys = self.indices.keys()
 
-      messy_hrr = hrr.HRR(data=messyVector)
-
       for key in keys:
-        self.similarities[key] = messy_hrr.compare(self.hrr_vecs[key])
-
-      results = filter(lambda item: item[1] > self.threshold, self.similarities.iteritems())
-      result_keys = [item[0] for item in results]
-
-      #collect stats
-      target_keys = self.tester.current_target_keys
-      num_correct_relations = len(target_keys)
-      num_relations = self.tester.current_num_relations
-
-      #Correct dot products are the dot products of the things specified in target_keys.
-      #Largest incorrect is the largest member of nlargest whose key is not in targey_keys.
-      for key in target_keys:
-        self.tester.add_data(str(num_relations) + "_correct_dot_product", self.similarities[key])
-
-      nlargest = heapq.nlargest(num_correct_relations + 1, self.similarities.iteritems(), key=lambda x: x[1])
-      largest_incorrect = filter(lambda x: x[0] not in target_keys, nlargest)[0]
-
-      self.tester.add_data(str(num_relations) + "_largest_incorrect_dot_product", largest_incorrect[1])
-      self.tester.add_data("num_reaching_threshold", len(result_keys))
+        self.similarities[key] = np.dot(noisy_vector, self.indices[key])
 
       if self.return_vec:
-        result = zeroVec(self.dim)
+        result = np.zeros(self.dim)
 
-        for key in result_keys:
+        #scale = 1.4
+        for key in keys:
           sim = self.similarities[key]
-          sim = 0.0 if sim < self.threshold else sim
-          result += sim * self.items[key]
-
-        #result = normalize(result)
+          if sim > self.threshold :
+              result += self.items[key]
 
         results = [result]
 
       else:
-        #now return something useful
+        results = filter(lambda item: item[1] > self.threshold, self.similarities.iteritems())
+        result_keys = [item[0] for item in results]
+
         if len(result_keys) == 0:
             if self.return_vec:
               results = [zeroVec(self.dim)]
@@ -91,8 +73,8 @@ class AssociativeMemory(object):
         else:
             print(str(len(result_keys)) + " reached threshold")
 
-            #Here we are getting the at most 10 largest from result keys, in order from greatest to smallest dot product.
-            #and in general we are returning the keys
+            #Here we are getting the at most 10 largest from result keys, in order from 
+            #greatest to smallest dot product. and in general we are returning the keys
             max_passes = 10
             if len(result_keys) > max_passes:
               results = heapq.nlargest(max_passes, results, key=lambda x: x[1])
@@ -102,6 +84,22 @@ class AssociativeMemory(object):
               results = [self.items[r[0]] for r in results]
             else:
               results = [r[0] for r in results]
+
+
+      #Bookkeeping
+      target_keys = self.tester.current_target_keys
+      num_correct_relations = len(target_keys)
+      num_relations = self.tester.current_num_relations
+
+      for key in target_keys:
+        self.tester.add_data(str(num_relations) + "_correct_dot_product", self.similarities[key])
+
+      nlargest = heapq.nlargest(num_correct_relations + 1, self.similarities.iteritems(), key=lambda x: x[1])
+      largest_incorrect = filter(lambda x: x[0] not in target_keys, nlargest)[0]
+
+      self.tester.add_data(str(num_relations) + "_largest_incorrect_dot_product", largest_incorrect[1])
+      self.tester.add_data("num_reaching_threshold", len(results))
+
 
       return results
 
