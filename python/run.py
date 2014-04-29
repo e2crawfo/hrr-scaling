@@ -35,6 +35,7 @@ num_words = argvals.numwords
 pick_devices = argvals.pick_devices
 pstc = argvals.pstc
 noneg = argvals.noneg
+num_synsets = argvals.num_synsets
 if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
 else: pick_devices = range(num_gpus)
 
@@ -68,7 +69,8 @@ input_dir, output_dir = utilities.read_config()
 vector_factory = VectorFactory(vector_seed)
 
 (corpus_dict, id_vectors, semantic_pointers, relation_type_vectors) = \
-    utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, use_pure_cleanup, unitary, proportion)
+    utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory, test_seed, use_pure_cleanup, unitary, proportion, num_synsets)
+
 
 #change these to use specific words/relations
 probe_indices = []

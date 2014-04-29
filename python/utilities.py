@@ -44,6 +44,7 @@ def parse_args(print_args=False):
   parser.add_argument('--plot', action='store_true', help='Supply this argument to display plots of the activities of the cleanup populations (only works in neural mode). The graphs are stored in the "graphs" directory.')
   parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run.')
   parser.add_argument('--noneg', action='store_true', help='Supply this argument to only do positive runs on hierarchical test.')
+  parser.add_argument('--num-synsets', dest='num_synsets', default=-1, type=int, help='Set the number of synsets to use.')
 
   argvals = parser.parse_args()
 
@@ -73,7 +74,7 @@ def read_config(config_name="config"):
 
 
 #Setup corpus - just calls the functions in corpora_management.py which do all the heavy lifting.
-def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unitary_vecs = False, proportion = 1.0):
+def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unitary_vecs = False, proportion = 1.0, num_synsets=-1):
 
   corpus = CorpusHandler(D=dim, input_dir = input_dir, relation_symbols=relation_symbols, vf=vf, seed=seed)
 
@@ -81,6 +82,8 @@ def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unit
 
   if proportion < 1.0:
     corpus.createCorpusSubset(proportion)
+  elif num_synsets > 0:
+    corpus.createCorpusSubset(float(num_synsets)/len(corpus.corpusDict))
 
   print "Wordnet data parsed."
   corpus.formKnowledgeBase(id_vecs, unitary_vecs)
