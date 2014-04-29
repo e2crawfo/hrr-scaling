@@ -44,6 +44,7 @@ def parse_args(print_args=False):
   parser.add_argument('--plot', action='store_true', help='Supply this argument to display plots of the activities of the cleanup populations (only works in neural mode). The graphs are stored in the "graphs" directory.')
   parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run.')
   parser.add_argument('--noneg', action='store_true', help='Supply this argument to only do positive runs on hierarchical test.')
+  parser.add_argument('--shortsent', action='store_true', help='Supply this argument to only do a single run of a sentence test.')
   parser.add_argument('--num-synsets', dest='num_synsets', default=-1, type=int, help='Set the number of synsets to use.')
 
   argvals = parser.parse_args()

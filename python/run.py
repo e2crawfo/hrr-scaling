@@ -35,6 +35,7 @@ num_words = argvals.numwords
 pick_devices = argvals.pick_devices
 pstc = argvals.pstc
 noneg = argvals.noneg
+shortsent = argvals.shortsent
 num_synsets = argvals.num_synsets
 if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
 else: pick_devices = range(num_gpus)
@@ -114,7 +115,7 @@ elif test == 'h':
 elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials)
 elif test == 'd':
-  tester.runBootstrap_sentence(num_runs, num_trials, deep=True)
+  tester.runBootstrap_sentence(num_runs, num_trials, deep=True, short=shortsent)
 elif test == 'c':
   tester.get_similarities()
 else:

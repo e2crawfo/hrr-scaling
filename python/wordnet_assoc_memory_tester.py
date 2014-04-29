@@ -9,7 +9,7 @@ import numpy as np
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
   def __init__(self, corpus, id_vectors, semantic_pointers, relation_type_vectors, associator, seed, output_dir=".",
-               h_test_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(), 
+               h_test_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(),
                unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
@@ -277,7 +277,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         else:
             return -1
 
-  def sentenceTest(self, testName, n, deep=False):
+  def sentenceTest(self, testName, n, deep=False, short=False):
         # check that POS lists exist (form them if required)
         if self.sentence_vocab is None:
             self.nouns = []
@@ -371,6 +371,9 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
                 sentence_length[depth] += 1
 
+                if short:
+                    break
+
             for d in sentence_score:
                 sentence_percent = sentence_score[d] / sentence_length[d]
                 print >> self.sentence_results_file, "Percent correct for \
@@ -433,11 +436,11 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func)
 
 
-  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, deep=False):
+  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, deep=False, short=False):
 
     self.openSentenceResultsFile()
 
-    stest = lambda x, y: self.sentenceTest(x,y, deep=deep)
+    stest = lambda x, y: self.sentenceTest(x,y, deep=deep, short=short)
 
     self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, stest)
 
