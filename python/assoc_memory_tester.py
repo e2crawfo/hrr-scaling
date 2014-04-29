@@ -59,7 +59,7 @@ class AssociativeMemoryTester(object):
       return result
 
 
-  def testLink(self, relation, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
+  def testLink(self, query_vector, word_vec=None, word_key=None, goal=None, output_file = None, return_vec=False, answers=[], num_relations = -1, depth=0, threshold=0.0):
 
         util.print_header(output_file, "Testing link", char='-')
 
@@ -76,8 +76,6 @@ class AssociativeMemoryTester(object):
           util.print_header(sys.stdout, "Target")
           print(goal)
 
-        #print >> output_file, "relation: ", relation
-
         print >> output_file, "goal: ", goal
         print >> output_file, "depth: ", depth
 
@@ -85,7 +83,7 @@ class AssociativeMemoryTester(object):
         self.current_num_relations = num_relations
 
         #cleanResultVectors = self.unbind_and_associate(word, relation, True, urn_agreement=goal)
-        cleanResult = self.unbind_and_associate(word_vec, relation)
+        cleanResult = self.unbind_and_associate(word_vec, query_vector)
 
         if goal:
           if self.associator.return_vec:

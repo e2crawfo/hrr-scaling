@@ -1,6 +1,6 @@
 try:
   import matplotlib as mpl
-  mpl.use('Agg')
+  mpl.use('Qt4Agg')
   import matplotlib.pyplot as plt
   can_plot = True
 except ImportError:
@@ -13,6 +13,7 @@ import symbol_definitions
 from wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
 from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
+from new_neural_assoc_memory import NewNeuralAssociativeMemory
 import random
 from collections import OrderedDict
 
@@ -38,6 +39,8 @@ pstc = argvals.pstc
 noneg = argvals.noneg
 shortsent = argvals.shortsent
 num_synsets = argvals.num_synsets
+new = argvals.new
+probeall = argvals.probeall
 if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
 else: pick_devices = range(num_gpus)
 
@@ -111,7 +114,7 @@ else:
 
     temp_names = expression.replace('*', '+').split('+')
     temp_names = [tn.strip() for tn in temp_names]
-    unitary_names = [u for u in temp_names if u[-2:] == "_u"]
+    unitary_names = [u for u in temp_names if u[-1:] == "u"]
 
     vocab = hrr.Vocabulary(dim, unitary=unitary_names)
     for n, v in names_dict.iteritems():
@@ -124,17 +127,29 @@ else:
     print "name_keys_dict:", names_keys_dict
 
     test_vector = eval(expression, {}, vocab)
+    test_vector.normalize()
+
     query_vector = eval(query_expression, {}, vocab)
     probe_indices.extend(chosen_id_keys)
 
     #probe_indices = id_vectors.keys()
 
+if probeall:
+    probe_indices = id_vectors.keys()
+
 #pick an associator
 if neural:
-  associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
-                                       use_bi_relations, threshold, output_dir = output_dir,
-                                       probe_indices=probe_indices, timesteps=steps, quick=quick,
-                                       devices=pick_devices, pstc=pstc, plot=plot)
+  if new:
+      associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers, threshold,
+                                              output_dir = output_dir,
+                                              probe_indices=probe_indices,
+                                              timesteps=steps, pstc=pstc, plot=plot)
+
+  else:
+      associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
+                                           use_bi_relations, threshold, output_dir = output_dir,
+                                           probe_indices=probe_indices, timesteps=steps, quick=quick,
+                                           devices=pick_devices, pstc=pstc, plot=plot)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
                                  use_bi_relations, threshold, algorithm)

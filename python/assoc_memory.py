@@ -1,5 +1,5 @@
 try:
-  import matplotlib as plt
+ import matplotlib as plt
 except:
   pass
 
@@ -22,6 +22,7 @@ class AssociativeMemory(object):
     self.items = items
     self.threshold = threshold
     self.dim= len(indices.values()[0])
+    self.num_items = len(indices)
     self.hrr_vecs = collections.OrderedDict([(key, hrr.HRR(data=self.indices[key])) for key in self.indices])
     self.similarities = collections.OrderedDict(zip(self.indices, [0 for i in range(len(indices))] ))
 
@@ -110,8 +111,7 @@ class AssociativeMemory(object):
     output_file.write("Unitary: " + str(self.unitary) + "\n")
     output_file.write("Identity: " + str(self.identity) + "\n")
     output_file.write("Bidirectional: " + str(self.bidirectional) + "\n")
-    output_file.write("Num items: " + str(len(self.items)) + "\n")
-    output_file.write("Num indices: " + str(len(self.indices)) + "\n")
+    output_file.write("Num items: " + str(self.num_items) + "\n")
     output_file.write("Dimension: " + str(self.dim) + "\n")
     output_file.write("Threshold: " + str(self.threshold) + "\n")
     output_file.write("Test Seed: " + str(self.tester.seed) + "\n")

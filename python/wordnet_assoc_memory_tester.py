@@ -40,11 +40,9 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
   def singleTest(self, testName, n, test_vector, query_vector, target_key):
 
-        self.current_target_key = target_key
-
         result, correct, valid, exact = \
             self.testLink(query_vector, test_vector, None, target_key, self.jump_results_file,
-                          return_vec=False, threshold=self.test_threshold)
+                          return_vec=False, answers=[target_key], threshold=self.test_threshold)
 
   def jumpTest(self, testName, n):
         # select a key, follow a hyp/hol link, record success / failure
