@@ -411,8 +411,8 @@ void step(float* input, float* output, float* spikes, float start, float end, fl
   startTime = start;
   endTime = end;
 
-  if(do_print && ((int) (startTime * 1000)) % 10 == 0)
-    printf("NengoGPU: STEP %f\n", start);
+  //if(do_print && ((int) (startTime * 1000)) % 10 == 0)
+  //  printf("NengoGPU: STEP %f\n", start);
 
   NengoGPUData* currentData;
 
