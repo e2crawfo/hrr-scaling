@@ -6,6 +6,7 @@ try:
 except ImportError:
   can_plot = False
 
+from mytools import nf, hrr
 import utilities
 from vector_operations import *
 import symbol_definitions
@@ -60,10 +61,6 @@ if use_bi_relations:
 else:
   relation_symbols = symbol_definitions.uni_relation_symbols()
 
-test = argvals.test[0] if len(argvals.test) > 0 else 'j'
-num_runs = int(argvals.test[1]) if len(argvals.test) > 1 else 1
-num_trials = int(argvals.test[2]) if len(argvals.test) > 2 else 1
-print test, num_runs, num_trials
 
 input_dir, output_dir = utilities.read_config()
 
@@ -85,9 +82,54 @@ if num_words > 0:
     words = []
     relations = []
 
-#if do_relation_stats:
-#  kwargs["relation_stats"] = utilities.setup_relation_stats()
 
+test = argvals.test[0] if len(argvals.test) > 0 else 'j'
+
+if test != 'f':
+    num_runs = int(argvals.test[1]) if len(argvals.test) > 1 else 1
+    num_trials = int(argvals.test[2]) if len(argvals.test) > 2 else 1
+    print test, num_runs, num_trials
+else:
+    #create a sentence
+    expression = argvals.test[1]
+    expression = expression.replace('!id', 'p0')
+
+    num_ids = expression.count('id')
+    expression = expression.replace('id', '%s')
+    temp_names = ['id'+str(i) for i in range(num_ids)]
+    expression = expression % tuple(temp_names)
+
+    chosen_id_keys = random.sample(id_vectors, expression.count('id') + 1)
+    chosen_id_vectors = [hrr.HRR(data=id_vectors[key]) for key in chosen_id_keys]
+    target_key = chosen_id_keys[0]
+
+    names_dict = dict(zip(['p0'] + temp_names, chosen_id_vectors))
+    names_keys_dict = dict(zip(['p0'] + temp_names, chosen_id_keys))
+
+    query_vectors = nf.find_query_vectors(expression, 'p0')
+    query_expression = '*'.join(query_vectors)
+
+    temp_names = expression.replace('*', '+').split('+')
+    temp_names = [tn.strip() for tn in temp_names]
+    unitary_names = [u for u in temp_names if u[-2:] == "_u"]
+
+    vocab = hrr.Vocabulary(dim, unitary=unitary_names)
+    for n, v in names_dict.iteritems():
+        vocab.add(n, v)
+
+    print "expression:", expression
+    print "query_expression:", query_expression
+    print "unitary_names:", unitary_names
+    print "target_key:", target_key
+    print "name_keys_dict:", names_keys_dict
+
+    test_vector = eval(expression, {}, vocab)
+    query_vector = eval(query_expression, {}, vocab)
+    probe_indices.extend(chosen_id_keys)
+
+    #probe_indices = id_vectors.keys()
+
+#pick an associator
 if neural:
   associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
                                        use_bi_relations, threshold, output_dir = output_dir,
@@ -97,9 +139,11 @@ else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
                                  use_bi_relations, threshold, algorithm)
 
+#get symbols for the different tests
 h_test_symbols = symbol_definitions.hierarchical_test_symbols()
-
 sentence_symbols = symbol_definitions.sentence_role_symbols()
+
+
 
 tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
                     relation_type_vectors, associator, test_seed, output_dir, h_test_symbols,
@@ -116,6 +160,9 @@ elif test == 's':
   tester.runBootstrap_sentence(num_runs, num_trials)
 elif test == 'd':
   tester.runBootstrap_sentence(num_runs, num_trials, deep=True, short=shortsent)
+elif test == 'f': #f as in free form
+  tester.runBootstrap_single(1, 1, test_vector=test_vector.v, query_vector=query_vector.v,
+                             target_key=target_key)
 elif test == 'c':
   tester.get_similarities()
 else:

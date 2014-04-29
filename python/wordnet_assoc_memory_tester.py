@@ -38,6 +38,14 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
       self.jump_plan_words = w
       self.jump_plan_relation_indices = ri
 
+  def singleTest(self, testName, n, test_vector, query_vector, target_key):
+
+        self.current_target_key = target_key
+
+        result, correct, valid, exact = \
+            self.testLink(query_vector, test_vector, None, target_key, self.jump_results_file,
+                          return_vec=False, threshold=self.test_threshold)
+
   def jumpTest(self, testName, n):
         # select a key, follow a hyp/hol link, record success / failure
 
@@ -415,6 +423,16 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
     if self.hierarchical_results_file:
       self.hierarchical_results_file.close()
+
+  def runBootstrap_single(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999,
+                          test_vector=None, query_vector=None, target_key=None):
+
+    single_test = lambda x, y: self.singleTest(x, y, test_vector, query_vector, target_key)
+
+    self.openJumpResultsFile()
+
+    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, single_test)
+
 
   def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999):
 
