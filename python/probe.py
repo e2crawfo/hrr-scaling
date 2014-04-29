@@ -3,6 +3,7 @@
 import copy
 from ccm.lib import nef
 import matplotlib.pyplot as plt
+import numpy as np
 
 class Probe:
   def __init__(self, name, dt):
@@ -32,25 +33,10 @@ class Probe:
     #so the first probe we do should be at time t = 0.0
     self.current_times.append( self.elapsed_time )
     self.elapsed_time += self.dt
+    value = self.filter_node.array()
 
-    self.current_values.append( copy.deepcopy(self.filter_node.value()))
 
-  def plot(self, index, line_type="-", init=False, shutdown=False, legend=None):
-    if init:
-      fig = plt.figure()
-
-    h = self.history[index]
-    plt.plot(h[0], h[1], line_type)
-
-    if legend is not None:
-      legend.append(self.name)
-
-    if shutdown:
-      plt.show()
-
-      date_time_string = str(datetime.datetime.now())
-      date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
-      plt.savefig('graphs/neurons_'+date_time_string+".png")
+    self.current_values.append( copy.deepcopy(value) )
 
   def reset(self):
     self.elapsed_time = 0.0

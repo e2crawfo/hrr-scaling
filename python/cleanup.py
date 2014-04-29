@@ -75,6 +75,9 @@ class Cleanup(nef.ArrayNode):
       for cn in self.cleanup_nodes:
         cn.tick_accumulator(dt)
 
+        for conn in cn.outputs:
+          conn.pop2.tick_accumulator(dt)
+
   def get_output_array_cleanup(self, conn, dt):
       self._array = numpy.zeros(self.dimensions)
 
@@ -82,19 +85,18 @@ class Cleanup(nef.ArrayNode):
       for cn, iv, i in zip(self.cleanup_nodes, self.item_vectors.values(), range(len(self.item_vectors))):
         decoder = cn.get_decoder(threshold_func)
 
-        #not sure if i'm supposed to divide by dt here or not
-        similarity = (cn.activity_to_array(cn._output, decoder=decoder))[0]
-        sims.append(similarity)
+        decoded_value = (cn.activity_to_array(cn._output, decoder=decoder))[0]
+        sims.append(decoded_value)
 
         #if int(self.elapsed_time * 1000) % 10 == 0:
         #  print i, ", ", similarity
 
-        if similarity > 0.0:
-          self._array += iv * similarity
+        if abs(decoded_value - 0.0) > 0.0000005:
+          self._array += iv * decoded_value
 
-      #if int(self.elapsed_time * 1000) % 10 == 0:
-      argmax = max(range(len(sims)), key = lambda x: sims[x])
-      print "output: ", argmax, ": ", sims[argmax]
+      if int(self.elapsed_time * 1000) % 1 == 0:
+          argmax = max(range(len(sims)), key = lambda x: sims[x])
+          print "highest output index: ", argmax, ": ", self.index_vectors.keys()[argmax], ": ", sims[argmax]
 
       return self._array
 
@@ -118,9 +120,9 @@ class Cleanup(nef.ArrayNode):
 
       sims = [numpy.dot(iv, conn.array) for iv in self.index_vectors.values()]
 
-      #if int(self.elapsed_time * 1000) % 10 == 0:
-      argmax = max(range(len(sims)), key = lambda x: sims[x])
-      print "input: ", argmax, ": ", sims[argmax]
+      if int(self.elapsed_time * 1000) % 1 == 0:
+          argmax = max(range(len(sims)), key = lambda x: sims[x])
+          print "highest input index: ", argmax, ": ", self.index_vectors.keys()[argmax], ": ", sims[argmax]
 
       for cn, s in zip(self.cleanup_nodes, sims):
         cn.accumulator.add(numpy.array([s]), tau, dt)
@@ -130,8 +132,18 @@ class Cleanup(nef.ArrayNode):
   def _calc_output(self):
       #for cn in self.cleanup_nodes:
       #  cn.tick()
+
+      for cn in self.cleanup_nodes:
+          for conn in cn.outputs:
+              conn.transmit_out(self.dt)
+
       for cn in self.cleanup_nodes:
         cn._calc_output()
+        cn.clear_state()
+
+        for conn in cn.outputs:
+            conn.pop2._calc_output()
+            conn.pop2.clear_state()
 
       self.time_points.append( self.elapsed_time )
       self.elapsed_time += self.dt
@@ -158,18 +170,15 @@ class Cleanup(nef.ArrayNode):
 
     line_types = ["-", "--"]
 
-    first = True
-
+    fig = plt.figure()
     for key in indices_to_plot:
       probes = self.probe_data[key]
 
-      for i in range(len(probes)):
-        p = probes[i]
+      for i, p in enumerate(probes):
+        h = p.history[run_index]
+        plt.plot(h[0], h[1], line_types[i], label=p.name)
 
-        p.plot(run_index, line_types[i], init=first)
-
-        first = False
-
+    plt.legend(loc=4)
     plt.show()
 
     date_time_string = str(datetime.datetime.now()).split('.')[0]
@@ -184,7 +193,7 @@ class Cleanup(nef.ArrayNode):
       cn.reset()
 
     for key in self.probe_data:
-      probes = self.probe_data[key] 
+      probes = self.probe_data[key]
       for p in probes:
         p.reset()
 

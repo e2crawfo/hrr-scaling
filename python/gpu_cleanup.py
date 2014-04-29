@@ -165,7 +165,7 @@ class GPUCleanup(nef.ArrayNode):
 
       #get spikes
       spike_offset = 0
-      print self._spikes
+      #print self._spikes
       for i in self._spikes:
         for j in range(self.numNeuronsPerItem):
           self._spikes[i][j] = self._c_spikes[ spike_offset + j ] * self.dt
