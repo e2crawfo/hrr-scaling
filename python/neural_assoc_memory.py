@@ -207,26 +207,50 @@ class NeuralAssociativeMemory(AssociativeMemory):
 
 
   def print_unbind_results_node_agreement(self):
+    """Print similarity between unbind result and the current target"""
+
     if len(self.tester.current_target_keys) > 0:
-      vector = self.indices[self.tester.current_target_keys[0]]
-      print "Result node agreements: ", hrr.HRR(data=vector).compare(hrr.HRR(data=self.unbind_measure.array()))
+      target_vector = self.indices[self.tester.current_target_keys[0]]
+      target_hrr = hrr.HRR(data=target_vector)
+      unbind_result_hrr = hrr.HRR(data=self.unbind_measure.array())
+
+      print "Unbind-result node cosine similarity to target: ",\
+            target_hrr.compare(unbind_result_hrr)
     else:
-      print "Result node agreements: no expected match"
+      print "Unbind-result node: no target"
+
 
   def print_debug_info(self):
-    print >> sys.stderr, "printing results_node norm: ", numpy.linalg.norm(self.results_node_spiking.array())
+    """Print a bunch of debug info"""
 
-    print >> sys.stderr, "printing agreements"
-    agreements = []
+    print >> sys.stderr, "Debug Info"
+    print >> sys.stderr, "Results_node norm: ",\
+             numpy.linalg.norm(self.results_node_spiking.array())
+
+
+    print >> sys.stderr, "Cosine similarity between association output and HRR vectors:"
+    similarities = []
     for i, vec in enumerate(self.items):
-      agreements.append((i,hrr.HRR(data=self.items[vec]).compare(hrr.HRR(data=self.results_node_spiking.array()))))
-    print >> sys.stderr, agreements
 
-    print >> sys.stderr, "dot product of unbind_measure with each of the id vecs"
-    dot_prods = []
+      item_hrr = hrr.HRR(data=self.items[vec])
+      result_hrr = hrr.HRR(data=self.results_node_spiking.array())
+
+      similarities.append((i, item_hrr.compare(result_hrr)))
+
+    print >> sys.stderr, similarities
+
+
+    print >> sys.stderr, "Cosine similarity between association input and ID vectors:"
+    similarities = []
     for i, vec in enumerate(self.indices):
-      dot_prods.append((i,hrr.HRR(data=self.indices[vec]).compare(hrr.HRR(data=self.unbind_measure.array()))))
-    print >> sys.stderr, dot_prods
+
+      index_hrr = hrr.HRR(data=self.indices[vec])
+      result_hrr = hrr.HRR(data=self.unbind_measure.array())
+
+      similarities.append((i, index.compare(result_hrr)))
+
+    print >> sys.stderr, similarities
+
 
     print >> self.jump_results_file, "Result vector:"
     print >> self.jump_results_file, self.results_node_spiking.array()
