@@ -47,6 +47,7 @@ def parse_args(print_args=False):
   parser.add_argument('--shortsent', action='store_true', help='Supply this argument to only do a single run of a sentence test.')
   parser.add_argument('--num-synsets', dest='num_synsets', default=-1, type=int, help='Set the number of synsets to use.')
   parser.add_argument('--new', action='store_true', help='Supply to use neural associator based on new nengo')
+  parser.add_argument('--ocl', action='store_true', help='If --new is also supplied, use nengo_ocl simulator')
   parser.add_argument('--probeall', action='store_true', help='Probe all association nodes.')
 
   argvals = parser.parse_args()

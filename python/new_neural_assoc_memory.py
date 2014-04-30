@@ -2,19 +2,25 @@
 from assoc_memory import AssociativeMemory
 
 import string
-
-import numpy as np
-import nengo
-from nengo.networks import CircularConvolution, EnsembleArray
-from nengo.utils.distributions import Uniform
-from mytools import hrr
-
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-
 import datetime
 import sys
 import exceptions
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
+from mytools import hrr
+
+from nengo.networks import CircularConvolution, EnsembleArray
+from nengo.utils.distributions import Uniform
+import nengo
+
+ocl_imported = True
+try:
+    import nengo_ocl
+except:
+    ocl_imported = False
 
 class VectorFunction(object):
 
@@ -39,14 +45,13 @@ def make_func(cls, attr):
         return getattr(cls, attr)
     return f
 
-
 class NewNeuralAssociativeMemory(AssociativeMemory):
 
     _type = "Neural"
 
     def __init__(self, index_vectors, stored_vectors, threshold=0.3, neurons_per_item=20,
                neurons_per_dim=50, timesteps=100, dt=0.001, output_dir=".", probe_indices = [],
-               pstc=0.02, tau_rc=0.02, tau_ref=0.002, plot=False):
+               pstc=0.02, tau_rc=0.02, tau_ref=0.002, plot=False, ocl=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from tuples of the form
         (POS, number), indicating a synset, to numpy ndarrays containing the assigned vector
@@ -151,12 +156,23 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.dummy_probes = dummy_probes
 
         self.model = model
-        self.simulator = nengo.Simulator(model)
+
+        if ocl_imported and ocl:
+            sim_class = nengo_ocl.sim_ocl.Simulator
+        else:
+            if ocl:
+                print "Failed to import nengo_ocl"
+
+            sim_class = nengo.Simulator
+
+        self.simulator = sim_class(model)
 
     def unbind_and_associate(self, item, query, *args, **kwargs):
         then = datetime.datetime.now()
 
         if len(self.tester.current_target_keys) > 0:
+            #Print data about how difficult the current instance is
+
             correct_key = self.tester.current_target_keys[0]
 
             item_hrr = hrr.HRR(data=item)
@@ -169,7 +185,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             print "Ideal similarity: ", sim
             print "Ideal dot: ", dot
 
-            hrrs = [(key, hrr.HRR(data = iv)) 
+            hrrs = [(key, hrr.HRR(data = iv))
                     for key, iv in self.index_vectors.iteritems()
                     if key != correct_key]
 
@@ -178,6 +194,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
             print "Similarity of closest incorrect index vector ", max(sims, key=lambda x: x[1])
             print "Dot product of closest incorrect index vector ", max(dots, key=lambda x: x[1])
+
 
         self.A_input_vector = item
         self.B_input_vector = query

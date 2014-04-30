@@ -40,6 +40,7 @@ noneg = argvals.noneg
 shortsent = argvals.shortsent
 num_synsets = argvals.num_synsets
 new = argvals.new
+ocl = argvals.ocl
 probeall = argvals.probeall
 if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
 else: pick_devices = range(num_gpus)
@@ -143,7 +144,8 @@ if neural:
       associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers, threshold,
                                               output_dir = output_dir,
                                               probe_indices=probe_indices,
-                                              timesteps=steps, pstc=pstc, plot=plot)
+                                              timesteps=steps, pstc=pstc, plot=plot,
+                                              ocl = ocl)
 
   else:
       associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
