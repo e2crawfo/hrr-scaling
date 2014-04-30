@@ -249,10 +249,13 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax = plt.subplot(gs[1:3,:])
 
         input_sims = np.dot(sim.data[self.D_probe], self.index_vectors[correct_key])
-        for k, v in self.index_vectors.iteritems():
+        for key, v in self.index_vectors.iteritems():
             input_sims = np.dot(sim.data[self.D_probe], v)
-            label = str(k) + (' *' if k == correct_key else '')
-            plt.plot(t, input_sims, label=label)
+            label = str(key)
+            if key == correct_key:
+                plt.plot(t, input_sims, '--', label=label + '*')
+            else:
+                plt.plot(t, input_sims, label=label)
 
         title = 'Dot Products Before Association'
         ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
@@ -261,7 +264,10 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         ax = plt.subplot(gs[3:5,:])
         for key, p in self.assoc_probes.iteritems():
-            plt.plot(t, sim.data[p], label=str(key))
+            if key == correct_key:
+                plt.plot(t, sim.data[p], '--', label=str(key))
+            else:
+                plt.plot(t, sim.data[p], label=str(key))
 
         title = 'Association Activation. Target:' + str(correct_key)
         ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
@@ -270,7 +276,10 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax = plt.subplot(gs[5:7,:])
 
         for key, p in self.dummy_probes.iteritems():
-            plt.plot(t, sim.data[p], label=str(key))
+            if key == correct_key:
+                plt.plot(t, sim.data[p], '--', label=str(key))
+            else:
+                plt.plot(t, sim.data[p], label=str(key))
 
         title = 'Association Effective Activation. Target:' + str(correct_key)
         ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
