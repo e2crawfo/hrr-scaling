@@ -21,6 +21,7 @@ from collections import OrderedDict
 argvals = utilities.parse_args(True)
 
 steps = argvals.steps
+corpus_seed = argvals.corpus_seed
 model_seed = argvals.model_seed
 test_seed = argvals.test_seed
 seed = argvals.seed
@@ -54,6 +55,9 @@ unitary = argvals.u
 
 outfile_suffix = utilities.create_outfile_suffix(neural, unitary, use_pure_cleanup, use_bi_relations, algorithm)
 
+if corpus_seed == -1:
+  corpus_seed = random.randrange(1000)
+
 if model_seed == -1:
   model_seed = random.randrange(1000)
 
@@ -62,11 +66,13 @@ if test_seed == -1:
 
 if seed != -1:
   random.seed(seed)
+  corpus_seed = random.randrange(1000)
   model_seed = random.randrange(1000)
   test_seed = random.randrange(1000)
 
-np.random.seed(model_seed)
-random.seed(model_seed)
+
+np.random.seed(corpus_seed)
+random.seed(corpus_seed)
 
 use_bi_relations = use_bi_relations and not use_pure_cleanup
 
@@ -107,6 +113,11 @@ else:
 
 if probeall:
     probe_indices = id_vectors.keys()
+
+
+
+np.random.seed(model_seed)
+random.seed(model_seed)
 
 #pick an associator
 if neural:
