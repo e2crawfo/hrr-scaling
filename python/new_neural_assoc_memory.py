@@ -5,6 +5,7 @@ import string
 import datetime
 import sys
 import exceptions
+from collections import OrderedDict
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -122,8 +123,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             mr_distribution = Uniform(200.0, 200.0)
             scale = 10.0
 
-            assoc_probes = {}
-            transfer_probes = {}
+            assoc_probes = OrderedDict()
+            transfer_probes = OrderedDict()
 
             for key in self.index_vectors:
                 iv = self.index_vectors[key].reshape((1, self.dim))
@@ -142,7 +143,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
                 if key in probe_indices:
                     p = nengo.Probe(assoc, 'decoded_output', synapse=0.02)
-                    transfer_probe = nengo.Probe(assoc, 'decoded_output', synapse=0.02, function=self.transfer_func)
+                    transfer_probe = nengo.Probe(assoc, 'decoded_output', synapse=0.02,
+                                                 function=self.transfer_func)
                     assoc_probes[key] = p
                     transfer_probes[key] = transfer_probe
 
@@ -240,13 +242,13 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax = plt.subplot(gs[0,0])
 
         plt.plot(t, sim.data[self.D_probe], label='D')
-        title = 'Before Association: Vectors'
+        title = 'Before Association: Vector'
         ax.text(.01,1.20, title, horizontalalignment='left', transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
 
         ax = plt.subplot(gs[0,1])
         plt.plot(t, sim.data[self.output_probe], label='Output')
-        title = 'After Association: Vectors'
+        title = 'After Association: Vector'
         ax.text(.01,1.20, title, horizontalalignment='left', transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
 
@@ -315,6 +317,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
             plt.ylim((-1.0, 1.0))
             plt.legend(loc=4)
+            plt.axhline(ls=':', c='k')
+
 
         plt.show()
 
