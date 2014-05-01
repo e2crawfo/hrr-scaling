@@ -6,6 +6,7 @@ try:
 except ImportError:
   can_plot = False
 
+import numpy as np
 from mytools import nf, hrr
 import utilities
 from vector_operations import *
@@ -65,6 +66,9 @@ if use_bi_relations:
 else:
   relation_symbols = symbol_definitions.uni_relation_symbols()
 
+vector_seed = test_seed
+np.random.seed(test_seed)
+random.seed(test_seed)
 
 input_dir, output_dir = utilities.read_config()
 
