@@ -89,7 +89,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.A_input_vector = np.zeros(self.dim)
         self.B_input_vector = np.zeros(self.dim)
 
-        synapse = 0.02
+        synapse = 0.005
 
         with model:
             self.A_input_func = make_func(self, "A_input_vector")

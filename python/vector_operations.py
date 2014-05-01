@@ -3,8 +3,8 @@ from numpy.fft import fft, ifft
 import random
 
 class VectorFactory:
-  def __init__(self, seed=1):
-    self.np_rng = numpy.random.RandomState(seed)
+  def __init__(self):
+    self.np_rng = numpy.random
 
   def genUnitaryVec(self, d):
     return genUnitaryVec(d, self.np_rng)

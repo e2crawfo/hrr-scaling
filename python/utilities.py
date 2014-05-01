@@ -18,8 +18,9 @@ def parse_args(print_args=False):
   parser.add_argument('-i', action='store_true', help='Supply this argument to require that the semantic pointers be used as the index vectors.')
   parser.add_argument('-d', default=512, type=int, help='Specify the number of dimensions to use.')
   parser.add_argument('-p', default=1.0, type=float, help='Specify the proportion of Wordnet synsets to use. A float between 0 and 1.')
-  parser.add_argument('--vector-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
+  parser.add_argument('--model-seed', default=-1, type=int, help='Seed for the random number generator that creates the vectors.')
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
+  parser.add_argument('--seed', default=-1, type=int, help='Seed for the random number generator that controls everything. Overrides the other two seeds.')
 
   #picking the type of cleanup memory
   parser.add_argument('-l', action='store_true', help='Supply this argument do cleanup using pure linear algebra rather than neurons. If -l is not supplied, cleanup is performed by a neural network.')
@@ -78,9 +79,9 @@ def read_config(config_name="config"):
 
 
 #Setup corpus - just calls the functions in corpora_management.py which do all the heavy lifting.
-def setup_corpus(input_dir, relation_symbols, dim, vf, seed, id_vecs=False, unitary_vecs = False, proportion = 1.0, num_synsets=-1):
+def setup_corpus(input_dir, relation_symbols, dim, vf, id_vecs=False, unitary_vecs = False, proportion = 1.0, num_synsets=-1):
 
-  corpus = CorpusHandler(D=dim, input_dir = input_dir, relation_symbols=relation_symbols, vf=vf, seed=seed)
+  corpus = CorpusHandler(D=dim, input_dir = input_dir, relation_symbols=relation_symbols, vf=vf)
 
   corpus.parseWordnet()
 

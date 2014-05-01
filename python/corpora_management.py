@@ -13,14 +13,12 @@ class CorpusHandler:
     #D = 512 # number of dimensions per vocab vector
     corpusDict = None
 
-    def __init__(self, D=512, input_dir=".", relation_symbols=[], vf=VectorFactory(), seed=1):
+    def __init__(self, D=512, input_dir=".", relation_symbols=[], vf=VectorFactory()):
       self.D = D
       self.input_dir = input_dir
       self.relation_symbols = relation_symbols
       self.bootstrapper = bootstrap.Bootstrapper()
 
-      self.seed = seed
-      self.rng = random.Random(seed)
       self.vector_factory = vf
 
     def parseWordnet(self):
@@ -80,7 +78,7 @@ class CorpusHandler:
 
       while size < target_size:
         if queue.empty():
-          queue.put( self.rng.choice(self.corpusDict.keys()))
+          queue.put( random.choice(self.corpusDict.keys()))
 
         next_entry = queue.get()
 

@@ -6,6 +6,7 @@ import utilities as util
 import random
 from collections import defaultdict
 import numpy as np
+from mytools import hrr, nf
 
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
   def __init__(self, corpus, id_vectors, semantic_pointers, relation_type_vectors, associator, seed, output_dir=".",
@@ -38,11 +39,50 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
       self.jump_plan_words = w
       self.jump_plan_relation_indices = ri
 
-  def singleTest(self, testName, n, test_vector, query_vector, target_key):
+  def singleTest(self, testName, n, expression):
+    #create a sentence
+    dim = len(self.id_vectors.values()[0])
+    expression = expression.replace('!id', 'p0')
 
-        result, correct, valid, exact = \
-            self.testLink(query_vector, test_vector, None, target_key, self.jump_results_file,
-                          return_vec=False, answers=[target_key], threshold=self.test_threshold)
+    num_ids = expression.count('id')
+    expression = expression.replace('id', '%s')
+    temp_names = ['id'+str(i) for i in range(num_ids)]
+    expression = expression % tuple(temp_names)
+
+    chosen_id_keys = random.sample(self.id_vectors, expression.count('id') + 1)
+    chosen_id_vectors = [hrr.HRR(data=self.id_vectors[key]) for key in chosen_id_keys]
+    target_key = chosen_id_keys[0]
+
+    names_dict = dict(zip(['p0'] + temp_names, chosen_id_vectors))
+    names_keys_dict = dict(zip(['p0'] + temp_names, chosen_id_keys))
+
+    query_vectors = nf.find_query_vectors(expression, 'p0')
+    query_expression = '*'.join(query_vectors)
+
+    temp_names = expression.replace('*', '+').split('+')
+    temp_names = [tn.strip() for tn in temp_names]
+    unitary_names = [u for u in temp_names if u[-1:] == "u"]
+
+    vocab = hrr.Vocabulary(dim, unitary=unitary_names)
+    for n, v in names_dict.iteritems():
+        vocab.add(n, v)
+
+    print "expression:", expression
+    print "query_expression:", query_expression
+    print "unitary_names:", unitary_names
+    print "target_key:", target_key
+    print "name_keys_dict:", names_keys_dict
+
+    test_vector = eval(expression, {}, vocab)
+    test_vector.normalize()
+
+    query_vector = eval(query_expression, {}, vocab)
+    #probe_indices.extend(chosen_id_keys)
+    #probe_indices = id_vectors.keys()
+
+    result, correct, valid, exact = \
+        self.testLink(query_vector.v, test_vector.v, None, target_key, self.jump_results_file,
+                      return_vec=False, answers=[target_key], threshold=self.test_threshold)
 
   def jumpTest(self, testName, n):
         # select a key, follow a hyp/hol link, record success / failure
@@ -422,10 +462,10 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
     if self.hierarchical_results_file:
       self.hierarchical_results_file.close()
 
-  def runBootstrap_single(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999,
-                          test_vector=None, query_vector=None, target_key=None):
+  def runBootstrap_single(self, sample_size, num_trials_per_sample,
+                          num_bootstrap_samples=999, expression=''):
 
-    single_test = lambda x, y: self.singleTest(x, y, test_vector, query_vector, target_key)
+    single_test = lambda x, y: self.singleTest(x, y, expression)
 
     self.openJumpResultsFile()
 
