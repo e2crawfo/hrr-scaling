@@ -61,6 +61,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.bidirectional=False
         self.identity=False
 
+        self.ideal_dot = None
+        self.second_dot = None
+
         self.output_dir = output_dir
 
         self.return_vec = True
@@ -120,7 +123,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             scale = 10.0
 
             assoc_probes = {}
-            dummy_probes = {}
+            transfer_probes = {}
 
             for key in self.index_vectors:
                 iv = self.index_vectors[key].reshape((1, self.dim))
@@ -138,14 +141,10 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                                function = self.transfer_func, synapse=synapse)
 
                 if key in probe_indices:
-                    dummy = nengo.Node(size_in=1)
-                    conn = nengo.Connection(assoc, dummy, synapse=0.02,
-                                            function = self.transfer_func)
-
-                    dummy_probe = nengo.Probe(dummy, 'output', synapse=None)
                     p = nengo.Probe(assoc, 'decoded_output', synapse=0.02)
+                    transfer_probe = nengo.Probe(assoc, 'decoded_output', synapse=0.02, function=self.transfer_func)
                     assoc_probes[key] = p
-                    dummy_probes[key] = dummy_probe
+                    transfer_probes[key] = transfer_probe
 
             D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
             output_probe = nengo.Probe(output.output, 'output', synapse=0.02)
@@ -153,7 +152,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.D_probe = D_probe
         self.output_probe = output_probe
         self.assoc_probes = assoc_probes
-        self.dummy_probes = dummy_probes
+        self.transfer_probes = transfer_probes
 
         self.model = model
 
@@ -185,16 +184,21 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             print "Ideal similarity: ", sim
             print "Ideal dot: ", dot
 
+            self.ideal_dot = dot
+
             hrrs = [(key, hrr.HRR(data = iv))
                     for key, iv in self.index_vectors.iteritems()
                     if key != correct_key]
 
-            sims = [(k,noisy_hrr.compare(h)) for (k,h) in hrrs]
-            dots = [(k,np.dot(noisy_hrr.v, h.v)) for (k,h) in hrrs]
+            sims = [noisy_hrr.compare(h) for (k,h) in hrrs]
+            dots = [np.dot(noisy_hrr.v, h.v) for (k,h) in hrrs]
+            sim = max(sims)
+            dot = max(dots)
 
-            print "Similarity of closest incorrect index vector ", max(sims, key=lambda x: x[1])
-            print "Dot product of closest incorrect index vector ", max(dots, key=lambda x: x[1])
+            print "Similarity of closest incorrect index vector ", sim
+            print "Dot product of closest incorrect index vector ", dot
 
+            self.second_dot = dot
 
         self.A_input_vector = item
         self.B_input_vector = query
@@ -231,7 +235,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         gs = gridspec.GridSpec(9,2)
         num_plots = 6
-        fig = plt.figure(figsize=(25,15))
+        fig = plt.figure(figsize=(10,10))
 
         ax = plt.subplot(gs[0,0])
 
@@ -248,41 +252,48 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         ax = plt.subplot(gs[1:3,:])
 
-        input_sims = np.dot(sim.data[self.D_probe], self.index_vectors[correct_key])
         for key, v in self.index_vectors.iteritems():
             input_sims = np.dot(sim.data[self.D_probe], v)
-            label = str(key)
+            label = str(key[1])
             if key == correct_key:
                 plt.plot(t, input_sims, '--', label=label + '*')
             else:
                 plt.plot(t, input_sims, label=label)
 
-        title = 'Dot Products Before Association'
-        ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
-        plt.legend(bbox_to_anchor=(-0.03, 0.5), loc='center right')
+        title = 'Dot Products Before Association.\nTarget is dashed line.'
+        ax.text(.01,0.80, title, horizontalalignment='left', transform=ax.transAxes)
+        #plt.legend(bbox_to_anchor=(-0.03, 0.5), loc='center right')
+        if self.ideal_dot:
+            ax.text(.01,0.10, "Ideal dot: " + str(self.ideal_dot), horizontalalignment='left', transform=ax.transAxes)
+        if self.second_dot:
+            ax.text(.99,0.10, "Second dot: " + str(self.second_dot), horizontalalignment='right', transform=ax.transAxes)
+
+
         plt.ylim((-1.0, 1.0))
+
 
         ax = plt.subplot(gs[3:5,:])
         for key, p in self.assoc_probes.iteritems():
             if key == correct_key:
-                plt.plot(t, sim.data[p], '--', label=str(key))
+                plt.plot(t, sim.data[p], '--')
             else:
-                plt.plot(t, sim.data[p], label=str(key))
+                plt.plot(t, sim.data[p])
 
-        title = 'Association Activation. Target:' + str(correct_key)
-        ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
+        title = 'Association Activation. \nTarget:' + str(correct_key)
+        ax.text(.01,0.80, title, horizontalalignment='left', transform=ax.transAxes)
         plt.ylim((-0.2, 1.0))
+
 
         ax = plt.subplot(gs[5:7,:])
 
-        for key, p in self.dummy_probes.iteritems():
+        for key, p in self.transfer_probes.iteritems():
             if key == correct_key:
                 plt.plot(t, sim.data[p], '--', label=str(key))
             else:
                 plt.plot(t, sim.data[p], label=str(key))
 
-        title = 'Association Effective Activation. Target:' + str(correct_key)
-        ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
+        title = 'Association Effective Activation. \nTarget:' + str(correct_key)
+        ax.text(.01,0.80, title, horizontalalignment='left', transform=ax.transAxes)
         plt.ylim((-0.2, 1.0))
 
 
@@ -303,11 +314,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             title = 'Before/After Association: Cosine Similarity to Target'
             ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
             plt.ylim((-1.0, 1.0))
-            plt.legend(loc=3)
-
-        #plt.tight_layout()
-        #mng = plt.get_current_fig_manager()
-        #mng.resize(*mng.window.maxsize())
+            plt.legend(loc=4)
 
         plt.show()
 
