@@ -1,10 +1,8 @@
-#NeuralAssociativeMemory!
+# NeuralAssociativeMemory!
 from assoc_memory import AssociativeMemory
 
 import string
 import datetime
-import sys
-import exceptions
 from collections import OrderedDict
 
 import numpy as np
@@ -23,44 +21,30 @@ try:
 except:
     ocl_imported = False
 
-class VectorFunction(object):
-
-    def __init__(self, shape):
-        self.vec = np.zeros(shape)
-
-    def __call__(self):
-        return self.vec
-
-    def __name__(self):
-        return "VectorFunction"
-
-    def set_vector(self, vec):
-        if vec.shape != self.vec.shape:
-            raise ValueError("Vector supplied to VectorFunction.set_vector has incorrect \
-                             shape %s, should have shape %s." % (vec.shape, self.vec.shape))
-
-        self.vec = vec
 
 def make_func(cls, attr):
     def f(t):
         return getattr(cls, attr)
     return f
 
+
 class NewNeuralAssociativeMemory(AssociativeMemory):
 
     _type = "Neural"
 
-    def __init__(self, index_vectors, stored_vectors, threshold=0.3, neurons_per_item=20,
-               neurons_per_dim=50, timesteps=100, dt=0.001, output_dir=".", probe_indices = [],
-               pstc=0.02, tau_rc=0.02, tau_ref=0.002, plot=False, ocl=False):
+    def __init__(self, index_vectors, stored_vectors, threshold=0.3,
+                 neurons_per_item=20, neurons_per_dim=50, timesteps=100,
+                 dt=0.001, pstc=0.02, tau_rc=0.02, tau_ref=0.002, plot=False,
+                 ocl=False, output_dir=".", probe_indices=[]):
         """
-        index_vectors and stored_vectors are both dictionaries mapping from tuples of the form
-        (POS, number), indicating a synset, to numpy ndarrays containing the assigned vector
+        index_vectors and stored_vectors are both dictionaries mapping from
+        tuples of the form (POS, number), indicating a synset, to numpy
+        ndarrays containing the assigned vector
         """
 
-        self.unitary=False
-        self.bidirectional=False
-        self.identity=False
+        self.unitary = False
+        self.bidirectional = False
+        self.identity = False
 
         self.ideal_dot = None
         self.second_dot = None
@@ -72,7 +56,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.index_vectors = index_vectors
         self.stored_vectors = stored_vectors
 
-        self.runtimes_file=open(self.output_dir+'/neural_runtimes', 'a')
+        self.runtimes_file = open(self.output_dir+'/neural_runtimes', 'a')
 
         self.dim = len(self.index_vectors.values()[0])
         self.num_items = len(self.index_vectors)
@@ -86,7 +70,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.threshold = threshold
         self.transfer_func = lambda x: 1 if x > self.threshold else 0
 
-        radius = 5.0 / np.sqrt( self.dim)
+        radius = 5.0 / np.sqrt(self.dim)
 
         model = nengo.Network(label="Extraction")
 
@@ -99,13 +83,17 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             self.A_input_func = make_func(self, "A_input_vector")
             self.B_input_func = make_func(self, "B_input_vector")
 
-            A_input = nengo.Node(output = self.A_input_func, size_out = self.dim)
-            B_input = nengo.Node(output = self.B_input_func, size_out = self.dim)
+            A_input = nengo.Node(output=self.A_input_func, size_out=self.dim)
+            B_input = nengo.Node(output=self.B_input_func, size_out=self.dim)
 
-            A = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim, label="A", radius=radius)
-            B = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim, label="B", radius=radius)
-            D = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim, label="D", radius=radius)
-            cconv = CircularConvolution(nengo.LIF(int(2 * neurons_per_dim)), self.dim, invert_b=True)
+            A = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
+                              label="A", radius=radius)
+            B = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
+                              label="B", radius=radius)
+            D = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
+                              label="D", radius=radius)
+            cconv = CircularConvolution(nengo.LIF(int(2 * neurons_per_dim)),
+                                        self.dim, invert_b=True)
 
             nengo.Connection(A_input, A.input)
             nengo.Connection(B_input, B.input)
@@ -117,7 +105,6 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             output = EnsembleArray(nengo.LIF(neurons_per_dim),
                                    self.dim, label="output", radius=radius)
 
-            #assoc_encoders = 1.0
             assoc_encoders = np.ones((neurons_per_item, 1))
             intercept_distribution = Uniform(0.0, 0.3)
             mr_distribution = Uniform(200.0, 200.0)
@@ -130,22 +117,28 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                 iv = self.index_vectors[key].reshape((1, self.dim))
                 sv = scale * self.stored_vectors[key].reshape((self.dim, 1))
 
-                assoc_label = label="Associate: " + str(key)
+                assoc_label = "Associate: " + str(key)
                 assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
-                                       intercepts = intercept_distribution,
-                                       max_rates = mr_distribution,
-                                       encoders = assoc_encoders, label=assoc_label,
+                                       intercepts=intercept_distribution,
+                                       max_rates=mr_distribution,
+                                       encoders=assoc_encoders,
+                                       label=assoc_label,
                                        radius=0.5)
 
-                input_conn = nengo.Connection(D.output, assoc, transform = iv, synapse=synapse)#, synapse=0.05)
-                output_conn = nengo.Connection(assoc, output.input, transform = sv,
-                                               function = self.transfer_func, synapse=synapse)
+                nengo.Connection(D.output, assoc,
+                                 transform=iv, synapse=synapse)
+                nengo.Connection(assoc, output.input, transform=sv,
+                                 function=self.transfer_func, synapse=synapse)
 
                 if key in probe_indices:
-                    p = nengo.Probe(assoc, 'decoded_output', synapse=0.02)
-                    transfer_probe = nengo.Probe(assoc, 'decoded_output', synapse=0.02,
+
+                    assoc_probe = nengo.Probe(assoc, 'decoded_output',
+                                              synapse=0.02)
+
+                    transfer_probe = nengo.Probe(assoc, 'decoded_output',
+                                                 synapse=0.02,
                                                  function=self.transfer_func)
-                    assoc_probes[key] = p
+                    assoc_probes[key] = assoc_probe
                     transfer_probes[key] = transfer_probe
 
             D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
@@ -172,7 +165,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         then = datetime.datetime.now()
 
         if len(self.tester.current_target_keys) > 0:
-            #Print data about how difficult the current instance is
+            # Print data about how difficult the current instance is
 
             correct_key = self.tester.current_target_keys[0]
 
@@ -188,12 +181,12 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
             self.ideal_dot = dot
 
-            hrrs = [(key, hrr.HRR(data = iv))
+            hrrs = [(key, hrr.HRR(data=iv))
                     for key, iv in self.index_vectors.iteritems()
                     if key != correct_key]
 
-            sims = [noisy_hrr.compare(h) for (k,h) in hrrs]
-            dots = [np.dot(noisy_hrr.v, h.v) for (k,h) in hrrs]
+            sims = [noisy_hrr.compare(h) for (k, h) in hrrs]
+            dots = [np.dot(noisy_hrr.v, h.v) for (k, h) in hrrs]
             sim = max(sims)
             dot = max(dots)
 
@@ -211,7 +204,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.write_to_runtime_file(now - then)
 
         if self.plot:
-          self.plot_cleanup_activities()
+            self.plot_cleanup_activities()
 
         vector = self.simulator.data[self.output_probe][-1, :]
         return [vector]
@@ -235,24 +228,25 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         max_val = 5.0 / np.sqrt(self.dim)
 
-        gs = gridspec.GridSpec(9,2)
-        num_plots = 6
-        fig = plt.figure(figsize=(10,10))
+        gs = gridspec.GridSpec(9, 2)
+        plt.figure(figsize=(10, 10))
 
-        ax = plt.subplot(gs[0,0])
+        ax = plt.subplot(gs[0, 0])
 
         plt.plot(t, sim.data[self.D_probe], label='D')
         title = 'Before Association: Vector'
-        ax.text(.01,1.20, title, horizontalalignment='left', transform=ax.transAxes)
+        ax.text(.01, 1.20, title, horizontalalignment='left',
+                transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
 
-        ax = plt.subplot(gs[0,1])
+        ax = plt.subplot(gs[0, 1])
         plt.plot(t, sim.data[self.output_probe], label='Output')
         title = 'After Association: Vector'
-        ax.text(.01,1.20, title, horizontalalignment='left', transform=ax.transAxes)
+        ax.text(.01, 1.20, title, horizontalalignment='left',
+                transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
 
-        ax = plt.subplot(gs[1:3,:])
+        ax = plt.subplot(gs[1:3, :])
 
         for key, v in self.index_vectors.iteritems():
             input_sims = np.dot(sim.data[self.D_probe], v)
@@ -263,18 +257,19 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                 plt.plot(t, input_sims, label=label)
 
         title = 'Dot Products Before Association.\nTarget is dashed line.'
-        ax.text(.01,0.80, title, horizontalalignment='left', transform=ax.transAxes)
-        #plt.legend(bbox_to_anchor=(-0.03, 0.5), loc='center right')
+        ax.text(.01, 0.80, title, horizontalalignment='left',
+                transform=ax.transAxes)
+        # plt.legend(bbox_to_anchor=(-0.03, 0.5), loc='center right')
         if self.ideal_dot:
-            ax.text(.01,0.10, "Ideal dot: " + str(self.ideal_dot), horizontalalignment='left', transform=ax.transAxes)
+            ax.text(.01, 0.10, "Ideal dot: " + str(self.ideal_dot),
+                    horizontalalignment='left', transform=ax.transAxes)
         if self.second_dot:
-            ax.text(.99,0.10, "Second dot: " + str(self.second_dot), horizontalalignment='right', transform=ax.transAxes)
-
+            ax.text(.99, 0.10, "Second dot: " + str(self.second_dot),
+                    horizontalalignment='right', transform=ax.transAxes)
 
         plt.ylim((-1.0, 1.0))
 
-
-        ax = plt.subplot(gs[3:5,:])
+        ax = plt.subplot(gs[3:5, :])
         for key, p in self.assoc_probes.iteritems():
             if key == correct_key:
                 plt.plot(t, sim.data[p], '--')
@@ -282,11 +277,11 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                 plt.plot(t, sim.data[p])
 
         title = 'Association Activation. \nTarget:' + str(correct_key)
-        ax.text(.01,0.80, title, horizontalalignment='left', transform=ax.transAxes)
+        ax.text(.01, 0.80, title, horizontalalignment='left',
+                transform=ax.transAxes)
         plt.ylim((-0.2, 1.0))
 
-
-        ax = plt.subplot(gs[5:7,:])
+        ax = plt.subplot(gs[5:7, :])
 
         for key, p in self.transfer_probes.iteritems():
             if key == correct_key:
@@ -294,44 +289,53 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             else:
                 plt.plot(t, sim.data[p], label=str(key))
 
-        title = 'Association Effective Activation. \nTarget:' + str(correct_key)
-        ax.text(.01,0.80, title, horizontalalignment='left', transform=ax.transAxes)
-        plt.ylim((-0.2, 1.0))
+        title = 'Assoc. Transfer Activation. \nTarget:' + str(correct_key)
+        ax.text(.01, 0.80, title, horizontalalignment='left',
+                transform=ax.transAxes)
 
+        plt.ylim((-0.2, 1.0))
 
         if correct_key is not None:
 
-            ax = plt.subplot(gs[7:9,:])
+            ax = plt.subplot(gs[7:9, :])
 
-            correct_index_hrr = hrr.HRR(data = self.index_vectors[correct_key])
-            correct_stored_hrr = hrr.HRR(data = self.stored_vectors[correct_key])
+            correct_index_hrr = hrr.HRR(data=self.index_vectors[correct_key])
+            correct_stored_hrr = hrr.HRR(data=self.stored_vectors[correct_key])
+
             input_sims = []
             output_sims = []
-            for i, o in zip(sim.data[self.D_probe], sim.data[self.output_probe]):
+            probes = zip(sim.data[self.D_probe], sim.data[self.output_probe])
+
+            for i, o in probes:
                 input_sims.append(correct_index_hrr.compare(hrr.HRR(data=i)))
                 output_sims.append(correct_stored_hrr.compare(hrr.HRR(data=o)))
 
             plt.plot(t, input_sims, label='Before')
             plt.plot(t, output_sims, label='After')
             title = 'Before/After Association: Cosine Similarity to Target'
-            ax.text(.01,0.90, title, horizontalalignment='left', transform=ax.transAxes)
+            ax.text(.01, 0.90, title, horizontalalignment='left',
+                    transform=ax.transAxes)
             plt.ylim((-1.0, 1.0))
             plt.legend(loc=4)
             plt.axhline(ls=':', c='k')
 
-
         plt.show()
 
         date_time_string = str(datetime.datetime.now()).split('.')[0]
-        date_time_string = reduce(lambda y,z: string.replace(y,z,"_"), [date_time_string,":","."," ","-"])
-        #plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
-
+        date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
+                                  [date_time_string, ":", ".", " ", "-"])
+        # plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
 
     def write_to_runtime_file(self, delta):
-        print >> self.runtimes_file, ",",self.dim,",",self.num_items,",",self.neurons_per_item,",",self.neurons_per_dim,",",self.timesteps,",",delta
+        to_print = [self.dim, self.num_items,
+                    self.neurons_per_item, self.neurons_per_dim,
+                    self.timesteps, delta]
+        print >> self.runtimes_file, ",".join(to_print)
 
     def print_config(self, output_file):
         super(NewNeuralAssociativeMemory, self).print_config(output_file)
 
-        output_file.write("Neurons per item: " + str(self.neurons_per_item) + "\n")
-        output_file.write("Neurons per dim: " + str(self.neurons_per_dim) + "\n")
+        output_file.write("Neurons per item: " +
+                          str(self.neurons_per_item) + "\n")
+        output_file.write("Neurons per dim: " +
+                          str(self.neurons_per_dim) + "\n")
