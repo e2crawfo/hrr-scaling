@@ -1,5 +1,6 @@
-# NeuralAssociativeMemory!
+# Neural Extraction Algorithm
 from assoc_memory import AssociativeMemory
+from gpu_assoc_memory import AssociativeMemoryGPU
 
 import string
 import datetime
@@ -34,8 +35,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
     def __init__(self, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
-                 dt=0.001, pstc=0.02, tau_rc=0.02, tau_ref=0.002, plot=False,
-                 ocl=False, output_dir=".", probe_indices=[]):
+                 dt=0.001, pstc=0.02, tau_rc=0.02, tau_ref=0.002,
+                 output_dir=".", probe_indices=[], plot=False,
+                 ocl=False, gpu=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -106,43 +108,61 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                    self.dim, label="output", radius=radius)
 
             assoc_encoders = np.ones((neurons_per_item, 1))
-            intercept_distribution = Uniform(0.0, 0.3)
-            mr_distribution = Uniform(200.0, 200.0)
+            intercepts = Uniform(0.0, 0.3)
+            max_rates = Uniform(200.0, 200.0)
             scale = 10.0
 
-            assoc_probes = OrderedDict()
-            transfer_probes = OrderedDict()
+            if gpu:
+                # Add a nengo.Node which calls out to a GPU library for
+                # simulating the associative memory
 
-            for key in self.index_vectors:
-                iv = self.index_vectors[key].reshape((1, self.dim))
-                sv = scale * self.stored_vectors[key].reshape((self.dim, 1))
+                assoc_memory = AssociativeMemoryGPU()
 
-                assoc_label = "Associate: " + str(key)
-                assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
-                                       intercepts=intercept_distribution,
-                                       max_rates=mr_distribution,
-                                       encoders=assoc_encoders,
-                                       label=assoc_label,
-                                       radius=0.5)
+                def gpu_function(t, input_vector):
+                    output_vector = assoc_memory.step(input_vector)
+                    return output_vector
 
-                nengo.Connection(D.output, assoc,
-                                 transform=iv, synapse=synapse)
-                nengo.Connection(assoc, output.input, transform=sv,
-                                 function=self.transfer_func, synapse=synapse)
+                assoc = nengo.Node(output=gpu_function,
+                                   size_in=self.dim, size_out=self.dim)
 
-                if key in probe_indices:
+                nengo.Connection(D.output, assoc, synapse=synapse)
+                nengo.Connection(assoc, output.input, synapse=synapse)
 
-                    assoc_probe = nengo.Probe(assoc, 'decoded_output',
-                                              synapse=0.02)
+            else:
+                assoc_probes = OrderedDict()
+                transfer_probes = OrderedDict()
 
-                    transfer_probe = nengo.Probe(assoc, 'decoded_output',
-                                                 synapse=0.02,
-                                                 function=self.transfer_func)
-                    assoc_probes[key] = assoc_probe
-                    transfer_probes[key] = transfer_probe
+                for k in self.index_vectors:
+                    iv = self.index_vectors[k].reshape((1, self.dim))
+                    sv = scale * self.stored_vectors[k].reshape((self.dim, 1))
 
-            D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
-            output_probe = nengo.Probe(output.output, 'output', synapse=0.02)
+                    assoc_label = "Associate: " + str(k)
+                    assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
+                                           intercepts=intercepts,
+                                           max_rates=max_rates,
+                                           encoders=assoc_encoders,
+                                           label=assoc_label,
+                                           radius=0.5)
+
+                    nengo.Connection(D.output, assoc,
+                                     transform=iv, synapse=synapse)
+
+                    nengo.Connection(assoc, output.input, transform=sv,
+                                     function=self.transfer_func,
+                                     synapse=synapse)
+
+                    if k in probe_indices:
+
+                        assoc_probes[k] = \
+                            nengo.Probe(assoc, 'decoded_output', synapse=0.02)
+
+                        transfer_probes[k] = \
+                            nengo.Probe(assoc, 'decoded_output', synapse=0.02,
+                                        function=self.transfer_func)
+
+                D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
+                output_probe = nengo.Probe(output.output,
+                                           'output', synapse=0.02)
 
         self.D_probe = D_probe
         self.output_probe = output_probe
