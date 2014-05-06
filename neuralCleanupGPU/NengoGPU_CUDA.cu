@@ -95,7 +95,7 @@ void printFloatColumn(FILE* fp, float* array, int m, int n, int col)
   }
   fp ? fprintf(fp, "\n") : printf("\n");
 }
- 
+
 void printFloatRange(FILE* fp, float* array, int start, int end)
 {
   float* temp = (float*) malloc((end - start + 1)  * sizeof(float));
@@ -126,15 +126,17 @@ void printIntRange(FILE* fp, int* array, int start, int end)
 int getGPUDeviceCount(){
   cudaError_t err;
   int numDevices;
-  
+
   err = cudaGetDeviceCount(&numDevices);
   checkCudaError(err, "get GPU device count");
-  
+
   return numDevices;
 }
 
-// Reserves device with number deviceNum for the thread that calls this function. No interaction with the device should take place until this has been called.
-// Once the device is reserved for the thread, no other thread should try to interact with that device or reserve it. A thread can reserve only one device at a time
+// Reserves device with number deviceNum for the thread that calls this function.
+// No interaction with the device should take place until this has been called.
+// Once the device is reserved for the thread, no other thread should try to interact
+// with that device or reserve it. A thread can reserve only one device at a time
 void initGPUDevice(int deviceNum)
 {
   cudaError_t err = cudaSetDevice(deviceNum);
@@ -167,7 +169,7 @@ void checkCudaError(cudaError_t err, char* message)
 __global__ void integrateAfterEncode(int numNeurons, int numNeuronsPerItem, float dt, float adjusted_dt, int steps, float* encodeResult, float* voltage_array, float* reftime_array, float tau_rc, float tau_ref, float* bias, float* scale, float* spikes)
 {
   int i = threadIdx.x + (blockDim.x * threadIdx.y) + (blockIdx.x + (gridDim.x * blockIdx.y)) * blockDim.x * blockDim.y;
-  
+
   if( i < numNeurons)
   {
     int index = i % numNeuronsPerItem;
@@ -176,10 +178,8 @@ __global__ void integrateAfterEncode(int numNeurons, int numNeuronsPerItem, floa
     float refTime = reftime_array[i];
     float current = bias[index] + scale[index] * encodeResult[i];
 
-
-    float dV, post_ref, v_threshold = 1.0f;
-    float spike_float;
-    int j, spike = 0;
+    float dV, post_ref, spike_float, v_threshold = 1.0;
+    int spike = 0.0, j;
 
     for(j = 0; j < steps; j++)
     {
@@ -201,8 +201,6 @@ __global__ void integrateAfterEncode(int numNeurons, int numNeuronsPerItem, floa
     reftime_array[i] = refTime;
     voltage_array[i] = voltage;
     spikes[i] = spike_float;
-    //spikes[i] = 1.0;
-    
   }
 }
 
@@ -215,7 +213,7 @@ __global__ void moveGPUData(int size, int* map, float* to, float* from)
     to[i] = from[ map[i] ];
   }
 }
-      
+
 // run a NengoGPUData struct for one step
 void run_NEFEnsembles(NengoGPUData* nengoData, float startTime, float endTime)
 {
@@ -240,16 +238,17 @@ void run_NEFEnsembles(NengoGPUData* nengoData, float startTime, float endTime)
   int steps = 1;
   float adjusted_dt = dt;
 
-// Copy input from host to GPU
+  // Copy input from host to GPU
 
-  cudaMemcpy(nengoData->inputDevice->array, nengoData->inputHost->array, (nengoData->dimension) * sizeof(float), cudaMemcpyHostToDevice);
-  
+  cudaMemcpy(nengoData->inputDevice->array, nengoData->inputHost->array,
+            (nengoData->dimension) * sizeof(float), cudaMemcpyHostToDevice);
+
   err = cudaGetLastError();
   checkCudaErrorWithDevice(err, nengoData->device, "run_NEFEnsembles: copying cpu input to device");
 
   //status = cublasSscal(*(nengoData->handle), nengoData->numItems, &scale, nengoData->transformResult->array, 1);
 
-// Multiply input vectors by corresponding termination transform
+  // Multiply input vectors by corresponding termination transform
   cublasOperation_t op = CUBLAS_OP_T;
   cublasStatus_t status;
 
@@ -257,48 +256,56 @@ void run_NEFEnsembles(NengoGPUData* nengoData, float startTime, float endTime)
   float scale = 1.0 - dt_over_tau;
   int lda = nengoData->dimension;
 
-  // transform
-  status = cublasSgemv(nengoData->handle, op, nengoData->dimension, nengoData->numItems, &dt_over_tau, nengoData->index_vectors->array, lda, nengoData->inputDevice->array, 1, &scale, nengoData->transformResult->array, 1);
-  
+  status = cublasSgemv(nengoData->handle, op, nengoData->dimension, nengoData->numItems, &dt_over_tau,
+                       nengoData->index_vectors->array, lda, nengoData->inputDevice->array, 1,
+                       &scale, nengoData->transformResult->array, 1);
+
   cublasOperation_t opA = CUBLAS_OP_N;
   cublasOperation_t opB = CUBLAS_OP_N;
 
-///// encode
+  // Multiply by encoders
   float one = 1.0;
   float zero = 0.0;
   lda = nengoData->numNeuronsPerItem;
 
-  status = cublasSgemm(nengoData->handle, opA, opB, nengoData->numNeuronsPerItem, nengoData->numItems, 1, &one, nengoData->encoder->array, lda, nengoData->transformResult->array, 1, &zero, nengoData->encodeResult->array, nengoData->numNeuronsPerItem);
+  status = cublasSgemm(nengoData->handle, opA, opB, nengoData->numNeuronsPerItem, nengoData->numItems,
+                       1, &one, nengoData->encoder->array, lda, nengoData->transformResult->array,
+                       1, &zero, nengoData->encodeResult->array, nengoData->numNeuronsPerItem);
 
-///// integrate after encoding...still need this.
+
   dimBlock.x = 256;
   dimGrid.x = nengoData->numNeuronsPerItem  * nengoData->numItems/ dimBlock.x + 1;
 
-  integrateAfterEncode<<<dimGrid, dimBlock>>>(nengoData->numNeuronsPerItem * nengoData->numItems, nengoData->numNeuronsPerItem, nengoData->dt, adjusted_dt, steps, nengoData->encodeResult->array, nengoData->voltage->array, nengoData->reftime->array, nengoData->tau_rc, nengoData->tau_ref, nengoData->Jbias->array, nengoData->alpha->array, nengoData->spikes->array);
+  integrateAfterEncode<<<dimGrid, dimBlock>>>(nengoData->numNeuronsPerItem * nengoData->numItems, nengoData->numNeuronsPerItem,
+                                              nengoData->dt, adjusted_dt, steps, nengoData->encodeResult->array,
+                                              nengoData->voltage->array, nengoData->reftime->array, nengoData->tau_rc,
+                                              nengoData->tau_ref, nengoData->Jbias->array, nengoData->alpha->array,
+                                              nengoData->spikes->array);
 
   err = cudaGetLastError();
   checkCudaErrorWithDevice(err, nengoData->device, "run_NEFEnsembles: integrate after encode");
 
-  // op has to be transposed
-  // make sure we get the decoder that corresponds to the 
-  // thresholding function, not the identity decoder
+  // op has to be transposed make sure we get the decoder that corresponds to the thresholding function, not the identity decoder
   op = CUBLAS_OP_T;
-  status = cublasSgemv(nengoData->handle, op, nengoData->numNeuronsPerItem, nengoData->numItems, &one, nengoData->spikes->array, nengoData->numNeuronsPerItem, nengoData->decoder->array, 1, &zero, nengoData->decodedValues->array, 1);
+  status = cublasSgemv(nengoData->handle, op, nengoData->numNeuronsPerItem, nengoData->numItems,
+                       &one, nengoData->spikes->array, nengoData->numNeuronsPerItem,
+                       nengoData->decoder->array, 1, &zero, nengoData->decodedValues->array, 1);
 
   if(nengoData->stop_early){
+    // Don't do the weighting, just return values decoded from the association populations
     cudaMemcpy(nengoData->decodedValuesHost->array, nengoData->decodedValues->array, (nengoData->numItems) * sizeof(float), cudaMemcpyDeviceToHost);
   }
   else
   {
-    // op should not be transposed here
-    // multiplying decoded values by vector
-    // this one...might take a really long time, doing dot-products
-    // of dimension equal to the number of items...so may have to do this
-    // manually
+    // Multiplying the matrix whose columns are the result vectors by the vector of values
+    // decoded from the association populations. The result is the decoded vector that is fed 
+    // into the output population.  op should not be transposed here.
     op = CUBLAS_OP_N;
-    status = cublasSgemv(nengoData->handle, op, nengoData->dimension, nengoData->numItems, &one, nengoData->result_vectors->array, nengoData->dimension, nengoData->decodedValues->array, 1, &zero, nengoData->outputDevice->array, 1);
+    status = cublasSgemv(nengoData->handle, op, nengoData->dimension, nengoData->numItems, &one,
+                         nengoData->result_vectors->array, nengoData->dimension, nengoData->decodedValues->array,
+                         1, &zero, nengoData->outputDevice->array, 1);
 
-    // move results to host
+    // Move results to host
     cudaMemcpy(nengoData->outputHost->array, nengoData->outputDevice->array, (nengoData->dimension) * sizeof(float), cudaMemcpyDeviceToHost);
   }
 
@@ -324,7 +331,7 @@ float* allocateCudaFloatArray(int size)
   checkCudaError(err, "allocate cuda float array");
   return temp;
 }
-  
+
 int* allocateCudaIntArray(int size)
 {
   int* temp;
@@ -340,12 +347,13 @@ long getDeviceCapacity(int device)
   cudaGetDeviceProperties(&deviceProperties, device);  
   return deviceProperties.totalGlobalMem;
 }
-  
+
+// Create arrays that hold state information
 void initializeDeviceInputAndOutput(NengoGPUData* nengoData)
 {
   if(nengoData->do_print)
     printf("Initializing input and output: device %d\n", nengoData->device);
-  
+
   char* name;
 
   name = "inputDevice";
@@ -358,7 +366,7 @@ void initializeDeviceInputAndOutput(NengoGPUData* nengoData)
   nengoData->decodedValues = newFloatArrayOnDevice(nengoData->numItems, name);
   name = "outputDevice";
   nengoData->outputDevice = newFloatArrayOnDevice(nengoData->dimension, name);
-  
+
   name = "voltage";
   nengoData->voltage = newFloatArrayOnDevice(nengoData->numNeuronsPerItem * nengoData->numItems, name);
   name = "reftime";
@@ -369,7 +377,6 @@ void initializeDeviceInputAndOutput(NengoGPUData* nengoData)
   nengoData->spikesOutput = newFloatArrayOnDevice(nengoData->numSpikesToReturn, name);
 
   reset_NEFEnsembles(nengoData);
-  
 }
 
 void reset_NEFEnsembles(NengoGPUData* nengoData)
@@ -411,7 +418,7 @@ void reset_NEFEnsembles(NengoGPUData* nengoData)
   checkCudaErrorWithDevice(err, nengoData->device, "cuda setup structures");
   err = cudaMemset(nengoData->outputDevice->array, 0, sizeof(float) * nengoData->dimension);
   checkCudaErrorWithDevice(err, nengoData->device, "cuda setup structures");
-  
+
   err = cudaMemset(nengoData->voltage->array, 0, sizeof(float) * nengoData->numNeuronsPerItem * nengoData->numItems);
   checkCudaErrorWithDevice(err, nengoData->device, "cuda setup structures");
   err = cudaMemset(nengoData->reftime->array, 0, sizeof(float) * nengoData->numNeuronsPerItem * nengoData->numItems);
@@ -421,7 +428,6 @@ void reset_NEFEnsembles(NengoGPUData* nengoData)
 
   if(nengoData->do_print)
     printf("Done resetting NEF fields: device %d\n", nengoData->device);
-  
 }
 
 #ifdef __cplusplus

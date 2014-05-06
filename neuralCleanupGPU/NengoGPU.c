@@ -17,8 +17,6 @@ extern "C"{
 #include "NengoGPU_CUDA.h"
 #include "NengoGPUData.h"
 
-
-
 NengoGPUData** nengoDataArray;
 float startTime = 0, endTime = 0;
 int do_print;
@@ -45,7 +43,7 @@ int manipulateNumDevicesFinished(int action, int value)
   if(action == 0)
   {
     myMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
-    
+
     if(!myMutex)
     {
       printf("bad malloc\n");
@@ -117,8 +115,9 @@ int manipulateKill(int action)
   return kill;
 }
 
-// Called by the function nativeSetupRun in NengoGPU_JNI.c. By the time this is called, the NengoGPUData structure for each device should have all its static data set
-// (but not yet loaded onto a device, since it should't have access to a device yet).
+// Called by the function nativeSetupRun. By the time this is called,
+// the NengoGPUData structure for each device should have all its static data set
+// (but not yet loaded onto a device, since it should't have access to a device yet)
 // This function initializes the synchronization primitives and creates a new thread for each GPU in use.
 void run_start()
 {
@@ -300,7 +299,7 @@ void setup(int numDevicesRequested, int* devicesToUse, float dt, int numVectors,
 {
 
   int i, j, k;
-  
+
   int numAvailableDevices = getGPUDeviceCount();
 
   do_print = print_data;
@@ -332,13 +331,13 @@ void setup(int numDevicesRequested, int* devicesToUse, float dt, int numVectors,
 
   // Now we start to load the data into the NengoGPUData struct for each device. 
   // (though the data doesn't get put on the actual device just yet).
-  // Because of the CUDA architecture, we have to do some weird things to get a good speedup. 
+  // Because of the CUDA architecture, we have to do some weird things to get a good speedup
   // These arrays that store the transforms, decoders, are setup in a non-intuitive way so 
   // that memory accesses can be parallelized in CUDA kernels. For more information, see the NengoGPU user manual.
   for(i = 0; i < numDevices; i++)
   {
     currentData = nengoDataArray[i];
-    
+
     currentData->device = devicesToUse[i];
     currentData->stop_early = stop_early;
 
@@ -402,6 +401,7 @@ void setup(int numDevicesRequested, int* devicesToUse, float dt, int numVectors,
   // we have all the data we need, now start the worker threads which control the GPU's directly.
   run_start();
 }
+
 
 // Called once per step from the External code. Puts the representedInputValues in the proper form for processing, then tells each GPU thread
 // to take a step. Once they've finished the step, this function puts the representedOutputValues and spikes in the appropriate External
@@ -512,9 +512,6 @@ void reset()
 
   manipulateReset(-1);
 }
-
-
-
 
 #ifdef __cplusplus
 }
