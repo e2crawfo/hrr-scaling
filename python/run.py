@@ -35,9 +35,7 @@ algorithm = argvals.a and linalg
 neural = not linalg
 quick = argvals.q and neural
 plot = argvals.plot and can_plot and neural
-num_gpus = max(argvals.gpus, 0)
 num_words = argvals.numwords
-pick_devices = argvals.pick_devices
 pstc = argvals.pstc
 noneg = argvals.noneg
 shortsent = argvals.shortsent
@@ -45,8 +43,18 @@ num_synsets = argvals.num_synsets
 new = argvals.new
 ocl = argvals.ocl
 probeall = argvals.probeall
-if pick_devices is not None: pick_devices = list(OrderedDict.fromkeys(pick_devices))
-else: pick_devices = range(num_gpus)
+
+gpus = argvals.gpus
+if gpus is not None:
+    gpus.sort()
+#if gpus is not None: gpus = list(OrderedDict.fromkeys(gpus))
+
+ocl = argvals.ocl
+if ocl is not None:
+    ocl.sort()
+
+identical = argvals.identical
+#if ocl is not None: ocl = list(OrderedDict.fromkeys(ocl))
 
 verbose = argvals.v
 
@@ -123,16 +131,17 @@ random.seed(model_seed)
 if neural:
   if new:
       associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers, threshold,
-                                              output_dir = output_dir,
+                                              output_dir=output_dir,
                                               probe_indices=probe_indices,
                                               timesteps=steps, pstc=pstc, plot=plot,
-                                              ocl = ocl)
+                                              ocl=ocl, gpus=gpus, identical=identical)
 
   else:
-      associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
-                                           use_bi_relations, threshold, output_dir = output_dir,
-                                           probe_indices=probe_indices, timesteps=steps, quick=quick,
-                                           devices=pick_devices, pstc=pstc, plot=plot)
+      associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup,
+                                           unitary, use_bi_relations, threshold,
+                                           output_dir=output_dir, probe_indices=probe_indices,
+                                           timesteps=steps, quick=quick, devices=gpus,
+                                           pstc=pstc, plot=plot)
 else:
   associator = AssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
                                  use_bi_relations, threshold, algorithm)

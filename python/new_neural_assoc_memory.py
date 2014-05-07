@@ -18,6 +18,7 @@ import nengo
 
 ocl_imported = True
 try:
+    import pyopencl
     import nengo_ocl
 except:
     ocl_imported = False
@@ -37,7 +38,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
                  dt=0.001, pstc=0.02, tau_rc=0.02, tau_ref=0.002,
                  output_dir=".", probe_indices=[], plot=False,
-                 ocl=False, gpu=False):
+                 ocl=[], gpus=[], identical=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -112,11 +113,19 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             max_rates = Uniform(200.0, 200.0)
             scale = 10.0
 
-            if gpu:
+            if gpus:
                 # Add a nengo.Node which calls out to a GPU library for
                 # simulating the associative memory
 
-                assoc_memory = AssociativeMemoryGPU()
+                assoc_memory = \
+                    AssociativeMemoryGPU(gpus, index_vectors, stored_vectors,
+                                         threshold=threshold,
+                                         neurons_per_item=neurons_per_item,
+                                         intercepts=intercepts,
+                                         max_rates=max_rates, tau_ref=tau_ref,
+                                         tau_rc=tau_rc, do_print=False,
+                                         identical=identical)
+                print "done building gpu associative memory"
 
                 def gpu_function(t, input_vector):
                     output_vector = assoc_memory.step(input_vector)
@@ -127,6 +136,10 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
                 nengo.Connection(D.output, assoc, synapse=synapse)
                 nengo.Connection(assoc, output.input, synapse=synapse)
+
+                # for now
+                self.assoc_probes = []
+                self.transfer_probes = []
 
             else:
                 assoc_probes = OrderedDict()
@@ -160,18 +173,19 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                             nengo.Probe(assoc, 'decoded_output', synapse=0.02,
                                         function=self.transfer_func)
 
-                D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
-                output_probe = nengo.Probe(output.output,
-                                           'output', synapse=0.02)
+                self.assoc_probes = assoc_probes
+                self.transfer_probes = transfer_probes
+
+            D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
+            output_probe = nengo.Probe(output.output, 'output', synapse=0.02)
 
         self.D_probe = D_probe
         self.output_probe = output_probe
-        self.assoc_probes = assoc_probes
-        self.transfer_probes = transfer_probes
 
         self.model = model
 
-        if ocl_imported and ocl:
+        if ocl_imported and ocl is not None:
+            pyopencl.get_platforms()
             sim_class = nengo_ocl.sim_ocl.Simulator
         else:
             if ocl:
@@ -179,6 +193,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
             sim_class = nengo.Simulator
 
+        print "Building simulator"
         self.simulator = sim_class(model)
 
     def unbind_and_associate(self, item, query, *args, **kwargs):
@@ -350,7 +365,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         to_print = [self.dim, self.num_items,
                     self.neurons_per_item, self.neurons_per_dim,
                     self.timesteps, delta]
-        print >> self.runtimes_file, ",".join(to_print)
+        print >> self.runtimes_file, ",".join([str(tp) for tp in to_print])
 
     def print_config(self, output_file):
         super(NewNeuralAssociativeMemory, self).print_config(output_file)

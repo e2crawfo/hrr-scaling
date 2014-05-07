@@ -91,6 +91,7 @@ struct NengoGPUData_t{
   float start_time;
   float end_time;
 
+  int identical_ensembles;
   int neurons_per_item;
   int dimension;
   int num_items;

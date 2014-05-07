@@ -306,6 +306,7 @@ NengoGPUData* getNewNengoGPUData()
   new->start_time = 0.0;
   new->end_time = 0.0;
 
+  new->identical_ensembles = 0;
   new->neurons_per_item = 0;
   new->dimension = 0;
   new->num_items = 0;
@@ -400,7 +401,7 @@ void moveToDeviceNengoGPUData(NengoGPUData* nengo_data)
     moveToDeviceFloatArray(nengo_data->index_vectors);
     moveToDeviceFloatArray(nengo_data->stored_vectors);
 
-    moveToDeviceFloatArray(nengo_data->decoder);
+    moveToDeviceFloatArray(nengo_data->decoders);
     moveToDeviceFloatArray(nengo_data->gain);
     moveToDeviceFloatArray(nengo_data->bias);
 
@@ -480,7 +481,7 @@ void printNengoGPUData(NengoGPUData* nengo_data, int printArrays)
     printFloatArray(nengo_data->fp, nengo_data->output_host, nengo_data->dimension, 1);
     printFloatArray(nengo_data->fp, nengo_data->output_device, nengo_data->dimension, 1);
 
-    printFloatArray(nengo_data->fp, nengo_data->decoder, nengo_data->neurons_per_item, 1);
+    printFloatArray(nengo_data->fp, nengo_data->decoders, nengo_data->neurons_per_item, 1);
 
     printFloatArray(nengo_data->fp, nengo_data->gain, nengo_data->neurons_per_item, 1);
     printFloatArray(nengo_data->fp, nengo_data->bias, nengo_data->neurons_per_item, 1);

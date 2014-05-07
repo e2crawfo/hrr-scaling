@@ -301,11 +301,11 @@ void run_kill()
 // called from python with ctypes (but can also, of course, be called from c)
 void setup(int num_devices_requested, int* devices_to_use, float dt, int num_items,
            int dimension, int** index_vectors, int** stored_vectors, float tau,
-           float* decoder, int neurons_per_item, float* gain, float* bias,
-           float tau_ref, float tau_rc)
+           float* decoders, int neurons_per_item, float* gain, float* bias,
+           float tau_ref, float tau_rc, int print_data)
 {
 
-  int i, j, k;
+  int i, j;
 
   int num_available_devices = getGPUDeviceCount();
 
@@ -347,10 +347,9 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     current_data = nengo_data_array[i];
 
     current_data->device = devices_to_use[i];
-    current_data->stop_early = stop_early;
 
     current_data->do_print = do_print;
-    current_data->neurons_per_item = num_neurons;
+    current_data->neurons_per_item = neurons_per_item;
     current_data->dimension = dimension;
 
     current_data->tau = tau;
@@ -373,9 +372,9 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
              stored_vectors[item_index + j], dimension * sizeof(float));
     }
 
-    memcpy(current_data->decoder->array, decoder, num_neurons * sizeof(float));
-    memcpy(current_data->gain->array, gain, num_neurons * sizeof(float));
-    memcpy(current_data->bias->array, bias, num_neurons * sizeof(float));
+    memcpy(current_data->decoders->array, decoders, neurons_per_item * sizeof(float));
+    memcpy(current_data->gain->array, gain, neurons_per_item * sizeof(float));
+    memcpy(current_data->bias->array, bias, neurons_per_item * sizeof(float));
 
     item_index += items_for_current_device;
 

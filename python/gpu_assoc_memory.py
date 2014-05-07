@@ -43,7 +43,7 @@ class AssociativeMemoryGPU(object):
                  tau_ref=0.002, intercepts=Uniform(0.0, 0.3),
                  max_rates=Uniform(200, 200), identical=False, do_print=False):
 
-        self.libNeuralCleanupGPU = CDLL("libNeuralAssocGPU.so")
+        self.libNeuralAssocGPU = CDLL("libNeuralAssocGPU.so")
 
         threshold_func = lambda x: 1 if x > threshold else 0
         assoc_encoders = np.ones((neurons_per_item, 1))
@@ -51,28 +51,29 @@ class AssociativeMemoryGPU(object):
         self.index_vectors = index_vectors
         self.stored_vectors = stored_vectors
         self.num_items = len(index_vectors)
-        dimensions = len(index_vectors.values()[0])
+        self.dimensions = len(index_vectors.values()[0])
+        self.dt = dt
         num_devices = len(devices)
 
         if identical:
             model = nengo.Network("Associative Memory")
             with model:
-                assoc = nengo.Ensemble(neurons_per_item, 1,
+                assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
                                        intercepts=intercepts,
                                        max_rates=max_rates,
                                        encoders=assoc_encoders,
                                        label="assoc",
                                        radius=0.5)
 
-                dummy = nengo.Ensemble(1, 1)
+                dummy = nengo.Ensemble(nengo.LIF(1), 1)
 
                 conn = nengo.Connection(assoc, dummy, function=threshold_func)
 
             sim = nengo.Simulator(model)
 
-            gain = sim.data[assoc]['gain']
-            bias = sim.data[assoc]['bias']
-            decoders = sim.data[conn]['decoders']
+            gain = sim.data[assoc.neurons].gain
+            bias = sim.data[assoc.neurons].bias
+            decoders = sim.data[conn].decoders[0] # first (and only) row
         else:
             pass
 
@@ -90,34 +91,49 @@ class AssociativeMemoryGPU(object):
         # Scalars
         c_num_devices = c_int(num_devices)
         c_num_items = c_int(self.num_items)
-        c_dimensions = c_int(dimensions)
+        c_dimensions = c_int(self.dimensions)
         c_neurons_per_item = c_int(neurons_per_item)
         c_pstc = c_float(pstc)
         c_tau_ref = c_float(tau_ref)
         c_tau_rc = c_float(tau_rc)
         c_dt = c_float(dt)
-        c_do_print = c_int(int(do_print))
         c_identical = c_int(int(identical))
+        c_do_print = c_int(int(do_print))
 
         gpu_lib = self.libNeuralAssocGPU
         gpu_lib.setup(c_num_devices, c_devices, c_dt, c_num_items,
                       c_dimensions, c_index_vectors, c_stored_vectors, c_pstc,
                       c_decoders, c_neurons_per_item, c_gain, c_bias,
-                      c_tau_ref, c_tau_rc, c_identical)
+                      c_tau_ref, c_tau_rc, c_identical, c_do_print)
 
         # setup arrays needed in step function
-        self._input = np.zeros(dimensions)
-        self._output = np.zeros(dimensions)
+        self._output = np.zeros(self.dimensions)
 
         self._c_input = None
-        self._c_output = None
+        output = np.zeros(self.dimensions)
+        self._c_output = convert_to_carray(output, c_float, 1)
 
         self.elapsed_time = 0.0
-        self.mode = 'gpu_cleanup'
+        self.mode = 'neural_assoc_gpu'
 
     def step(self, input_vector):
-        output_vector = np.zeros()
-        return output_vector
+        print "in gpu assoc memory step"
+        self._c_input = convert_to_carray(input_vector, c_float, 1)
+
+        c_start_time = c_float(self.elapsed_time)
+        c_end_time = c_float(self.elapsed_time + self.dt)
+
+        gpu_lib = self.libNeuralAssocGPU
+        gpu_lib.step(self._c_input, self._c_output, c_start_time, c_end_time)
+
+        print "in done assoc memory step"
+        for i in range(self.dimensions):
+            self._output[i] = self._c_output[i]
+
+        return self._output
+
+    def kill(self):
+        self.libNeuralAssocGPU.kill()
 
     def reset(self):
 
@@ -129,4 +145,4 @@ class AssociativeMemoryGPU(object):
             for p in probes:
                 p.reset()
 
-        self.libNeuralCleanupGPU.reset()
+        self.libNeuralAssocGPU.reset()
