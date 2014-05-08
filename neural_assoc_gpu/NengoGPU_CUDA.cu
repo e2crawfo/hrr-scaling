@@ -14,7 +14,10 @@ extern "C"{
 # define MAX_SHARED_MEM_SIZE 16000
 
 // Print the contents of an array of integers located on the device
-void printIntArrayFromDevice(FILE* fp, intArray* a, int n, int m, int labels)
+// m : the number of rows in the printout.
+// n : the number of columns in the printout
+// Assumes the array is stored in row-major order.
+void printIntArrayFromDevice(FILE* fp, intArray* a, int m, int n, int labels)
 {
   int* temp = (int*) malloc( m * n * sizeof(int));
   cudaMemcpy(temp, a->array, m * n * sizeof(int), cudaMemcpyDeviceToHost);
@@ -22,10 +25,10 @@ void printIntArrayFromDevice(FILE* fp, intArray* a, int n, int m, int labels)
   printf("%s:\n", a->name);
 
   int i, j;
-  for(i = 0; i < n; i++)
+  for(i = 0; i < m; i++)
   {
     fp ? fprintf(fp, "line %d: ", i) : printf("line %d:", i);
-    for(j = 0; j < m; j++)
+    for(j = 0; j < n; j++)
     {
       if(labels)
         fp ? fprintf(fp, "(%d, %d) ", j, temp[i * n + j]) : printf("(%d, %d) ", j, temp[i * n + j]);
@@ -40,8 +43,11 @@ void printIntArrayFromDevice(FILE* fp, intArray* a, int n, int m, int labels)
   free(temp);
 }
 
-// Print the contents of an array of floats located on the device
-void printFloatArrayFromDevice(FILE* fp, floatArray* a, int n, int m, int labels)
+// Print the contents of an array of ints located on the device
+// m : the number of rows in the printout.
+// n : the number of columns in the printout
+// Assumes the array is stored in row-major order.
+void printFloatArrayFromDevice(FILE* fp, floatArray* a, int m, int n, int labels)
 {
   cudaError_t err;
   float* temp = (float*) malloc( m * n * sizeof(float));
@@ -51,15 +57,15 @@ void printFloatArrayFromDevice(FILE* fp, floatArray* a, int n, int m, int labels
   printf("%s:\n", a->name);
 
   int i, j;
-  for(i = 0; i < n; i++)
+  for(i = 0; i < m; i++)
   {
     fp ? fprintf(fp, "line %d: ", i) : printf("line %d:", i);
-    for(j = 0; j < m; j++)
+    for(j = 0; j < n; j++)
     {
       if(labels)
-        fp ? fprintf(fp, "(%d, %f) ", j, temp[i * m + j]) : printf("(%d, %f) ", j, temp[i * m + j]);
+        fp ? fprintf(fp, "(%d, %f) ", j, temp[i * n + j]) : printf("(%d, %f) ", j, temp[i * n + j]);
       else
-        fp ? fprintf(fp, "%f ", temp[i * m + j]) : printf("%f ", temp[i * m + j]);
+        fp ? fprintf(fp, "%f ", temp[i * n + j]) : printf("%f ", temp[i * n + j]);
     }
 
     fp ? fprintf(fp, "\n") : printf("\n");
@@ -175,10 +181,11 @@ __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* 
 
   if( i < numNeurons)
   {
-    int index = i % neurons_per_item;
+    int neuron_index = i % neurons_per_item;
+    int item_index = (int)(i / neurons_per_item);
     float voltage = voltage_array[i];
     float reftime = reftime_array[i];
-    float current = bias[index] + gain[index] * encode_result[i];
+    float current = bias[neuron_index] + gain[neuron_index] * encode_result[item_index];
 
     float dV, post_ref, spike;
 
@@ -264,24 +271,18 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   err = cudaGetLastError();
   checkCudaErrorWithDevice(err, nengo_data->device, "run_neural_associative_memory: copying cpu input to device");
 
-
-  // Multiply input vectors by corresponding termination transform
+  // Multiply input vectors by corresponding index vector
   cublasOperation_t op = CUBLAS_OP_T;
-  cublasStatus_t status;
 
-  // float dt_over_tau = nengo_data->dt / nengo_data->tau;
-  // float scale = 1.0 - dt_over_tau;
-  // float scale = 1.0;
   float one = 1.0;
   float zero = 0.0;
   float inv_radius = 1.0 / nengo_data->radius;
   int lda = nengo_data->dimension;
 
-  status = cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
-                       // &dt_over_tau, nengo_data->index_vectors->array, lda,
-                       &inv_radius, nengo_data->index_vectors->array, lda,
-                       nengo_data->input_device->array, 1, &zero,
-                       nengo_data->encode_result->array, 1);
+  cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
+              &inv_radius, nengo_data->index_vectors->array, lda,
+              nengo_data->input_device->array, 1, &zero,
+              nengo_data->encode_result->array, 1);
 
   dimBlock.x = 256;
   dimGrid.x = nengo_data->neurons_per_item  * nengo_data->num_items / dimBlock.x + 1;
@@ -303,14 +304,11 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   {
       // decoded_values(num_items, 1) =
       //    lif_output(num_items, neurons_per_item) x decoder(neurons_per_item, 1)
-      printf("GPU: Identical Ensembles\n");
       op = CUBLAS_OP_T;
-      status = cublasSgemv(nengo_data->handle, op, nengo_data->neurons_per_item,
+      cublasSgemv(nengo_data->handle, op, nengo_data->neurons_per_item,
                            nengo_data->num_items, &one, nengo_data->spikes->array,
                            nengo_data->neurons_per_item, nengo_data->decoders->array,
                            1, &zero, nengo_data->decoded_values->array, 1);
-      printf("Decoded values:\n");
-      printFloatArray(NULL, nengo_data->decoded_values, nengo_data->num_items, 1);
   }
   else
   {
@@ -345,7 +343,7 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   // output_vector(dimension, 1) =
   //    stored_vectors(dimension, num_items) x decoded_values(num_items, 1)
   op = CUBLAS_OP_N;
-  status = cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
+  cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
                        &one, nengo_data->stored_vectors->array, nengo_data->dimension,
                        nengo_data->decoded_values->array, 1, &zero,
                        nengo_data->output_device->array, 1);
@@ -394,7 +392,7 @@ void initializeDeviceInputAndOutput(NengoGPUData* nengo_data)
   name = "input_device";
   nengo_data->input_device = newFloatArrayOnDevice(nengo_data->dimension, name);
   name = "encode_result";
-  nengo_data->encode_result = newFloatArrayOnDevice(nengo_data->num_items * nengo_data->neurons_per_item, name);
+  nengo_data->encode_result = newFloatArrayOnDevice(nengo_data->num_items, name);
   name = "decoded_values";
   nengo_data->decoded_values = newFloatArrayOnDevice(nengo_data->num_items, name);
   name = "output_device";
@@ -422,7 +420,7 @@ void reset_neural_associative_memory(NengoGPUData* nengo_data)
 
   err = cudaMemset(nengo_data->input_device->array, 0, sizeof(float) * nengo_data->dimension);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda array");
-  err = cudaMemset(nengo_data->encode_result->array, 0, sizeof(float) * nengo_data->neurons_per_item * nengo_data->num_items);
+  err = cudaMemset(nengo_data->encode_result->array, 0, sizeof(float) * nengo_data->num_items);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
   err = cudaMemset(nengo_data->decoded_values->array, 0, sizeof(float) * nengo_data->num_items);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");

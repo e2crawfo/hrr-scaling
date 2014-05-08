@@ -486,14 +486,14 @@ void printNengoGPUData(NengoGPUData* nengo_data, int printArrays)
   nengo_data->fp ? fprintf(nengo_data->fp, "tau_ref: %f\n", nengo_data->tau_ref) : printf("tau_ref: %f\n", nengo_data->tau_ref);
   nengo_data->fp ? fprintf(nengo_data->fp, "tau_rc: %f\n", nengo_data->tau_rc) : printf("tau_rc: %f\n", nengo_data->tau_rc);
   nengo_data->fp ? fprintf(nengo_data->fp, "dt: %f\n", nengo_data->dt) : printf("dt: %f\n", nengo_data->dt);
- 
+
   if(printArrays)
   {
     printFloatArray(nengo_data->fp, nengo_data->input_host, nengo_data->dimension, 1);
 
     printFloatArray(nengo_data->fp, nengo_data->input_device, nengo_data->dimension, 1);
 
-    printFloatArray(nengo_data->fp, nengo_data->encode_result, nengo_data->num_items * nengo_data->neurons_per_item, 1);
+    printFloatArray(nengo_data->fp, nengo_data->encode_result, nengo_data->num_items, 1);
     printFloatArrayFromDevice(nengo_data->fp, nengo_data->decoded_values, 1, nengo_data->num_items, 1);
     printFloatArray(nengo_data->fp, nengo_data->output_host, nengo_data->dimension, 1);
     printFloatArray(nengo_data->fp, nengo_data->output_device, nengo_data->dimension, 1);
@@ -532,7 +532,10 @@ void printDynamicNengoGPUData(NengoGPUData* nengo_data)
 }
 
 
-void printIntArray(FILE* fp, intArray* a, int n, int m)
+// m : the number of rows in the printout.
+// n : the number of columns in the printout.
+// Assumes the array is stored in row-major order.
+void printIntArray(FILE* fp, intArray* a, int m, int n)
 {
   if(!a)
     return;
@@ -565,7 +568,10 @@ void printIntArray(FILE* fp, intArray* a, int n, int m)
   fp ? fprintf(fp, "\n") : printf("\n");
 }
 
-void printFloatArray(FILE* fp, floatArray* a, int n, int m)
+// m : the number of rows in the printout.
+// n : the number of columns in the printout.
+// Assumes the array is stored in row-major order.
+void printFloatArray(FILE* fp, floatArray* a, int m, int n)
 {
   if(!a)
     return;

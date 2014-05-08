@@ -11,8 +11,8 @@ extern "C"{
 
 #include "NengoGPUData.h"
 
-void printIntArrayFromDevice(FILE* fp, intArray* array, int n, int m, int labels);
-void printFloatArrayFromDevice(FILE* fp, floatArray* array, int n, int m, int labels);
+void printIntArrayFromDevice(FILE* fp, intArray* array, int m, int n, int labels);
+void printFloatArrayFromDevice(FILE* fp, floatArray* array, int m, int n, int labels);
 
 void printIntColumn(FILE* fp, int* array, int m, int n, int col);
 void printFloatColumn(FILE* fp, float* array, int m, int n, int col);
