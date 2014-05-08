@@ -130,11 +130,13 @@ random.seed(model_seed)
 #pick an associator
 if neural:
   if new:
-      associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers, threshold,
+      associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers,
+                                              threshold=threshold,
                                               output_dir=output_dir,
                                               probe_keys=probe_keys,
-                                              timesteps=steps, pstc=pstc, plot=plot,
-                                              ocl=ocl, gpus=gpus, identical=identical)
+                                              timesteps=steps, pstc=pstc,
+                                              plot=plot, ocl=ocl, gpus=gpus,
+                                              identical=identical)
 
   else:
       associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup,
