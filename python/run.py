@@ -98,12 +98,12 @@ vector_factory = VectorFactory()
                            use_pure_cleanup, unitary, proportion, num_synsets)
 
 #change these to use specific words/relations
-probe_indices = []
+probe_keys = []
 words = []
 relations = []
 
 if num_words > 0:
-  probe_indices, words, relations = utilities.gen_probe_indices(corpus_dict, num_words, relation_symbols, words, relations)
+  probe_keys, words, relations = utilities.gen_probe_keys(corpus_dict, num_words, relation_symbols, words, relations)
 
   if not (len(relations) == len(words) and len(words) > 0):
     words = []
@@ -120,7 +120,7 @@ else:
     expression = argvals.test[1]
 
 if probeall:
-    probe_indices = id_vectors.keys()
+    probe_keys = id_vectors.keys()
 
 
 
@@ -132,14 +132,14 @@ if neural:
   if new:
       associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers, threshold,
                                               output_dir=output_dir,
-                                              probe_indices=probe_indices,
+                                              probe_keys=probe_keys,
                                               timesteps=steps, pstc=pstc, plot=plot,
                                               ocl=ocl, gpus=gpus, identical=identical)
 
   else:
       associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup,
                                            unitary, use_bi_relations, threshold,
-                                           output_dir=output_dir, probe_indices=probe_indices,
+                                           output_dir=output_dir, probe_keys=probe_keys,
                                            timesteps=steps, quick=quick, devices=gpus,
                                            pstc=pstc, plot=plot)
 else:

@@ -37,7 +37,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
     def __init__(self, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
                  dt=0.001, pstc=0.02, tau_rc=0.02, tau_ref=0.002,
-                 output_dir=".", probe_indices=[], plot=False,
+                 output_dir=".", probe_keys=[], plot=False,
                  ocl=[], gpus=[], identical=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
@@ -124,7 +124,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                          intercepts=intercepts,
                                          max_rates=max_rates, tau_ref=tau_ref,
                                          tau_rc=tau_rc, do_print=False,
-                                         identical=identical)
+                                         identical=identical,
+                                         probe_keys=probe_keys)
+
                 print "done building gpu associative memory"
 
                 def gpu_function(t, input_vector):
@@ -137,9 +139,14 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                 nengo.Connection(D.output, assoc, synapse=synapse)
                 nengo.Connection(assoc, output.input, synapse=synapse)
 
-                # for now
-                self.assoc_probes = []
-                self.transfer_probes = []
+                assoc_probes = OrderedDict()
+                transfer_probes = OrderedDict()
+
+                for k in probe_keys:
+                    n = nengo.Node(output=assoc_memory.probe_func(k))
+                    probe = nengo.Probe(n, synapse=0.02)
+
+                    transfer_probes[k] = probe
 
             else:
                 assoc_probes = OrderedDict()
@@ -164,7 +171,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                      function=self.transfer_func,
                                      synapse=synapse)
 
-                    if k in probe_indices:
+                    if k in probe_keys:
 
                         assoc_probes[k] = \
                             nengo.Probe(assoc, 'decoded_output', synapse=0.02)
@@ -173,16 +180,19 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                             nengo.Probe(assoc, 'decoded_output', synapse=0.02,
                                         function=self.transfer_func)
 
-                self.assoc_probes = assoc_probes
-                self.transfer_probes = transfer_probes
 
             D_probe = nengo.Probe(D.output, 'output', synapse=0.02)
             output_probe = nengo.Probe(output.output, 'output', synapse=0.02)
 
-        self.D_probe = D_probe
-        self.output_probe = output_probe
+            # end model
 
         self.model = model
+
+        self.assoc_probes = assoc_probes
+        self.transfer_probes = transfer_probes
+
+        self.D_probe = D_probe
+        self.output_probe = output_probe
 
         if ocl_imported and ocl is not None:
             pyopencl.get_platforms()

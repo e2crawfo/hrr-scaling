@@ -116,7 +116,7 @@ def setup_corpus(input_dir, relation_symbols, dim, vf, id_vecs=False, unitary_ve
 #pick some key that i want to test...note this has to be the TARGET of something i decode
 # then add a word/relation combo to the jump test that will decode to that key
 # then add a probe on that key so we can see what happens!
-def gen_probe_indices(corpus_dict, num_words, relation_symbols, words=[], relations=[], seed=1):
+def gen_probe_keys(corpus_dict, num_words, relation_symbols, words=[], relations=[], seed=1):
   """Generate probe indices for an associative memory test.
 
   Specify links to be tested ahead of time, return indices for those, which get passed to the
@@ -128,7 +128,7 @@ def gen_probe_indices(corpus_dict, num_words, relation_symbols, words=[], relati
   The returned probe index is a key into the item dictionaries
   """
 
-  probe_indices = []
+  probe_keys = []
 
   rng = random.Random(seed)
 
@@ -150,10 +150,10 @@ def gen_probe_indices(corpus_dict, num_words, relation_symbols, words=[], relati
       words.append(word)
       relations.append(index)
 
-    probe_indices.append(link[1])
+    probe_keys.append(link[1])
     n+=1
 
-  return (probe_indices, words, relations)
+  return (probe_keys, words, relations)
 
 def setup_relation_stats(largest_degree = 1000):
   relation_stats = dict(zip(range(largest_degree), [[[],[],[],0] for i in range(largest_degree)]))

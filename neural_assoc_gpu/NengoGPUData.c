@@ -339,12 +339,18 @@ NengoGPUData* getNewNengoGPUData()
   new->reftime = NULL;
   new->spikes = NULL;
 
+  new->probes_host = NULL;
+  new->probes_device = NULL;
+  new->probe_map = NULL;
+
   return new;
 }
 
 
-// Should only be called once the NengoGPUData's numerical values have been set. This function allocates memory of the approprate size for each pointer.
-// Memory is allocated on the host. The idea is to call this before we load the data in from the JNI structures, so we have somewhere to put that data. Later, we will move most of the data to the device.
+// Should only be called once the NengoGPUData's numerical values have been set. This function
+// allocates memory of the approprate size for each pointer. Memory is allocated on the host.
+// The idea is to call this before we load the data in from the JNI structures, so we have
+// somewhere to put that data. Later, we will move most of the data to the device.
 void initializeNengoGPUData(NengoGPUData* new)
 {
   if(new == NULL)
@@ -375,6 +381,11 @@ void initializeNengoGPUData(NengoGPUData* new)
   new->gain = newFloatArray(new->neurons_per_item, name);
   name = "bias";
   new->bias = newFloatArray(new->neurons_per_item, name);
+
+  name = "probe_map";
+  new->probe_map = newIntArray(new->num_probes, name);
+  name = "probes_host";
+  new->probes_host = newFloatArray(new->num_probes, name);
 }
 
 
@@ -404,6 +415,7 @@ void moveToDeviceNengoGPUData(NengoGPUData* nengo_data)
     moveToDeviceFloatArray(nengo_data->decoders);
     moveToDeviceFloatArray(nengo_data->gain);
     moveToDeviceFloatArray(nengo_data->bias);
+    moveToDeviceIntArray(nengo_data->probe_map);
 
     nengo_data->on_device = 1;
   }
@@ -429,6 +441,10 @@ void freeNengoGPUData(NengoGPUData* nengo_data)
   freeFloatArray(nengo_data->voltage);
   freeFloatArray(nengo_data->reftime);
   freeFloatArray(nengo_data->spikes);
+
+  freeFloatArray(nengo_data->probes_host);
+  freeFloatArray(nengo_data->probes_device);
+  freeIntArray(nengo_data->probe_map);
 
   if(nengo_data->fp)
     fclose(nengo_data->fp);

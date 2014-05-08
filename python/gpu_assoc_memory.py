@@ -3,6 +3,7 @@ from ctypes import POINTER, c_float, c_int, cast, CDLL
 import numpy as np
 import nengo
 from nengo.utils.distributions import Uniform
+from collections import OrderedDict
 
 # try:
 #     import matplotlib.pyplot as plt
@@ -36,12 +37,22 @@ def convert_to_carray(l, t, depth):
 
 class AssociativeMemoryGPU(object):
 
-    # index_vectors and stored_vectors should both be lists of vectors
+    # index_vectors and stored_vectors should both be OrderedDicts
     # identical is whether all ensembles should be exactly the same
     def __init__(self, devices, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
                  tau_ref=0.002, intercepts=Uniform(0.0, 0.3),
-                 max_rates=Uniform(200, 200), identical=False, do_print=False):
+                 max_rates=Uniform(200, 200), identical=False, 
+                 probe_keys=[], do_print=False):
+
+        if not isinstance(index_vectors, OrderedDict):
+            raise ValueError("index_vectors must be an OrderedDict")
+
+        if not isinstance(stored_vectors, OrderedDict):
+            raise ValueError("stored_vectors must be an OrderedDict")
+
+        if not index_vectors.keys() == stored_vectors.keys():
+            raise ValueError("stored_vectors must be an OrderedDict")
 
         self.libNeuralAssocGPU = CDLL("libNeuralAssocGPU.so")
 
@@ -88,6 +99,18 @@ class AssociativeMemoryGPU(object):
         c_bias = convert_to_carray(bias, c_float, 1)
         c_devices = convert_to_carray(devices, c_int, 1)
 
+        keys = index_vectors.keys()
+        probe_index_map = {}
+
+        order = range(len(probe_keys))
+
+        probe_indices = [keys.index(pk) for pk in probe_keys]
+        order.sort(key=lambda x: probe_indices[x])
+        self.probe_map = dict(zip(probe_keys, order))
+        probe_indices.sort()
+
+        c_probe_indices = convert_to_carray(probe_indices, c_int, 1)
+
         # Scalars
         c_num_devices = c_int(num_devices)
         c_num_items = c_int(self.num_items)
@@ -99,38 +122,49 @@ class AssociativeMemoryGPU(object):
         c_dt = c_float(dt)
         c_identical = c_int(int(identical))
         c_do_print = c_int(int(do_print))
+        c_num_probes = c_int(len(probe_indices))
 
         gpu_lib = self.libNeuralAssocGPU
         gpu_lib.setup(c_num_devices, c_devices, c_dt, c_num_items,
                       c_dimensions, c_index_vectors, c_stored_vectors, c_pstc,
                       c_decoders, c_neurons_per_item, c_gain, c_bias,
-                      c_tau_ref, c_tau_rc, c_identical, c_do_print)
+                      c_tau_ref, c_tau_rc, c_identical, c_do_print,
+                      c_probe_indices, c_num_probes)
 
         # setup arrays needed in step function
         self._output = np.zeros(self.dimensions)
+        self._probes = np.zeros(len(probe_indices))
 
         self._c_input = None
-        output = np.zeros(self.dimensions)
-        self._c_output = convert_to_carray(output, c_float, 1)
+        self._c_output = convert_to_carray(self._output, c_float, 1)
+        self._c_probes = convert_to_carray(self._probes, c_float, 1)
 
         self.elapsed_time = 0.0
         self.mode = 'neural_assoc_gpu'
 
     def step(self, input_vector):
-        print "in gpu assoc memory step"
         self._c_input = convert_to_carray(input_vector, c_float, 1)
 
         c_start_time = c_float(self.elapsed_time)
         c_end_time = c_float(self.elapsed_time + self.dt)
 
         gpu_lib = self.libNeuralAssocGPU
-        gpu_lib.step(self._c_input, self._c_output, c_start_time, c_end_time)
+        gpu_lib.step(self._c_input, self._c_output,
+                     self._c_probes, c_start_time, c_end_time)
 
-        print "in done assoc memory step"
-        for i in range(self.dimensions):
+        for i in range(self._output.size):
             self._output[i] = self._c_output[i]
 
+        for i in range(self._probes.size):
+            self._probes[i] = self._c_probes[i]
+
         return self._output
+
+    def probe_func(self, probe_key):
+        index = self.probe_map[probe_key]
+        def f(t):
+            return self._probes[index]
+        return f
 
     def kill(self):
         self.libNeuralAssocGPU.kill()
@@ -138,11 +172,4 @@ class AssociativeMemoryGPU(object):
     def reset(self):
 
         self.elapsed_time = 0.0
-
-        for key in self.probe_data:
-            node, probes, spikes = self.probe_data[key]
-            node.reset()
-            for p in probes:
-                p.reset()
-
         self.libNeuralAssocGPU.reset()

@@ -175,9 +175,10 @@ __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* 
 
   if( i < numNeurons)
   {
+    int index = i % neurons_per_item;
     float voltage = voltage_array[i];
     float reftime = reftime_array[i];
-    float current = bias[i] + scale[i] * encode_result[i];
+    float current = bias[index] + scale[index] * encode_result[i];
 
     float dV, post_ref, spike;
 
@@ -195,7 +196,7 @@ __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* 
     spike = (float)(voltage > 1.0);
 
     if(spike){
-        reftime = tau_ref + dt * (1 - (voltage - 1.0) / dV);
+        reftime = tau_ref + dt * (1.0 - (voltage - 1.0) / dV);
         voltage = 0.0;
     }
 
@@ -223,6 +224,16 @@ __global__ void dot_product(int vector_length, long int stride, float* A, float*
       }
 
       C[i] = val;
+  }
+}
+
+__global__ void moveGPUData(int size, int* map, float* to, float* from)
+{
+  int i = threadIdx.x + (blockDim.x * threadIdx.y) + (blockIdx.x + (gridDim.x * blockIdx.y)) * blockDim.x * blockDim.y;
+
+  if(i < size)
+  {
+    to[i] = from[ map[i] ];
   }
 }
 
@@ -289,21 +300,39 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   {
       // decoded_values(num_items, 1) =
       //    lif_output(num_items, neurons_per_item) x decoder(neurons_per_item, 1)
+      printf("GPU: Identical Ensembles\n");
       op = CUBLAS_OP_T;
       status = cublasSgemv(nengo_data->handle, op, nengo_data->neurons_per_item,
                            nengo_data->num_items, &one, nengo_data->spikes->array,
                            nengo_data->neurons_per_item, nengo_data->decoders->array,
                            1, &zero, nengo_data->decoded_values->array, 1);
+      printf("Decoded values:\n");
+      printFloatArray(NULL, nengo_data->decoded_values, nengo_data->num_items, 1);
   }
   else
   {
       dimBlock.x = 256;
       dimGrid.x = nengo_data->num_items / dimBlock.x + 1;
 
-      dot_product<<<dimGrid, dimBlock>>>(nengo_data->dimension, nengo_data->num_items, nengo_data->spikes->array,
-                                         nengo_data->decoders->array, nengo_data->decoded_values->array);
+      dot_product<<<dimGrid, dimBlock>>>(nengo_data->dimension, nengo_data->num_items,
+                                         nengo_data->spikes->array, nengo_data->decoders->array,
+                                         nengo_data->decoded_values->array);
       err = cudaGetLastError();
-      checkCudaErrorWithDevice(err, nengo_data->device, "run_neural_associative_memory: decoding with dot_product kernel");
+      checkCudaErrorWithDevice(err, nengo_data->device,
+                            "run_neural_associative_memory: decoding with dot_product kernel");
+  }
+
+  if(nengo_data->num_probes > 0)
+  {
+      dimBlock.x = 256;
+      dimGrid.x = nengo_data->num_probes / dimBlock.x + 1;
+      moveGPUData<<<dimBlock, dimGrid>>>(nengo_data->num_probes,
+                                         nengo_data->probe_map->array,
+                                         nengo_data->probes_device->array,
+                                         nengo_data->decoded_values->array);
+
+      cudaMemcpy(nengo_data->probes_host->array, nengo_data->probes_device->array,
+                 (nengo_data->num_probes) * sizeof(float), cudaMemcpyDeviceToHost);
   }
 
   // Multiplying the matrix whose columns are the result vectors by the vector of values
@@ -375,6 +404,9 @@ void initializeDeviceInputAndOutput(NengoGPUData* nengo_data)
   name = "spikes";
   nengo_data->spikes = newFloatArrayOnDevice(nengo_data->neurons_per_item * nengo_data->num_items, name);
 
+  name = "probes_device";
+  nengo_data->probes_device = newFloatArrayOnDevice(nengo_data->num_probes, name);
+
   reset_neural_associative_memory(nengo_data);
 }
 
@@ -399,6 +431,9 @@ void reset_neural_associative_memory(NengoGPUData* nengo_data)
   err = cudaMemset(nengo_data->reftime->array, 0, sizeof(float) * nengo_data->neurons_per_item * nengo_data->num_items);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
   err = cudaMemset(nengo_data->spikes->array, 0, sizeof(float) * nengo_data->neurons_per_item * nengo_data->num_items);
+  checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
+
+  err = cudaMemset(nengo_data->probes_device->array, 0, sizeof(float) * nengo_data->num_probes);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
 
   if(nengo_data->do_print)

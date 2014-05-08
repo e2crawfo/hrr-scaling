@@ -32,6 +32,7 @@ __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* 
                          float* voltage_array, float* reftime_array, float tau_rc,
                          float tau_ref, float* bias, float* scale, float* spikes);
 __global__ void dot_product(int vector_length, long int stride, float* A, float* B, float* C);
+__global__ void moveGPUData(int size, int* map, float* to, float* from);
 
 void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, float end_time);
 

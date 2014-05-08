@@ -30,9 +30,10 @@ void run_kill();
 void setup(int num_devices_requested, int* devices_to_use, float dt, int num_items,
            int dimension, int** index_vectors, int** stored_vectors, float tau,
            float* decoders, int neurons_per_item, float* gain, float* bias,
-           float tau_ref, float tau_rc, int print_data);
+           float tau_ref, float tau_rc, int identical_ensembles, int print_data,
+           int* probe_indices, int num_probes);
 
-void step(float* input, float* output, float start, float end);
+void step(float* input, float* output, float* probes, float start, float end);
 
 void kill();
 void reset();

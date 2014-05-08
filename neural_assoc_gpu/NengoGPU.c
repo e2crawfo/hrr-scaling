@@ -302,7 +302,8 @@ void run_kill()
 void setup(int num_devices_requested, int* devices_to_use, float dt, int num_items,
            int dimension, int** index_vectors, int** stored_vectors, float tau,
            float* decoders, int neurons_per_item, float* gain, float* bias,
-           float tau_ref, float tau_rc, int print_data)
+           float tau_ref, float tau_rc, int identical_ensembles, int print_data,
+           int* probe_indices, int num_probes)
 {
 
   int i, j;
@@ -310,8 +311,8 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
   int num_available_devices = getGPUDeviceCount();
 
   do_print = print_data;
-  if(do_print)
-    printf("NengoGPU: SETUP\n"); 
+  //if(do_print)
+  printf("NengoGPU: SETUP\n");
 
   num_devices = num_devices_requested > num_available_devices ? num_available_devices : num_devices_requested;
 
@@ -335,6 +336,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
   int leftover = num_items % num_devices;
   int item_index = 0;
   int items_for_current_device = 0;
+  int probe_count = 0;
 
   // Now we start to load the data into the NengoGPUData struct for each device. 
   // (though the data doesn't get put on the actual device just yet).
@@ -344,6 +346,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
   // the NengoGPU user manual.
   for(i = 0; i < num_devices; i++)
   {
+    // set values
     current_data = nengo_data_array[i];
 
     current_data->device = devices_to_use[i];
@@ -361,9 +364,24 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     leftover--;
 
     current_data->num_items = items_for_current_device;
+    current_data->identical_ensembles = identical_ensembles;
 
+    probe_count = 0;
+    for(j = 0; j < num_probes; j++)
+    {
+        if(probe_indices[j] >= item_index &&
+           probe_indices[j] < item_index + items_for_current_device)
+        {
+            probe_count++;
+        }
+    }
+
+    current_data->num_probes = probe_count;
+
+    // create the arrays
     initializeNengoGPUData(current_data);
 
+    // populate the arrays
     for(j = 0; j < items_for_current_device; j++)
     {
       memcpy(current_data->index_vectors->array + j * dimension,
@@ -376,9 +394,21 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     memcpy(current_data->gain->array, gain, neurons_per_item * sizeof(float));
     memcpy(current_data->bias->array, bias, neurons_per_item * sizeof(float));
 
+    // populate the probe map
+    probe_count = 0;
+    for(j = 0; j < num_probes; j++)
+    {
+        if(probe_indices[j] >= item_index &&
+           probe_indices[j] < item_index + items_for_current_device)
+        {
+            current_data->probe_map->array[probe_count] = probe_indices[j] - item_index;
+            probe_count++;
+        }
+    }
+
     item_index += items_for_current_device;
 
-    //printf("printing nengo gpu data\n"); 
+    //printf("printing nengo gpu data\n");
     //printNengoGPUData(current_data, 1);
   }
 
@@ -392,7 +422,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
 // form for processing, then tells each GPU thread to take a step. Once they've finished
 // the step, this function puts the representedOutputValues and spikes in the appropriate
 // python arrays so that they can be read on the python side when this call returns
-void step(float* input, float* output, float start, float end)
+void step(float* input, float* output, float* probes, float start, float end)
 {
   start_time = start;
   end_time = end;
@@ -432,6 +462,28 @@ void step(float* input, float* output, float start, float end)
     for(j = 0; j < current_data->dimension; j++)
     {
       output[j] += current_data->output_host->array[j];
+    }
+  }
+
+  for(i = 0; i < num_devices; i++)
+  {
+    current_data = nengo_data_array[i];
+
+    for(j = 0; j < current_data->dimension; j++)
+    {
+      output[j] += current_data->output_host->array[j];
+    }
+  }
+
+  int probe_index = 0;
+  for(i = 0; i < num_devices; i++)
+  {
+    current_data = nengo_data_array[i];
+
+    for(j = 0; j < current_data->num_probes; j++)
+    {
+      probes[probe_index] = current_data->probes_host->array[j];
+      probe_index++;
     }
   }
 }

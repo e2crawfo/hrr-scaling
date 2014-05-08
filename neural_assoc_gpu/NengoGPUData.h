@@ -95,6 +95,7 @@ struct NengoGPUData_t{
   int neurons_per_item;
   int dimension;
   int num_items;
+  int num_probes;
 
   float tau;
   float pstc;
@@ -123,6 +124,10 @@ struct NengoGPUData_t{
   floatArray* voltage;
   floatArray* reftime;
   floatArray* spikes;
+
+  floatArray* probes_host;
+  floatArray* probes_device;
+  intArray* probe_map;
 };
 
 typedef struct NengoGPUData_t NengoGPUData;
@@ -133,7 +138,7 @@ void checkNengoGPUData(NengoGPUData*);
 void moveToDeviceNengoGPUData(NengoGPUData*);
 void freeNengoGPUData(NengoGPUData*);
 
-void printNengoGPUData(NengoGPUData*nengo_data, int printArrays);
+void printNengoGPUData(NengoGPUData* nengo_data, int printArrays);
 void printDynamicNengoGPUData(NengoGPUData* nengo_data);
 void printVecs(NengoGPUData* nengo_data);
 void printIntArray(FILE* fp, intArray* a, int n, int m);
