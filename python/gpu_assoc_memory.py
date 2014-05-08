@@ -43,7 +43,7 @@ class AssociativeMemoryGPU(object):
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
                  tau_ref=0.002, radius=1.0, intercepts=Uniform(0.0, 0.3),
                  max_rates=Uniform(200, 200), identical=False,
-                 probe_keys=[], do_print=False):
+                 probe_keys=[], do_print=False, seed=None):
 
         if not isinstance(index_vectors, OrderedDict):
             raise ValueError("index_vectors must be an OrderedDict")
@@ -73,20 +73,49 @@ class AssociativeMemoryGPU(object):
                                        intercepts=intercepts,
                                        max_rates=max_rates,
                                        encoders=assoc_encoders,
-                                       label="assoc",
-                                       radius=0.5)
+                                       label="assoc", seed=seed,
+                                       radius=radius)
 
                 dummy = nengo.Ensemble(nengo.LIF(1), 1)
 
-                conn = nengo.Connection(assoc, dummy, function=threshold_func)
+                conn = nengo.Connection(assoc, dummy,
+                                        function=threshold_func, seed=seed)
 
             sim = nengo.Simulator(model)
 
             gain = sim.data[assoc.neurons].gain
             bias = sim.data[assoc.neurons].bias
-            decoders = sim.data[conn].decoders[0] # first (and only) row
+            decoders = sim.data[conn].decoders[0]
         else:
-            pass
+            model = nengo.Network("Associative Memory")
+            with model:
+                dummy = nengo.Ensemble(nengo.LIF(1), 1)
+
+                for i in range(self.num_items):
+                    assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
+                                           intercepts=intercepts,
+                                           max_rates=max_rates,
+                                           encoders=assoc_encoders,
+                                           label="assoc",
+                                           radius=radius)
+
+                    conn = nengo.Connection(assoc, dummy,
+                                            function=threshold_func)
+
+            sim = nengo.Simulator(model)
+
+            gain = []
+            bias = []
+            decoders = []
+
+            for i in range(self.num_items):
+                gain.append(sim.data[assoc.neurons].gain)
+                bias.append(sim.data[assoc.neurons].bias)
+                decoders.append(sim.data[conn].decoders[0])
+
+            gain = np.array(gain).T
+            bias = np.array(bias).T
+            decoders = np.array(decoders).T
 
         # Arrays
         index_vector_vals = index_vectors.values()
@@ -95,12 +124,13 @@ class AssociativeMemoryGPU(object):
         c_index_vectors = convert_to_carray(index_vector_vals, c_float, 2)
         c_stored_vectors = convert_to_carray(stored_vector_vals, c_float, 2)
         c_decoders = convert_to_carray(decoders, c_float, 1)
-        c_gain = convert_to_carray(gain, c_float, 1)
-        c_bias = convert_to_carray(bias, c_float, 1)
-        c_devices = convert_to_carray(devices, c_int, 1)
+
+        neuron_depth = 1 if identical else 2
+        c_gain = convert_to_carray(gain, c_float, neuron_depth)
+        c_bias = convert_to_carray(bias, c_float, neuron_depth)
+        c_devices = convert_to_carray(devices, c_int, neuron_depth)
 
         keys = index_vectors.keys()
-        probe_index_map = {}
 
         order = range(len(probe_keys))
 
@@ -163,14 +193,15 @@ class AssociativeMemoryGPU(object):
 
     def probe_func(self, probe_key):
         index = self.probe_map[probe_key]
+
         def f(t):
             return self._probes[index]
+
         return f
 
     def kill(self):
         self.libNeuralAssocGPU.kill()
 
     def reset(self):
-
         self.elapsed_time = 0.0
         self.libNeuralAssocGPU.reset()
