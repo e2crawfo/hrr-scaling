@@ -302,8 +302,8 @@ void run_kill()
 void setup(int num_devices_requested, int* devices_to_use, float dt, int num_items,
            int dimension, int** index_vectors, int** stored_vectors, float tau,
            float* decoders, int neurons_per_item, float* gain, float* bias,
-           float tau_ref, float tau_rc, int identical_ensembles, int print_data,
-           int* probe_indices, int num_probes)
+           float tau_ref, float tau_rc, float radius, int identical_ensembles,
+           int print_data, int* probe_indices, int num_probes)
 {
 
   int i, j;
@@ -358,6 +358,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     current_data->tau = tau;
     current_data->tau_ref = tau_ref;
     current_data->tau_rc = tau_rc;
+    current_data->radius = radius;
     current_data->dt = dt;
 
     items_for_current_device = items_per_device + (leftover > 0 ? 1 : 0);

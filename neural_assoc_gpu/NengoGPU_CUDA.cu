@@ -168,7 +168,7 @@ void checkCudaError(cudaError_t err, char* message)
 
 __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* encode_result,
                          float* voltage_array, float* reftime_array, float tau_rc,
-                         float tau_ref, float* bias, float* scale, float* spikes)
+                         float tau_ref, float* bias, float* gain, float* spikes)
 {
   int i = threadIdx.x + (blockDim.x * threadIdx.y)
             + (blockIdx.x + (gridDim.x * blockIdx.y)) * blockDim.x * blockDim.y;
@@ -178,7 +178,7 @@ __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* 
     int index = i % neurons_per_item;
     float voltage = voltage_array[i];
     float reftime = reftime_array[i];
-    float current = bias[index] + scale[index] * encode_result[i];
+    float current = bias[index] + gain[index] * encode_result[i];
 
     float dV, post_ref, spike;
 
@@ -269,13 +269,18 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   cublasOperation_t op = CUBLAS_OP_T;
   cublasStatus_t status;
 
-  float dt_over_tau = nengo_data->dt / nengo_data->tau;
-  float scale = 1.0 - dt_over_tau;
+  // float dt_over_tau = nengo_data->dt / nengo_data->tau;
+  // float scale = 1.0 - dt_over_tau;
+  // float scale = 1.0;
+  float one = 1.0;
+  float zero = 0.0;
+  float inv_radius = 1.0 / nengo_data->radius;
   int lda = nengo_data->dimension;
 
   status = cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
-                       &dt_over_tau, nengo_data->index_vectors->array, lda,
-                       nengo_data->input_device->array, 1, &scale,
+                       // &dt_over_tau, nengo_data->index_vectors->array, lda,
+                       &inv_radius, nengo_data->index_vectors->array, lda,
+                       nengo_data->input_device->array, 1, &zero,
                        nengo_data->encode_result->array, 1);
 
   dimBlock.x = 256;
@@ -293,8 +298,6 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
 
   // op has to be transposed make sure we get the decoder that
   // corresponds to the thresholding function, not the identity decoder
-  float one = 1.0;
-  float zero = 0.0;
 
   if(nengo_data->identical_ensembles)
   {

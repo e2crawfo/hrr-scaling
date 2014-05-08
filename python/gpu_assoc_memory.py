@@ -41,8 +41,8 @@ class AssociativeMemoryGPU(object):
     # identical is whether all ensembles should be exactly the same
     def __init__(self, devices, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
-                 tau_ref=0.002, intercepts=Uniform(0.0, 0.3),
-                 max_rates=Uniform(200, 200), identical=False, 
+                 tau_ref=0.002, radius=1.0, intercepts=Uniform(0.0, 0.3),
+                 max_rates=Uniform(200, 200), identical=False,
                  probe_keys=[], do_print=False):
 
         if not isinstance(index_vectors, OrderedDict):
@@ -119,6 +119,7 @@ class AssociativeMemoryGPU(object):
         c_pstc = c_float(pstc)
         c_tau_ref = c_float(tau_ref)
         c_tau_rc = c_float(tau_rc)
+        c_radius = c_float(radius)
         c_dt = c_float(dt)
         c_identical = c_int(int(identical))
         c_do_print = c_int(int(do_print))
@@ -128,7 +129,7 @@ class AssociativeMemoryGPU(object):
         gpu_lib.setup(c_num_devices, c_devices, c_dt, c_num_items,
                       c_dimensions, c_index_vectors, c_stored_vectors, c_pstc,
                       c_decoders, c_neurons_per_item, c_gain, c_bias,
-                      c_tau_ref, c_tau_rc, c_identical, c_do_print,
+                      c_tau_ref, c_tau_rc, c_radius, c_identical, c_do_print,
                       c_probe_indices, c_num_probes)
 
         # setup arrays needed in step function

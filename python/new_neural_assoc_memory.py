@@ -36,9 +36,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
     def __init__(self, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
-                 dt=0.001, pstc=0.02, tau_rc=0.02, tau_ref=0.002,
-                 output_dir=".", probe_keys=[], plot=False,
-                 ocl=[], gpus=[], identical=False):
+                 dt=0.001, tau_rc=0.02, tau_ref=0.002, pstc=0.005,
+                 output_dir=".", probe_keys=[], plot=False, ocl=[],
+                 gpus=[], identical=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -69,7 +69,6 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.timesteps = timesteps
         self.plot = plot
 
-        self.pstc = pstc
         self.threshold = threshold
         self.transfer_func = lambda x: 1 if x > self.threshold else 0
 
@@ -80,7 +79,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.A_input_vector = np.zeros(self.dim)
         self.B_input_vector = np.zeros(self.dim)
 
-        synapse = 0.005
+        synapse = pstc
 
         with model:
             self.A_input_func = make_func(self, "A_input_vector")
@@ -111,7 +110,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             assoc_encoders = np.ones((neurons_per_item, 1))
             intercepts = Uniform(0.0, 0.3)
             max_rates = Uniform(200.0, 200.0)
-            scale = 10.0
+            #scale = 10.0
+            scale = 1.0
+            assoc_radius = 0.5
 
             if gpus:
                 # Add a nengo.Node which calls out to a GPU library for
@@ -123,8 +124,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                          neurons_per_item=neurons_per_item,
                                          intercepts=intercepts,
                                          max_rates=max_rates, tau_ref=tau_ref,
-                                         tau_rc=tau_rc, do_print=False,
-                                         identical=identical,
+                                         tau_rc=tau_rc, radius=assoc_radius,
+                                         do_print=False, identical=identical,
                                          probe_keys=probe_keys)
 
                 print "done building gpu associative memory"
@@ -162,7 +163,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                            max_rates=max_rates,
                                            encoders=assoc_encoders,
                                            label=assoc_label,
-                                           radius=0.5)
+                                           radius=assoc_radius)
 
                     nengo.Connection(D.output, assoc,
                                      transform=iv, synapse=synapse)

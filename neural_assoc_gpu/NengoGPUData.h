@@ -97,10 +97,11 @@ struct NengoGPUData_t{
   int num_items;
   int num_probes;
 
-  float tau;
   float pstc;
   float tau_ref;
   float tau_rc;
+  float tau;
+  float radius;
   float dt;
 
   cublasHandle_t handle;

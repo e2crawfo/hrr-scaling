@@ -316,6 +316,7 @@ NengoGPUData* getNewNengoGPUData()
   new->tau_ref = 0;
   new->tau_rc = 0;
   new->dt = 0;
+  new->radius = 0;
 
   //new->handle = NULL;
   new->handle_initialized = 0;
