@@ -46,6 +46,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ndarrays containing the assigned vector
         """
 
+        then = datetime.datetime.now()
+
         self.unitary = False
         self.bidirectional = False
         self.identity = False
@@ -71,14 +73,13 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.plot = plot
 
         seed = np.random.randint(npext.maxint)
-        self.rng = np.random.RandomState(seed)
 
         self.threshold = threshold
         self.transfer_func = lambda x: 1 if x > self.threshold else 0
 
         radius = 5.0 / np.sqrt(self.dim)
 
-        model = nengo.Network(label="Extraction")
+        model = nengo.Network(label="Extraction", seed=seed)
 
         self.A_input_vector = np.zeros(self.dim)
         self.B_input_vector = np.zeros(self.dim)
@@ -93,14 +94,13 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             B_input = nengo.Node(output=self.B_input_func, size_out=self.dim)
 
             A = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
-                              label="A", radius=radius, seed=self.next_seed())
+                              label="A", radius=radius)
             B = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
-                              label="B", radius=radius, seed=self.next_seed())
-            D = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
-                              label="D", radius=radius, seed=self.next_seed())
+                              label="B", radius=radius)
             cconv = CircularConvolution(nengo.LIF(int(2 * neurons_per_dim)),
-                                        self.dim, invert_b=True,
-                                        seed=self.next_seed())
+                                        self.dim, invert_b=True)
+            D = EnsembleArray(nengo.LIF(neurons_per_dim), self.dim,
+                              label="D", radius=radius)
 
             nengo.Connection(A_input, A.input)
             nengo.Connection(B_input, B.input)
@@ -111,7 +111,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
             output = EnsembleArray(nengo.LIF(neurons_per_dim),
                                    self.dim, label="output",
-                                   radius=radius, seed=self.next_seed())
+                                   radius=radius)
 
             assoc_encoders = np.ones((neurons_per_item, 1))
             intercepts = Uniform(0.0, 0.3)
@@ -121,9 +121,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             scale = 1.0
             assoc_radius = 0.5
 
-            seed = None
-            if identical:
-                seed = self.next_seed()
+            assoc_probes = OrderedDict()
+            transfer_probes = OrderedDict()
 
             if gpus:
                 # Add a nengo.Node which calls out to a GPU library for
@@ -151,9 +150,6 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                 nengo.Connection(D.output, assoc, synapse=synapse)
                 nengo.Connection(assoc, output.input, synapse=synapse)
 
-                assoc_probes = OrderedDict()
-                transfer_probes = OrderedDict()
-
                 for k in probe_keys:
                     n = nengo.Node(output=assoc_memory.probe_func(k))
                     probe = nengo.Probe(n, synapse=0.02)
@@ -161,8 +157,10 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                     transfer_probes[k] = probe
 
             else:
-                assoc_probes = OrderedDict()
-                transfer_probes = OrderedDict()
+                assoc_in = nengo.Node(size_in=self.dim, label="Assoc Input")
+                assoc_out = nengo.Node(size_in=self.dim, label="Assoc Output")
+                nengo.Connection(D.output, assoc_in, synapse=synapse)
+                nengo.Connection(assoc_out, output.input, synapse=synapse)
 
                 for k in self.index_vectors:
                     iv = self.index_vectors[k].reshape((1, self.dim))
@@ -176,12 +174,12 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                            label=assoc_label, seed=seed,
                                            radius=assoc_radius,)
 
-                    nengo.Connection(D.output, assoc,
-                                     transform=iv, synapse=synapse)
+                    nengo.Connection(assoc_in, assoc,
+                                     transform=iv, synapse=None)
 
-                    nengo.Connection(assoc, output.input, transform=sv,
+                    nengo.Connection(assoc, assoc_out, transform=sv,
                                      function=self.transfer_func,
-                                     synapse=synapse, seed=seed)
+                                     synapse=None, seed=seed)
 
                     if k in probe_keys:
 
@@ -216,6 +214,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         print "Building simulator"
         self.simulator = sim_class(model)
+
+        now = datetime.datetime.now()
+        self.write_to_runtime_file(now - then, "setup")
 
     def unbind_and_associate(self, item, query, *args, **kwargs):
         then = datetime.datetime.now()
@@ -257,7 +258,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.simulator.run(self.timesteps * self.dt)
 
         now = datetime.datetime.now()
-        self.write_to_runtime_file(now - then)
+        self.write_to_runtime_file(now - then, "unbind")
 
         if self.plot:
             self.plot_cleanup_activities()
@@ -382,11 +383,12 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                   [date_time_string, ":", ".", " ", "-"])
         # plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
 
-    def write_to_runtime_file(self, delta):
+    def write_to_runtime_file(self, delta, label=''):
         to_print = [self.dim, self.num_items,
                     self.neurons_per_item, self.neurons_per_dim,
                     self.timesteps, delta]
-        print >> self.runtimes_file, ",".join([str(tp) for tp in to_print])
+        print >> self.runtimes_file, label, \
+            ": " ",".join([str(tp) for tp in to_print])
 
     def print_config(self, output_file):
         super(NewNeuralAssociativeMemory, self).print_config(output_file)
@@ -395,7 +397,3 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                           str(self.neurons_per_item) + "\n")
         output_file.write("Neurons per dim: " +
                           str(self.neurons_per_dim) + "\n")
-
-    def next_seed(self):
-        seed = self.rng.randint(npext.maxint)
-        return seed
