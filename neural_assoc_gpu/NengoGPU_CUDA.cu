@@ -263,42 +263,11 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
 
   dim3 dimBlock(1, 1);
   dim3 dimGrid(1, 1);
-
-  // Copy input from host to GPU
-  cudaMemcpy(nengo_data->input_device->array, nengo_data->input_host->array,
-            (nengo_data->dimension) * sizeof(float), cudaMemcpyHostToDevice);
-
-  err = cudaGetLastError();
-  checkCudaErrorWithDevice(err, nengo_data->device, "run_neural_associative_memory: copying cpu input to device");
-
-  // Multiply input vectors by corresponding index vector
-  cublasOperation_t op = CUBLAS_OP_T;
-
+  cublasOperation_t op;
   float one = 1.0;
   float zero = 0.0;
   float inv_radius = 1.0 / nengo_data->radius;
   int lda = nengo_data->dimension;
-
-  cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
-              &inv_radius, nengo_data->index_vectors->array, lda,
-              nengo_data->input_device->array, 1, &zero,
-              nengo_data->encode_result->array, 1);
-
-  dimBlock.x = 256;
-  dimGrid.x = nengo_data->neurons_per_item  * nengo_data->num_items / dimBlock.x + 1;
-
-  lif_math<<<dimGrid, dimBlock>>>(nengo_data->neurons_per_item * nengo_data->num_items,
-                                  nengo_data->neurons_per_item, nengo_data->dt,
-                                  nengo_data->encode_result->array, nengo_data->voltage->array,
-                                  nengo_data->reftime->array, nengo_data->tau_rc,
-                                  nengo_data->tau_ref, nengo_data->bias->array,
-                                  nengo_data->gain->array, nengo_data->spikes->array);
-
-  err = cudaGetLastError();
-  checkCudaErrorWithDevice(err, nengo_data->device, "run_neural_associative_memory: lif math");
-
-  // op has to be transposed make sure we get the decoder that
-  // corresponds to the thresholding function, not the identity decoder
 
   if(nengo_data->identical_ensembles)
   {
@@ -336,6 +305,7 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
                  (nengo_data->num_probes) * sizeof(float), cudaMemcpyDeviceToHost);
   }
 
+
   // Multiplying the matrix whose columns are the result vectors by the vector of values
   // decoded from the association populations. The result is the decoded vector that is fed
   // into the output population.  op should not be transposed here.
@@ -354,6 +324,35 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
 
   //printf("After step: %f, %f\n", start_time, end_time);
   //printNengoGPUData(nengo_data, 1);
+
+  // Copy input from host to GPU
+  cudaMemcpy(nengo_data->input_device->array, nengo_data->input_host->array,
+            (nengo_data->dimension) * sizeof(float), cudaMemcpyHostToDevice);
+
+  err = cudaGetLastError();
+  checkCudaErrorWithDevice(err, nengo_data->device, "run_neural_associative_memory: copying cpu input to device");
+
+  // Multiply input vectors by corresponding index vector
+  op = CUBLAS_OP_T;
+
+  cublasSgemv(nengo_data->handle, op, nengo_data->dimension, nengo_data->num_items,
+              &inv_radius, nengo_data->index_vectors->array, lda,
+              nengo_data->input_device->array, 1, &zero,
+              nengo_data->encode_result->array, 1);
+
+  dimBlock.x = 256;
+  dimGrid.x = nengo_data->neurons_per_item  * nengo_data->num_items / dimBlock.x + 1;
+
+  lif_math<<<dimGrid, dimBlock>>>(nengo_data->neurons_per_item * nengo_data->num_items,
+                                  nengo_data->neurons_per_item, nengo_data->dt,
+                                  nengo_data->encode_result->array, nengo_data->voltage->array,
+                                  nengo_data->reftime->array, nengo_data->tau_rc,
+                                  nengo_data->tau_ref, nengo_data->bias->array,
+                                  nengo_data->gain->array, nengo_data->spikes->array);
+
+  err = cudaGetLastError();
+  checkCudaErrorWithDevice(err, nengo_data->device, "run_neural_associative_memory: lif math");
+
 }
 
 float* allocateCudaFloatArray(int size)
