@@ -71,6 +71,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.dt = dt
         self.timesteps = timesteps
         self.plot = plot
+        self.gpus = gpus
+        self.ocl = ocl
 
         seed = np.random.randint(npext.maxint)
 
@@ -376,17 +378,18 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             plt.legend(loc=4)
             plt.axhline(ls=':', c='k')
 
-        plt.show()
+        #plt.show()
 
         date_time_string = str(datetime.datetime.now()).split('.')[0]
         date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
                                   [date_time_string, ":", ".", " ", "-"])
-        # plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
+        plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
 
     def write_to_runtime_file(self, delta, label=''):
         to_print = [self.dim, self.num_items,
                     self.neurons_per_item, self.neurons_per_dim,
-                    self.timesteps, delta]
+                    self.timesteps, "OCL: "+str(self.ocl),
+                    "GPUS: "+str(self.gpus), delta]
         print >> self.runtimes_file, label, \
             ": " ",".join([str(tp) for tp in to_print])
 

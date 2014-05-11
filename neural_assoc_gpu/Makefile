@@ -1,5 +1,5 @@
-CUDA_INC_PATH=/usr/local/cuda-5.5/include
-CUDA_LIB_PATH=/usr/local/cuda-5.5/lib64
+CUDA_INC_PATH=/usr/local/cuda/include
+CUDA_LIB_PATH=/usr/local/cuda/lib64
 
 CUDA_INCLUDES= -I${CUDA_INC_PATH}
 #-I${HOME}/NVIDIA_GPU_Computing_SDK/C/common/inc

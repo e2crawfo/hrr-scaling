@@ -171,6 +171,7 @@ class AssociativeMemoryGPU(object):
         self._c_probes = convert_to_carray(self._probes, c_float, 1)
 
         self.elapsed_time = 0.0
+        self.n_steps = 0
         self.mode = 'neural_assoc_gpu'
 
     def step(self, input_vector):
@@ -178,16 +179,21 @@ class AssociativeMemoryGPU(object):
 
         c_start_time = c_float(self.elapsed_time)
         c_end_time = c_float(self.elapsed_time + self.dt)
+        c_n_steps = c_int(self.n_steps)
 
         gpu_lib = self.libNeuralAssocGPU
         gpu_lib.step(self._c_input, self._c_output,
-                     self._c_probes, c_start_time, c_end_time)
+                     self._c_probes, c_start_time, c_end_time,
+                     c_n_steps)
 
         for i in range(self._output.size):
             self._output[i] = self._c_output[i]
 
         for i in range(self._probes.size):
             self._probes[i] = self._c_probes[i]
+
+        self.n_steps += 1
+        self.elapsed_time += 1
 
         return self._output
 

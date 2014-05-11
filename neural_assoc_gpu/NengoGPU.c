@@ -312,7 +312,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
 
   do_print = print_data;
   //if(do_print)
-  printf("NengoGPU: SETUP\n");
+  printf("NeuralAssocGPU: SETUP\n");
 
   num_devices = num_devices_requested > num_available_devices ? num_available_devices : num_devices_requested;
 
@@ -423,13 +423,14 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
 // form for processing, then tells each GPU thread to take a step. Once they've finished
 // the step, this function puts the representedOutputValues and spikes in the appropriate
 // python arrays so that they can be read on the python side when this call returns
-void step(float* input, float* output, float* probes, float start, float end)
+void step(float* input, float* output, float* probes, float start, float end, int n_steps)
 {
   start_time = start;
   end_time = end;
 
   //if(do_print && ((int) (start_time * 1000)) % 10 == 0)
-  //  printf("NengoGPU: STEP %f\n", start);
+  if(n_steps % 10 == 0) 
+      printf("NeuralAssocGPU: STEP %f\n", start);
 
   NengoGPUData* current_data;
 
