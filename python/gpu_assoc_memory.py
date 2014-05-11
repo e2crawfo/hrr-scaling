@@ -5,11 +5,6 @@ import nengo
 from nengo.utils.distributions import Uniform
 from collections import OrderedDict
 
-# try:
-#     import matplotlib.pyplot as plt
-# except:
-#     pass
-
 
 # Returns a type (specifically a pointer to type "t" with depth "depth")
 def recursive_c_pointer_type(t, depth):
@@ -43,7 +38,7 @@ class AssociativeMemoryGPU(object):
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
                  tau_ref=0.002, radius=1.0, intercepts=Uniform(0.0, 0.3),
                  max_rates=Uniform(200, 200), identical=False,
-                 probe_keys=[], do_print=False, seed=None):
+                 probe_keys=[], do_print=False, seed=None, num_steps=1):
 
         if not isinstance(index_vectors, OrderedDict):
             raise ValueError("index_vectors must be an OrderedDict")
@@ -52,7 +47,8 @@ class AssociativeMemoryGPU(object):
             raise ValueError("stored_vectors must be an OrderedDict")
 
         if not index_vectors.keys() == stored_vectors.keys():
-            raise ValueError("stored_vectors must be an OrderedDict")
+            raise ValueError("Key order in index_vectors and stored_vectors"
+                             "must be the same.")
 
         self.libNeuralAssocGPU = CDLL("libNeuralAssocGPU.so")
 
@@ -64,6 +60,7 @@ class AssociativeMemoryGPU(object):
         self.num_items = len(index_vectors)
         self.dimensions = len(index_vectors.values()[0])
         self.dt = dt
+        self.num_steps = num_steps
         num_devices = len(devices)
 
         if identical:
@@ -154,27 +151,45 @@ class AssociativeMemoryGPU(object):
         c_identical = c_int(int(identical))
         c_do_print = c_int(int(do_print))
         c_num_probes = c_int(len(probe_indices))
+        c_num_steps = c_int(num_steps)
 
         gpu_lib = self.libNeuralAssocGPU
         gpu_lib.setup(c_num_devices, c_devices, c_dt, c_num_items,
                       c_dimensions, c_index_vectors, c_stored_vectors, c_pstc,
                       c_decoders, c_neurons_per_item, c_gain, c_bias,
                       c_tau_ref, c_tau_rc, c_radius, c_identical, c_do_print,
-                      c_probe_indices, c_num_probes)
-
-        # setup arrays needed in step function
-        self._output = np.zeros(self.dimensions)
-        self._probes = np.zeros(len(probe_indices))
-
-        self._c_input = None
-        self._c_output = convert_to_carray(self._output, c_float, 1)
-        self._c_probes = convert_to_carray(self._probes, c_float, 1)
+                      c_probe_indices, c_num_probes, c_num_steps)
 
         self.elapsed_time = 0.0
         self.n_steps = 0
         self.mode = 'neural_assoc_gpu'
 
+        # setup arrays needed in step function
+        if num_steps == 1:
+            self._output = np.zeros(self.dimensions)
+            self._probes = np.zeros(len(probe_indices))
+
+            self._c_input = None
+            self._c_output = convert_to_carray(self._output, c_float, 1)
+            self._c_probes = convert_to_carray(self._probes, c_float, 1)
+        else:
+            self._output = np.zeros((num_steps, self.dimensions))
+            self._probes = np.zeros((num_steps, len(probe_indices)))
+
+            self._c_input = None
+
+            _output = np.zeros(num_steps * self.dimensions)
+            self._c_output = convert_to_carray(_output, c_float, 1)
+
+            _probes = np.zeros(num_steps * len(probe_indices))
+            print _probes.size
+            self._c_probes = convert_to_carray(_probes, c_float, 1)
+
     def step(self, input_vector):
+
+        if self.num_steps > 1:
+            return self.multi_step(input_vector)
+
         self._c_input = convert_to_carray(input_vector, c_float, 1)
 
         c_start_time = c_float(self.elapsed_time)
@@ -197,13 +212,49 @@ class AssociativeMemoryGPU(object):
 
         return self._output
 
+    def multi_step(self, input):
+        self._c_input = convert_to_carray(np.reshape(input, self.num_steps * self.dimensions), c_float, 1)
+
+        c_start_time = c_float(self.elapsed_time)
+        c_end_time = c_float(self.elapsed_time + self.dt)
+        c_n_steps = c_int(self.n_steps)
+
+        gpu_lib = self.libNeuralAssocGPU
+        gpu_lib.step(self._c_input, self._c_output,
+                     self._c_probes, c_start_time, c_end_time,
+                     c_n_steps)
+
+        shape0 = self._output.shape[0]
+        shape1 = self._output.shape[1]
+        for i in range(shape0):
+            for j in range(shape1):
+                self._output[i, j] = self._c_output[i * shape1 + j]
+
+        shape0 = self._probes.shape[0]
+        shape1 = self._probes.shape[1]
+        for i in range(shape0):
+            for j in range(shape1):
+                self._probes[i, j] = self._c_probes[i * shape1 + j]
+
+        self.n_steps += 1
+        self.elapsed_time += 1
+
+        return self._output
+
     def probe_func(self, probe_key):
-        index = self.probe_map[probe_key]
+        probe_index = self.probe_map[probe_key]
 
         def f(t):
-            return self._probes[index]
+            return self._probes[probe_index]
 
-        return f
+        def multi_step_f(t):
+            time_index = int(t / self.dt)
+            return self._probes[time_index, probe_index]
+
+        if self.num_steps == 1:
+            return f
+        else:
+            return multi_step_f
 
     def kill(self):
         self.libNeuralAssocGPU.kill()

@@ -303,7 +303,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
            int dimension, int** index_vectors, int** stored_vectors, float tau,
            float* decoders, int neurons_per_item, float* gain, float* bias,
            float tau_ref, float tau_rc, float radius, int identical_ensembles,
-           int print_data, int* probe_indices, int num_probes)
+           int print_data, int* probe_indices, int num_probes, int num_steps)
 {
 
   int i, j;
@@ -360,6 +360,9 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     current_data->tau_rc = tau_rc;
     current_data->radius = radius;
     current_data->dt = dt;
+    current_data->num_steps = num_steps;
+
+    printf("Num STEPS: %d\n", num_steps);
 
     items_for_current_device = items_per_device + (leftover > 0 ? 1 : 0);
     leftover--;
@@ -428,10 +431,6 @@ void step(float* input, float* output, float* probes, float start, float end, in
   start_time = start;
   end_time = end;
 
-  //if(do_print && ((int) (start_time * 1000)) % 10 == 0)
-  if(n_steps % 10 == 0) 
-      printf("NeuralAssocGPU: STEP %f\n", start);
-
   NengoGPUData* current_data;
 
   int i, j, k;
@@ -439,7 +438,8 @@ void step(float* input, float* output, float* probes, float start, float end, in
   for( i = 0; i < num_devices; i++)
   {
     current_data = nengo_data_array[i];
-    memcpy(current_data->input_host->array, input, current_data->dimension * sizeof(float));
+    memcpy(current_data->input_host->array, input,
+           current_data->dimension * current_data->num_steps * sizeof(float));
   }
 
   // Tell the runner threads to run and then wait for them to finish.
@@ -450,43 +450,33 @@ void step(float* input, float* output, float* probes, float start, float end, in
   pthread_cond_wait(cv_JNI, mutex);
   pthread_mutex_unlock(mutex);
 
-  memset(output, 0, nengo_data_array[0]->dimension * sizeof(float));
-
-  for(k=0; k < current_data->dimension; k++)
-  {
-    output[k] = 0.0;
-  }
+  current_data = nengo_data_array[0];
+  memset(output, 0.0, current_data->dimension * current_data->num_steps * sizeof(float));
 
   for(i = 0; i < num_devices; i++)
   {
-    current_data = nengo_data_array[i];
+      current_data = nengo_data_array[i];
 
-    for(j = 0; j < current_data->dimension; j++)
-    {
-      output[j] += current_data->output_host->array[j];
-    }
-  }
-
-  for(i = 0; i < num_devices; i++)
-  {
-    current_data = nengo_data_array[i];
-
-    for(j = 0; j < current_data->dimension; j++)
-    {
-      output[j] += current_data->output_host->array[j];
-    }
+      for(j = 0; j < current_data->num_steps * current_data->dimension; j++)
+      {
+           output[j] += current_data->output_host->array[j];
+      }
   }
 
   int probe_index = 0;
-  for(i = 0; i < num_devices; i++)
+  for(i = 0; i < nengo_data_array[0]->num_steps; i++)
   {
-    current_data = nengo_data_array[i];
+      for(j = 0; j < num_devices; j++)
+      {
+          current_data = nengo_data_array[j];
 
-    for(j = 0; j < current_data->num_probes; j++)
-    {
-      probes[probe_index] = current_data->probes_host->array[j];
-      probe_index++;
-    }
+          for(k = 0; k < current_data->num_probes; k++)
+          {
+              probes[probe_index] =
+                  current_data->probes_host->array[i * current_data->num_probes + k];
+              probe_index++;
+          }
+      }
   }
 }
 

@@ -96,6 +96,7 @@ struct NengoGPUData_t{
   int dimension;
   int num_items;
   int num_probes;
+  int num_steps;
 
   float pstc;
   float tau_ref;

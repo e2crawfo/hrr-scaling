@@ -39,7 +39,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
                  dt=0.001, tau_rc=0.02, tau_ref=0.002, pstc=0.005,
                  output_dir=".", probe_keys=[], plot=False, ocl=[],
-                 gpus=[], identical=False):
+                 gpus=[], identical=False, fast=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -73,6 +73,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.plot = plot
         self.gpus = gpus
         self.ocl = ocl
+        self.fast = fast
 
         seed = np.random.randint(npext.maxint)
 
@@ -139,8 +140,6 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                          tau_rc=tau_rc, radius=assoc_radius,
                                          do_print=False, identical=identical,
                                          probe_keys=probe_keys, seed=seed)
-
-                print "done building gpu associative memory"
 
                 def gpu_function(t, input_vector):
                     output_vector = assoc_memory.step(input_vector)
@@ -258,6 +257,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.B_input_vector = query
 
         self.simulator.run(self.timesteps * self.dt)
+        self.data = self.simulator.data
 
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "unbind")
@@ -292,14 +292,14 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         ax = plt.subplot(gs[0, 0])
 
-        plt.plot(t, sim.data[self.D_probe], label='D')
+        plt.plot(t, self.data[self.D_probe], label='D')
         title = 'Before Association: Vector'
         ax.text(.01, 1.20, title, horizontalalignment='left',
                 transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
 
         ax = plt.subplot(gs[0, 1])
-        plt.plot(t, sim.data[self.output_probe], label='Output')
+        plt.plot(t, self.data[self.output_probe], label='Output')
         title = 'After Association: Vector'
         ax.text(.01, 1.20, title, horizontalalignment='left',
                 transform=ax.transAxes)
@@ -308,7 +308,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax = plt.subplot(gs[1:3, :])
 
         for key, v in self.index_vectors.iteritems():
-            input_sims = np.dot(sim.data[self.D_probe], v)
+            input_sims = np.dot(self.data[self.D_probe], v)
             label = str(key[1])
             if key == correct_key:
                 plt.plot(t, input_sims, '--', label=label + '*')
@@ -331,9 +331,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax = plt.subplot(gs[3:5, :])
         for key, p in self.assoc_probes.iteritems():
             if key == correct_key:
-                plt.plot(t, sim.data[p], '--')
+                plt.plot(t, self.data[p], '--')
             else:
-                plt.plot(t, sim.data[p])
+                plt.plot(t, self.data[p])
 
         title = 'Association Activation. \nTarget:' + str(correct_key)
         ax.text(.01, 0.80, title, horizontalalignment='left',
@@ -344,9 +344,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         for key, p in self.transfer_probes.iteritems():
             if key == correct_key:
-                plt.plot(t, sim.data[p], '--', label=str(key))
+                plt.plot(t, self.data[p], '--', label=str(key))
             else:
-                plt.plot(t, sim.data[p], label=str(key))
+                plt.plot(t, self.data[p], label=str(key))
 
         title = 'Assoc. Transfer Activation. \nTarget:' + str(correct_key)
         ax.text(.01, 0.80, title, horizontalalignment='left',
@@ -363,7 +363,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
             input_sims = []
             output_sims = []
-            probes = zip(sim.data[self.D_probe], sim.data[self.output_probe])
+            probes = zip(self.data[self.D_probe], self.data[self.output_probe])
 
             for i, o in probes:
                 input_sims.append(correct_index_hrr.compare(hrr.HRR(data=i)))
@@ -378,12 +378,44 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             plt.legend(loc=4)
             plt.axhline(ls=':', c='k')
 
-        #plt.show()
+        plt.show()
 
         date_time_string = str(datetime.datetime.now()).split('.')[0]
         date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
                                   [date_time_string, ":", ".", " ", "-"])
-        plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
+        # plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
+
+    def print_instance_difficulty(self, item, query):
+        if len(self.tester.current_target_keys) > 0:
+            # Print data about how difficult the current instance is
+
+            correct_key = self.tester.current_target_keys[0]
+
+            item_hrr = hrr.HRR(data=item)
+            query_hrr = hrr.HRR(data=query)
+            noisy_hrr = item_hrr.convolve(~query_hrr)
+
+            correct_hrr = hrr.HRR(data=self.index_vectors[correct_key])
+            sim = noisy_hrr.compare(correct_hrr)
+            dot = np.dot(noisy_hrr.v, correct_hrr.v)
+            print "Ideal similarity: ", sim
+            print "Ideal dot: ", dot
+
+            self.ideal_dot = dot
+
+            hrrs = [(key, hrr.HRR(data=iv))
+                    for key, iv in self.index_vectors.iteritems()
+                    if key != correct_key]
+
+            sims = [noisy_hrr.compare(h) for (k, h) in hrrs]
+            dots = [np.dot(noisy_hrr.v, h.v) for (k, h) in hrrs]
+            sim = max(sims)
+            dot = max(dots)
+
+            print "Similarity of closest incorrect index vector ", sim
+            print "Dot product of closest incorrect index vector ", dot
+
+            self.second_dot = dot
 
     def write_to_runtime_file(self, delta, label=''):
         to_print = [self.dim, self.num_items,

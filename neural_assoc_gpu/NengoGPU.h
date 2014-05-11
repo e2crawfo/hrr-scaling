@@ -31,7 +31,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
            int dimension, int** index_vectors, int** stored_vectors, float tau,
            float* decoders, int neurons_per_item, float* gain, float* bias,
            float tau_ref, float tau_rc, float radius, int identical_ensembles, 
-           int print_data, int* probe_indices, int num_probes);
+           int print_data, int* probe_indices, int num_probes, int num_steps);
 
 void step(float* input, float* output, float* probes, float start, float end, int n_steps);
 

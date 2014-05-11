@@ -41,13 +41,15 @@ def parse_args(print_args=False):
                       '--gpus 0 2 3" would use 3 devices, skipping the device with '
                       'index 1.')
   parser.add_argument('--ocl', nargs='+', type=int, help='Specify the devices (gpus) to'
-                      'use for the ocl simulator if using the new nengo code (i.e. if --new is '
-                      'supplied). Specified as a list of integers. (e.g. "python run.py j 10 '
-                      '100 --ocl 0 2 3" would use 3 devices for the ocl simulators, skipping '
-                      'the device with index 1). --ocl and --gpus can be combined, but their'
-                      'intersection should be empty.')
+                      'use for the ocl simulator if using the new nengo code (i.e. if '
+                      '--new is supplied). Specified as a list of integers. (e.g. '
+                      '"python run.py j 10 100 --ocl 0 2 3" would use 3 devices for the '
+                      'ocl simulators, skipping the device with index 1). --ocl and --gpus'
+                      'can be combined, but their intersection should be empty.')
   parser.add_argument('--identical', action='store_true', help='To make all association'
                       ' ensembles identical when using gpu assoc with new nengo')
+  parser.add_argument('--fast', action='store_true', help='Whether to use fast gpu'
+                      ' algorithm with new nengo code')
 
   parser.add_argument('-v', action='store_true', help='Supply this argument to print the data that is printed to the file')
   parser.add_argument('--numwords', default=0, type=int, help='Number of planned words. Only has an effect on jump tests.')

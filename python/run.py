@@ -1,22 +1,21 @@
 try:
-  import matplotlib as mpl
-  mpl.use('Qt4Agg')
-  import matplotlib.pyplot as plt
-  can_plot = True
+    import matplotlib as mpl
+    mpl.use('Qt4Agg')
+    import matplotlib.pyplot as plt
+    can_plot = True
 except ImportError:
-  can_plot = False
+    can_plot = False
 
 import numpy as np
-from mytools import nf, hrr
 import utilities
-from vector_operations import *
 import symbol_definitions
+from vector_operations import VectorFactory
 from wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
 from assoc_memory import AssociativeMemory
 from neural_assoc_memory import NeuralAssociativeMemory
 from new_neural_assoc_memory import NewNeuralAssociativeMemory
+from fast_neural_assoc_memory import FastNeuralAssociativeMemory
 import random
-from collections import OrderedDict
 
 argvals = utilities.parse_args(True)
 
@@ -43,40 +42,38 @@ num_synsets = argvals.num_synsets
 new = argvals.new
 ocl = argvals.ocl
 probeall = argvals.probeall
+fast = argvals.fast
+identical = argvals.identical
+verbose = argvals.v
+use_pure_cleanup = argvals.i
+unitary = argvals.u
 
 gpus = argvals.gpus
 if gpus is not None:
     gpus.sort()
-#if gpus is not None: gpus = list(OrderedDict.fromkeys(gpus))
 
 ocl = argvals.ocl
 if ocl is not None:
     ocl.sort()
 
-identical = argvals.identical
-#if ocl is not None: ocl = list(OrderedDict.fromkeys(ocl))
-
-verbose = argvals.v
-
-use_pure_cleanup = argvals.i
-unitary = argvals.u
-
-outfile_suffix = utilities.create_outfile_suffix(neural, unitary, use_pure_cleanup, use_bi_relations, algorithm)
+outfile_suffix = \
+    utilities.create_outfile_suffix(neural, unitary, use_pure_cleanup,
+                                    use_bi_relations, algorithm)
 
 if corpus_seed == -1:
-  corpus_seed = random.randrange(1000)
+    corpus_seed = random.randrange(1000)
 
 if model_seed == -1:
-  model_seed = random.randrange(1000)
+    model_seed = random.randrange(1000)
 
 if test_seed == -1:
-  test_seed = random.randrange(1000)
+    test_seed = random.randrange(1000)
 
 if seed != -1:
-  random.seed(seed)
-  corpus_seed = random.randrange(1000)
-  model_seed = random.randrange(1000)
-  test_seed = random.randrange(1000)
+    random.seed(seed)
+    corpus_seed = random.randrange(1000)
+    model_seed = random.randrange(1000)
+    test_seed = random.randrange(1000)
 
 
 np.random.seed(corpus_seed)
@@ -85,9 +82,9 @@ random.seed(corpus_seed)
 use_bi_relations = use_bi_relations and not use_pure_cleanup
 
 if use_bi_relations:
-  relation_symbols = symbol_definitions.bi_relation_symbols()
+    relation_symbols = symbol_definitions.bi_relation_symbols()
 else:
-  relation_symbols = symbol_definitions.uni_relation_symbols()
+    relation_symbols = symbol_definitions.uni_relation_symbols()
 
 input_dir, output_dir = utilities.read_config()
 
@@ -97,15 +94,17 @@ vector_factory = VectorFactory()
     utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory,
                            use_pure_cleanup, unitary, proportion, num_synsets)
 
-#change these to use specific words/relations
+# change these to use specific words/relations
 probe_keys = []
 words = []
 relations = []
 
 if num_words > 0:
-  probe_keys, words, relations = utilities.gen_probe_keys(corpus_dict, num_words, relation_symbols, words, relations)
+    probe_keys, words, relations = \
+        utilities.gen_probe_keys(corpus_dict, num_words,
+                                 relation_symbols, words, relations)
 
-  if not (len(relations) == len(words) and len(words) > 0):
+if not (len(relations) == len(words) and len(words) > 0):
     words = []
     relations = []
 
@@ -122,61 +121,74 @@ else:
 if probeall:
     probe_keys = id_vectors.keys()
 
-
-
 np.random.seed(model_seed)
 random.seed(model_seed)
 
-#pick an associator
+# pick an associator
 if neural:
-  if new:
-      associator = NewNeuralAssociativeMemory(id_vectors, semantic_pointers,
-                                              threshold=threshold,
-                                              output_dir=output_dir,
-                                              probe_keys=probe_keys,
-                                              timesteps=steps, pstc=pstc,
-                                              plot=plot, ocl=ocl, gpus=gpus,
-                                              identical=identical)
+    if new and fast and gpus:
+        associator = \
+            FastNeuralAssociativeMemory(id_vectors, semantic_pointers,
+                                        threshold=threshold,
+                                        output_dir=output_dir,
+                                        probe_keys=probe_keys,
+                                        timesteps=steps, pstc=pstc,
+                                        plot=plot, ocl=ocl, gpus=gpus,
+                                        identical=identical)
+    elif new:
+        associator = \
+            NewNeuralAssociativeMemory(id_vectors, semantic_pointers,
+                                       threshold=threshold,
+                                       output_dir=output_dir,
+                                       probe_keys=probe_keys,
+                                       timesteps=steps, pstc=pstc,
+                                       plot=plot, ocl=ocl, gpus=gpus,
+                                       identical=identical)
 
-  else:
-      associator = NeuralAssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup,
-                                           unitary, use_bi_relations, threshold,
-                                           output_dir=output_dir, probe_keys=probe_keys,
-                                           timesteps=steps, quick=quick, devices=gpus,
-                                           pstc=pstc, plot=plot)
+    else:
+        associator = \
+            NeuralAssociativeMemory(id_vectors, semantic_pointers,
+                                    use_pure_cleanup,
+                                    unitary, use_bi_relations,
+                                    threshold,
+                                    output_dir=output_dir,
+                                    probe_keys=probe_keys,
+                                    timesteps=steps, quick=quick,
+                                    devices=gpus,
+                                    pstc=pstc, plot=plot)
 else:
-  associator = AssociativeMemory(id_vectors, semantic_pointers, use_pure_cleanup, unitary,
-                                 use_bi_relations, threshold, algorithm)
-
+    associator = AssociativeMemory(id_vectors, semantic_pointers,
+                                   use_pure_cleanup, unitary,
+                                   use_bi_relations, threshold,
+                                   algorithm)
 
 np.random.seed(test_seed)
 random.seed(test_seed)
 
-#get symbols for the different tests
+# get symbols for the different tests
 h_test_symbols = symbol_definitions.hierarchical_test_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
-
-
-tester = WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
-                    relation_type_vectors, associator, test_seed, output_dir, h_test_symbols,
-                    sentence_symbols, vector_factory, unitary, verbose, outfile_suffix)
+tester = \
+    WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
+                                   relation_type_vectors, associator,
+                                   test_seed, output_dir, h_test_symbols,
+                                   sentence_symbols, vector_factory, unitary,
+                                   verbose, outfile_suffix)
 
 if len(words) > 0:
-  tester.set_jump_plan(words, relations)
+    tester.set_jump_plan(words, relations)
 
 if test == 'j':
-  tester.runBootstrap_jump(num_runs, num_trials)
+    tester.runBootstrap_jump(num_runs, num_trials)
 elif test == 'h':
-  tester.runBootstrap_hierarchical(num_runs, num_trials, do_neg=not noneg)
+    tester.runBootstrap_hierarchical(num_runs, num_trials, do_neg=not noneg)
 elif test == 's':
-  tester.runBootstrap_sentence(num_runs, num_trials)
+    tester.runBootstrap_sentence(num_runs, num_trials)
 elif test == 'd':
-  tester.runBootstrap_sentence(num_runs, num_trials, deep=True, short=shortsent)
-elif test == 'f': #f as in free form
-  tester.runBootstrap_single(1, 1, expression=expression)
+    tester.runBootstrap_sentence(num_runs, num_trials,
+                                 deep=True, short=shortsent)
+elif test == 'f':
+    tester.runBootstrap_single(1, 1, expression=expression)
 elif test == 'c':
-  tester.get_similarities()
-else:
-  pass
-
+    tester.get_similarities()

@@ -360,16 +360,15 @@ void initializeNengoGPUData(NengoGPUData* new)
   }
 
   char filename[50];
-  int err;
-  err = sprintf(filename, "../neuralCleanupGPU/gpuOutput/gpuOutput%d.txt", new->device);
+  sprintf(filename, "../neuralCleanupGPU/gpuOutput/gpuOutput%d.txt", new->device);
   new->fp = fopen(filename, "w");
 
   char* name; 
 
   name = "input_host";
-  new->input_host = newFloatArray(new->dimension, name);
+  new->input_host = newFloatArray(new->dimension * new->num_steps, name);
   name = "output_host";
-  new->output_host = newFloatArray(new->dimension, name);
+  new->output_host = newFloatArray(new->dimension * new->num_steps, name);
 
   name = "index_vectors";
   new->index_vectors = newFloatArray(new->dimension * new->num_items, name);
@@ -386,7 +385,7 @@ void initializeNengoGPUData(NengoGPUData* new)
   name = "probe_map";
   new->probe_map = newIntArray(new->num_probes, name);
   name = "probes_host";
-  new->probes_host = newFloatArray(new->num_probes, name);
+  new->probes_host = newFloatArray(new->num_probes * new->num_steps, name);
 }
 
 
