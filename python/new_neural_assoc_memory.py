@@ -204,17 +204,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.D_probe = D_probe
         self.output_probe = output_probe
 
-        if ocl_imported and ocl is not None:
-            pyopencl.get_platforms()
-            sim_class = nengo_ocl.sim_ocl.Simulator
-        else:
-            if ocl:
-                print "Failed to import nengo_ocl"
-
-            sim_class = nengo.Simulator
-
         print "Building simulator"
-        self.simulator = sim_class(model)
+        self.simulator = self.build_simulator(model)
 
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "setup")
@@ -273,6 +264,27 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
     def reset_nodes(self):
         pass
+
+    def build_simulator(self, model):
+        if ocl_imported and self.ocl is not None:
+            platforms = pyopencl.get_platforms()
+
+            # 0 is the Nvidia platform
+            devices = platforms[0].get_devices()
+            devices = [devices[i] for i in self.ocl]
+            devices.sort()
+
+            ctx = pyopencl.Context(devices=devices)
+
+            simulator = nengo_ocl.sim_ocl.Simulator(model, context=ctx)
+        else:
+            if self.ocl:
+                print "Failed to import nengo_ocl"
+
+            simulator = nengo.Simulator(model)
+
+        return simulator
+
 
     def plot_cleanup_activities(self, item_indices=[], run_index=-1):
         """

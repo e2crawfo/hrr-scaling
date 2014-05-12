@@ -12,13 +12,6 @@ from nengo.utils.distributions import Uniform
 import nengo.utils.numpy as npext
 import nengo
 
-ocl_imported = False
-# try:
-#    import pyopencl
-#    import nengo_ocl
-# except:
-#    ocl_imported = False
-
 
 def make_func(cls, attr):
     def f(t):
@@ -162,19 +155,9 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
         self.transfer_probes = transfer_probes
         self.output_probe = output_probe
 
-        if ocl_imported and ocl is not None:
-            pass
-            # pyopencl.get_platforms()
-            # sim_class = nengo_ocl.sim_ocl.Simulator
-        else:
-            if ocl:
-                print "Failed to import nengo_ocl"
-
-            sim_class = nengo.Simulator
-
-        print "Building simulator"
-        self.unbind_simulator = sim_class(unbind_model)
-        self.output_simulator = sim_class(output_model)
+        print "Building simulators"
+        self.unbind_simulator = self.build_simulator(unbind_model)
+        self.output_simulator = self.build_simulator(output_model)
         self.simulator = self.output_simulator
 
         now = datetime.datetime.now()
@@ -194,7 +177,6 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
         assoc_input = self.unbind_simulator.data[self.D_probe]
 
         print "Simulating associative memory"
-        print assoc_input
         self.assoc_output = self.assoc_memory.multi_step(assoc_input)
 
         self.output_index = 0
