@@ -37,8 +37,9 @@ class AssociativeMemoryGPU(object):
     def __init__(self, devices, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
                  tau_ref=0.002, radius=1.0, intercepts=Uniform(0.0, 0.3),
-                 max_rates=Uniform(200, 200), identical=False,
-                 probe_keys=[], do_print=False, seed=None, num_steps=1):
+                 max_rates=Uniform(200, 400), identical=False,
+                 probe_keys=[], do_print=False, seed=None, num_steps=1,
+                 eval_points=None):
 
         if not isinstance(index_vectors, OrderedDict):
             raise ValueError("index_vectors must be an OrderedDict")
@@ -53,7 +54,7 @@ class AssociativeMemoryGPU(object):
         self.libNeuralAssocGPU = CDLL("libNeuralAssocGPU.so")
 
         threshold_func = lambda x: 1 if x > threshold else 0
-        assoc_encoders = np.ones((neurons_per_item, 1))
+        encoders = np.ones((neurons_per_item, 1))
 
         self.index_vectors = index_vectors
         self.stored_vectors = stored_vectors
@@ -66,12 +67,15 @@ class AssociativeMemoryGPU(object):
         if identical:
             model = nengo.Network("Associative Memory")
             with model:
-                assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
-                                       intercepts=intercepts,
+                neurons = nengo.LIF(neurons_per_item,
+                                    tau_rc=tau_rc,
+                                    tau_ref=tau_ref)
+
+                assoc = nengo.Ensemble(neurons, 1, intercepts=intercepts,
                                        max_rates=max_rates,
-                                       encoders=assoc_encoders,
-                                       label="assoc", seed=seed,
-                                       radius=radius)
+                                       encoders=encoders, label="assoc",
+                                       seed=seed, radius=radius,
+                                       eval_points=eval_points)
 
                 dummy = nengo.Ensemble(nengo.LIF(1), 1)
 
@@ -84,15 +88,21 @@ class AssociativeMemoryGPU(object):
             bias = sim.data[assoc.neurons].bias
             decoders = sim.data[conn].decoders[0]
         else:
+            # Currently does not work
             model = nengo.Network("Associative Memory")
             with model:
                 dummy = nengo.Ensemble(nengo.LIF(1), 1)
 
                 for i in range(self.num_items):
+
+                    neurons = nengo.LIF(neurons_per_item,
+                                        tau_rc=tau_rc,
+                                        tau_ref=tau_ref)
+
                     assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
                                            intercepts=intercepts,
                                            max_rates=max_rates,
-                                           encoders=assoc_encoders,
+                                           encoders=encoders,
                                            label="assoc",
                                            radius=radius)
 
@@ -182,7 +192,6 @@ class AssociativeMemoryGPU(object):
             self._c_output = convert_to_carray(_output, c_float, 1)
 
             _probes = np.zeros(num_steps * len(probe_indices))
-            print _probes.size
             self._c_probes = convert_to_carray(_probes, c_float, 1)
 
     def step(self, input_vector):
