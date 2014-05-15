@@ -1,7 +1,6 @@
 try:
     import matplotlib as mpl
     mpl.use('Qt4Agg')
-    import matplotlib.pyplot as plt
     can_plot = True
 except ImportError:
     can_plot = False
@@ -132,7 +131,7 @@ if neural:
                                         threshold=threshold,
                                         output_dir=output_dir,
                                         probe_keys=probe_keys,
-                                        timesteps=steps, pstc=pstc,
+                                        timesteps=steps, synapse=pstc,
                                         plot=plot, ocl=ocl, gpus=gpus,
                                         identical=identical)
     elif new:
@@ -141,7 +140,7 @@ if neural:
                                        threshold=threshold,
                                        output_dir=output_dir,
                                        probe_keys=probe_keys,
-                                       timesteps=steps, pstc=pstc,
+                                       timesteps=steps, synapse=pstc,
                                        plot=plot, ocl=ocl, gpus=gpus,
                                        identical=identical)
 

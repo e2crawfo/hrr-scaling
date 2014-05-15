@@ -7,9 +7,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from nengo.networks import CircularConvolution, EnsembleArray
-from nengo.utils.distributions import Uniform
-import nengo.utils.numpy as npext
+from nengo.networks import EnsembleArray
 import nengo
 
 
@@ -23,7 +21,7 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
 
     _type = "Neural"
 
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         A GPU neural associative memory with a unique simulation strategy.
         Instead of making one big model with all the necessary components in
@@ -40,19 +38,18 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
         """
         super(NewNeuralAssociativeMemory, self).__init__(*args, **kwargs)
 
-
     def setup_simulator(self):
-        self.unbind_model = nengo.Network(label="Unbind", seed=seed)
+        self.unbind_model = nengo.Network(label="Unbind", seed=self.seed)
         self.build_unbind(self.unbind_model)
 
         self.build_association()
 
-        self.output_model = nengo.Network(label="Output", seed=seed)
+        self.output_model = nengo.Network(label="Output", seed=self.seed)
         self.build_output(self.output_model)
 
         print "Building simulators"
-        self.unbind_simulator = self.build_simulator(unbind_model)
-        self.output_simulator = self.build_simulator(output_model)
+        self.unbind_simulator = self.build_simulator(self.unbind_model)
+        self.output_simulator = self.build_simulator(self.output_model)
 
         self.simulator = self.output_simulator
 
@@ -60,7 +57,6 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
 
         tau_rc = self.assoc_params.tau_rc
         tau_ref = self.assoc_params.tau_ref
-        synapse = self.assoc_params.synapse
         radius = self.assoc_params.radius
         eval_points = self.assoc_params.eval_points
         intercepts = self.assoc_params.intercepts
@@ -90,16 +86,16 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
 
         synapse = self.assoc_params.synapse
 
-        with output_model:
+        with model:
             input = nengo.Node(output=self.assoc_output_func)
             output = EnsembleArray(nengo.LIF(self.neurons_per_dim),
                                    self.dim, label="output",
-                                   radius=radius)
+                                   radius=self.radius)
             nengo.Connection(input, output.input, synapse=synapse)
             self.output_probe = nengo.Probe(output.output, 'output',
                                             synapse=0.02)
 
-            for k in probe_keys:
+            for k in self.probe_keys:
                 n = nengo.Node(output=self.assoc_memory.probe_func(k))
                 probe = nengo.Probe(n, synapse=synapse)
 

@@ -30,14 +30,14 @@ def make_func(cls, attr):
         return getattr(cls, attr)
     return f
 
+AssocParams = namedtuple('AssocParams',
+                         ['tau_rc', 'tau_ref', 'synapse',
+                          'radius', 'eval_points', 'intercepts'])
+
 
 class NewNeuralAssociativeMemory(AssociativeMemory):
 
     _type = "Neural"
-
-    AssocParams = namedtuple('AssocParams',
-                             ['tau_rc', 'tau_ref', 'synapse',
-                              'radius', 'eval_points', 'intercepts'])
 
     def __init__(self, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
@@ -90,11 +90,11 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.threshold_func = lambda x: 1 if x > self.threshold else 0
 
         # association population parameters
-        intercepts_low=0.29
-        intercepts_range=0.00108
-        n_eval_points=750
-        eval_point_mean=0.39
-        eval_point_std=0.32
+        intercepts_low = 0.29
+        intercepts_range = 0.00108
+        n_eval_points = 750
+        eval_point_mean = 0.39
+        eval_point_std = 0.32
 
         intercepts = Uniform(intercepts_low, intercepts_low + intercepts_range)
         eval_points = np.random.normal(eval_point_mean,
@@ -106,7 +106,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                         eval_points=eval_points,
                                         intercepts=intercepts)
 
-        # other population parameters 
+        # other population parameters
         n_eval_points = 750
         self.eval_points = np.random.normal(0, 0.06, (n_eval_points, 1))
         self.radius = 5.0 / np.sqrt(self.dim)
@@ -121,18 +121,17 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "setup")
 
-
     def setup_simulator(self):
-        self.model = nengo.Network(label="Extraction", seed=seed)
+        self.model = nengo.Network(label="Extraction", seed=self.seed)
 
         print "Specifiying model"
+        # The order is important here
         self.build_unbind(self.model)
-        self.build_association(self.model)
         self.build_output(self.model)
+        self.build_association(self.model)
 
         print "Building simulator"
         self.simulator = self.build_simulator(self.model)
-
 
     def build_unbind(self, model):
         A_input_func = make_func(self, "A_input_vector")
@@ -199,10 +198,11 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             nengo.Connection(B_output, cconv.B, synapse=synapse)
             nengo.Connection(cconv_output, D.input, synapse=synapse)
 
-            self.D_probe = nengo.Probe(D_output, 'output', synapse=0.02)
+            assoc_synapse = self.assoc_params.synapse
+            self.D_probe = nengo.Probe(D_output, 'output',
+                                       synapse=assoc_synapse)
 
             self.D_output = D_output
-
 
     def build_association(self, model):
 
@@ -213,19 +213,22 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         eval_points = self.assoc_params.eval_points
         intercepts = self.assoc_params.intercepts
 
+        neurons_per_item = self.neurons_per_item
+        threshold = self.threshold
+
         assoc_probes = OrderedDict()
         threshold_probes = OrderedDict()
 
         with model:
-            if gpus:
+            if self.gpus:
 
                 # Add a nengo.Node which calls out to a GPU library for
                 # simulating the associative memory
                 self.assoc_memory = \
                     AssociativeMemoryGPU(self.gpus, self.index_vectors,
                                          self.stored_vectors,
-                                         threshold=self.threshold,
-                                         neurons_per_item=self.neurons_per_item,
+                                         threshold=threshold,
+                                         neurons_per_item=neurons_per_item,
                                          tau_ref=tau_ref, tau_rc=tau_rc,
                                          eval_points=eval_points,
                                          intercepts=intercepts,
@@ -235,7 +238,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                                          seed=self.seed)
 
                 def gpu_function(t, input_vector):
-                    output_vector = assoc_memory.step(input_vector)
+                    output_vector = self.assoc_memory.step(input_vector)
                     return output_vector
 
                 assoc = nengo.Node(output=gpu_function,
@@ -244,8 +247,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                 nengo.Connection(self.D_output, assoc, synapse=synapse)
                 nengo.Connection(assoc, self.output.input, synapse=synapse)
 
-                for k in probe_keys:
-                    n = nengo.Node(output=assoc_memory.probe_func(k))
+                for k in self.probe_keys:
+                    n = nengo.Node(output=self.assoc_memory.probe_func(k))
                     probe = nengo.Probe(n, synapse=synapse)
 
                     threshold_probes[k] = probe
@@ -265,12 +268,12 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
                     label = "Associate: " + str(k)
                     neurons = nengo.LIF(self.neurons_per_item,
-                                        tau_rc=tau_rc, tau_ref=tau_ref))
+                                        tau_rc=tau_rc, tau_ref=tau_ref)
 
                     assoc = nengo.Ensemble(neurons, 1,
                                            intercepts=intercepts,
                                            encoders=encoders,
-                                           label=label, seed=seed,
+                                           label=label, seed=self.seed,
                                            radius=radius,)
 
                     nengo.Connection(assoc_in, assoc,
@@ -278,37 +281,41 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
                     nengo.Connection(assoc, assoc_out, transform=sv,
                                      function=self.threshold_func,
-                                     synapse=None, seed=seed)
+                                     synapse=None, seed=self.seed)
 
-                    if k in probe_keys:
+                    if k in self.probe_keys:
 
                         assoc_probes[k] = \
-                            nengo.Probe(assoc, 'decoded_output', synapse=synapse)
+                            nengo.Probe(assoc, 'decoded_output',
+                                        synapse=synapse)
 
                         threshold_probes[k] = \
-                            nengo.Probe(assoc, 'decoded_output', synapse=synapse,
-                                        function=self.threshold_func, seed=seed)
+                            nengo.Probe(assoc, 'decoded_output',
+                                        synapse=synapse,
+                                        function=self.threshold_func,
+                                        seed=self.seed)
 
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
-
 
     def build_output(self, model):
         with model:
 
             self.output = EnsembleArray(nengo.LIF(self.neurons_per_dim),
-                                   self.dim, label="output",
-                                   radius=self.radius)
+                                        self.dim, label="output",
+                                        radius=self.radius)
 
             if self.solver != nengo.decoders.lstsq_L2nz:
-                output_output = output.add_output(attr_name,
-                                                  function=None,
-                                                  decoder_solver=solver)
+                attr_name = 'lstqs_L2'
+                output_output = \
+                    self.output.add_output(attr_name,
+                                           function=None,
+                                           decoder_solver=self.solver)
             else:
-                output_output = output.output
+                output_output = self.output.output
 
-            self.output_probe = nengo.Probe(output_output, 'output', synapse=0.02)
-
+            self.output_probe = nengo.Probe(output_output, 'output',
+                                            synapse=0.02)
 
     def unbind_and_associate(self, item, query, *args, **kwargs):
         then = datetime.datetime.now()
@@ -354,7 +361,6 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         return simulator
 
-
     def plot_cleanup_activities(self, item_indices=[], run_index=-1):
         """
         neither argument is currently used
@@ -396,11 +402,12 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             else:
                 plt.plot(t, input_sims, label=label)
 
-        plt.plot(t, [np.linalg.norm(v) for v in self.data[self.D_probe]], ls='-.')
+        norms = [np.linalg.norm(v) for v in self.data[self.D_probe]]
+        plt.plot(t, norms, ls='-.')
 
-        title = 'Dot Products Before Association.\n'
-                'Target is dashed line.\n'
-                'Norm of D is double dashed.'
+        title = ('Dot Products Before Association.\n'
+                 'Target is dashed line.\n'
+                 'Norm of D is double dashed.')
 
         ax.text(.01, 0.80, title, horizontalalignment='left',
                 transform=ax.transAxes)
