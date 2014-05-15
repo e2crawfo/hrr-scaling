@@ -42,8 +42,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
     def __init__(self, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
                  dt=0.001, tau_rc=0.02, tau_ref=0.002, synapse=0.005,
-                 output_dir=".", probe_keys=[], plot=False, ocl=[],
-                 gpus=[], identical=False):
+                 output_dir=".", probe_keys=[], plot=False, show=False,
+                 ocl=[], gpus=[], identical=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -80,6 +80,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         self.dt = dt
         self.timesteps = timesteps
         self.plot = plot
+        self.show = show
         self.gpus = gpus
         self.ocl = ocl
         self.probe_keys = probe_keys
@@ -365,6 +366,9 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         """
         neither argument is currently used
         """
+
+        then = datetime.datetime.now()
+
         correct_key = None
         if len(self.tester.current_target_keys) > 0:
             correct_key = self.tester.current_target_keys[0]
@@ -394,29 +398,30 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
 
         ax = plt.subplot(gs[1:3, :])
 
-        for key, v in self.index_vectors.iteritems():
-            input_sims = np.dot(self.data[self.D_probe], v)
-            label = str(key[1])
-            if key == correct_key:
-                plt.plot(t, input_sims, '--', label=label + '*')
-            else:
-                plt.plot(t, input_sims, label=label)
+        if len(self.index_vectors) < 1000:
+            for key, v in self.index_vectors.iteritems():
+                input_sims = np.dot(self.data[self.D_probe], v)
+                label = str(key[1])
+                if key == correct_key:
+                    plt.plot(t, input_sims, '--', label=label + '*')
+                else:
+                    plt.plot(t, input_sims, label=label)
 
-        title = ('Dot Products Before Association.\n'
-                 'Target is dashed line.\n')
+            title = ('Dot Products Before Association.\n'
+                     'Target is dashed line.\n')
 
-        ax.text(.01, 0.80, title, horizontalalignment='left',
-                transform=ax.transAxes)
-        # plt.legend(bbox_to_anchor=(-0.03, 0.5), loc='center right')
-        if self.ideal_dot:
-            ax.text(.01, 0.10, "Ideal dot: " + str(self.ideal_dot),
-                    horizontalalignment='left', transform=ax.transAxes)
-        if self.second_dot:
-            ax.text(.99, 0.10, "Second dot: " + str(self.second_dot),
-                    horizontalalignment='right', transform=ax.transAxes)
+            ax.text(.01, 0.80, title, horizontalalignment='left',
+                    transform=ax.transAxes)
+            # plt.legend(bbox_to_anchor=(-0.03, 0.5), loc='center right')
+            if self.ideal_dot:
+                ax.text(.01, 0.10, "Ideal dot: " + str(self.ideal_dot),
+                        horizontalalignment='left', transform=ax.transAxes)
+            if self.second_dot:
+                ax.text(.99, 0.10, "Second dot: " + str(self.second_dot),
+                        horizontalalignment='right', transform=ax.transAxes)
 
-        plt.ylim((-1.0, 1.5))
-        plt.axhline(1.0, ls=':', c='k')
+            plt.ylim((-1.0, 1.5))
+            plt.axhline(1.0, ls=':', c='k')
 
         ax = plt.subplot(gs[3:5, :])
         for key, p in self.assoc_probes.iteritems():
@@ -474,15 +479,19 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax.text(.01, 0.90, title, horizontalalignment='left',
                 transform=ax.transAxes)
         plt.ylim((-1.0, 1.5))
-        plt.legend(loc=4)
+        plt.legend(loc=3)
         plt.axhline(y=1.0, ls=':', c='k')
-
-        plt.show()
 
         date_time_string = str(datetime.datetime.now()).split('.')[0]
         date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
                                   [date_time_string, ":", ".", " ", "-"])
-        plt.savefig('../graphs/neurons_'+date_time_string+".pdf")
+        plt.savefig('../graphs/extraction_'+date_time_string+".pdf")
+
+        now = datetime.datetime.now()
+        self.write_to_runtime_file(now - then, "plot")
+
+        if show:
+            plt.show()
 
     def print_instance_difficulty(self, item, query):
         if len(self.tester.current_target_keys) > 0:

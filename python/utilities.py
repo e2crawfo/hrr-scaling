@@ -57,7 +57,8 @@ def parse_args(print_args=False):
   #not used very often
   parser.add_argument('-b', action='store_true', help='Supply this argument to use bidirectional relations.')
   parser.add_argument('-r', action='store_true', help='Supply this argument to collect the relation stats.')
-  parser.add_argument('--plot', action='store_true', help='Supply this argument to display plots of the activities of the cleanup populations (only works in neural mode). The graphs are stored in the "graphs" directory.')
+  parser.add_argument('--plot', action='store_true', help='Supply this argument to create and save plots of the activities of the cleanup populations (only works in neural mode). The graphs are stored in the "graphs" directory.')
+  parser.add_argument('--show', action='store_true', help='Supply this argument to display plots of the activities of the cleanup populations (only works in neural mode). Only has an effect if --plot is also supplied'.)
   parser.add_argument('-q', action='store_true', help='Supply this argument to do an accelerated (quick) neural run.')
   parser.add_argument('--noneg', action='store_true', help='Supply this argument to only do positive runs on hierarchical test.')
   parser.add_argument('--shortsent', action='store_true', help='Supply this argument to only do a single run of a sentence test.')

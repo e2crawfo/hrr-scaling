@@ -33,6 +33,7 @@ algorithm = argvals.a and linalg
 neural = not linalg
 quick = argvals.q and neural
 plot = argvals.plot and can_plot and neural
+show = argvals.show and plot
 num_words = argvals.numwords
 pstc = argvals.pstc
 noneg = argvals.noneg
@@ -132,8 +133,8 @@ if neural:
                                         output_dir=output_dir,
                                         probe_keys=probe_keys,
                                         timesteps=steps, synapse=pstc,
-                                        plot=plot, ocl=ocl, gpus=gpus,
-                                        identical=identical)
+                                        plot=plot, show=show, ocl=ocl,
+                                        gpus=gpus, identical=identical)
     elif new:
         associator = \
             NewNeuralAssociativeMemory(id_vectors, semantic_pointers,
@@ -141,8 +142,8 @@ if neural:
                                        output_dir=output_dir,
                                        probe_keys=probe_keys,
                                        timesteps=steps, synapse=pstc,
-                                       plot=plot, ocl=ocl, gpus=gpus,
-                                       identical=identical)
+                                       plot=plot, show=show, ocl=ocl,
+                                       gpus=gpus, identical=identical)
 
     else:
         associator = \
