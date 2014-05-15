@@ -36,7 +36,7 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
         tuples of the form (POS, number), indicating a synset, to numpy
         ndarrays containing the assigned vector
         """
-        super(NewNeuralAssociativeMemory, self).__init__(*args, **kwargs)
+        super(FastNeuralAssociativeMemory, self).__init__(*args, **kwargs)
 
     def setup_simulator(self):
         self.unbind_model = nengo.Network(label="Unbind", seed=self.seed)
