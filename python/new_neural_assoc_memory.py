@@ -402,12 +402,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             else:
                 plt.plot(t, input_sims, label=label)
 
-        norms = [np.linalg.norm(v) for v in self.data[self.D_probe]]
-        plt.plot(t, norms, ls='-.')
-
         title = ('Dot Products Before Association.\n'
-                 'Target is dashed line.\n'
-                 'Norm of D is double dashed.')
+                 'Target is dashed line.\n')
 
         ax.text(.01, 0.80, title, horizontalalignment='left',
                 transform=ax.transAxes)
@@ -420,7 +416,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
                     horizontalalignment='right', transform=ax.transAxes)
 
         plt.ylim((-1.0, 1.5))
-        plt.axhline(1.0, ls=':')
+        plt.axhline(1.0, ls=':', c='k')
 
         ax = plt.subplot(gs[3:5, :])
         for key, p in self.assoc_probes.iteritems():
@@ -432,7 +428,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         title = 'Association Activation. \nTarget:' + str(correct_key)
         ax.text(.01, 0.80, title, horizontalalignment='left',
                 transform=ax.transAxes)
-        plt.ylim((-0.2, 1.0))
+        plt.ylim((-0.2, 1.5))
+        plt.axhline(y=1.0, ls=':', c='k')
 
         ax = plt.subplot(gs[5:7, :])
 
@@ -446,31 +443,39 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         ax.text(.01, 0.80, title, horizontalalignment='left',
                 transform=ax.transAxes)
 
-        plt.ylim((-0.2, 1.0))
+        plt.ylim((-0.2, 1.5))
+        plt.axhline(y=1.0, ls=':', c='k')
+
+        ax = plt.subplot(gs[7:9, :])
+        before_ls = '--'
+        after_ls = '-'
+        before_norms = [np.linalg.norm(v) for v in self.data[self.D_probe]]
+        after_norms = [np.linalg.norm(v) for v in self.data[self.output_probe]]
+
+        plt.plot(t, before_norms, before_ls, c='g', label='Norm - Before')
+        plt.plot(t, after_norms, after_ls, c='g', label='Norm - After')
 
         if correct_key is not None:
-
-            ax = plt.subplot(gs[7:9, :])
-
             correct_index_hrr = hrr.HRR(data=self.index_vectors[correct_key])
             correct_stored_hrr = hrr.HRR(data=self.stored_vectors[correct_key])
 
-            input_sims = []
-            output_sims = []
-            probes = zip(self.data[self.D_probe], self.data[self.output_probe])
+            before_sims = [correct_index_hrr.compare(hrr.HRR(data=i))
+                           for i in self.data[self.D_probe]]
 
-            for i, o in probes:
-                input_sims.append(correct_index_hrr.compare(hrr.HRR(data=i)))
-                output_sims.append(correct_stored_hrr.compare(hrr.HRR(data=o)))
+            after_sims = [correct_stored_hrr.compare(hrr.HRR(data=o))
+                          for o in self.data[self.output_probe]]
 
-            plt.plot(t, input_sims, label='Before')
-            plt.plot(t, output_sims, label='After')
-            title = 'Before/After Association: Cosine Similarity to Target'
-            ax.text(.01, 0.90, title, horizontalalignment='left',
-                    transform=ax.transAxes)
-            plt.ylim((-1.0, 1.0))
-            plt.legend(loc=4)
-            plt.axhline(ls=':', c='k')
+            plt.plot(t, before_sims, before_ls, c='b',
+                     label='Cosine Sim - Before')
+            plt.plot(t, after_sims, after_ls, c='b',
+                     label='Cosine Sim - After')
+
+        title = 'Before/After'
+        ax.text(.01, 0.90, title, horizontalalignment='left',
+                transform=ax.transAxes)
+        plt.ylim((-1.0, 1.5))
+        plt.legend(loc=4)
+        plt.axhline(y=1.0, ls=':', c='k')
 
         plt.show()
 
