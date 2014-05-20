@@ -1,5 +1,4 @@
 # wordnet assoc memory tester
-from vector_operations import cconv, VectorFactory
 from extraction_tester import ExtractionTester
 import utilities as util
 
@@ -13,7 +12,6 @@ class WordnetExtractionTester(ExtractionTester):
     def __init__(self, corpus, id_vectors, semantic_pointers,
                  relation_type_vectors, associator, seed, output_dir=".",
                  h_test_symbols=None, sentence_symbols=None,
-                 vector_factory=VectorFactory(),
                  unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetExtractionTester, self).__init__(
@@ -38,8 +36,6 @@ class WordnetExtractionTester(ExtractionTester):
 
         self.jump_plan_words = []
         self.jump_plan_relation_indices = []
-
-        self.vector_factory = vector_factory
 
         self.rng = random.Random(self.seed)
 
@@ -416,12 +412,10 @@ class WordnetExtractionTester(ExtractionTester):
             self.sentence_vocab = {}
             for symbol in self.sentence_symbols:
 
+                self.sentence_vocab[symbol] = hrr.HRR(self.D)
+
                 if self.unitary:
-                    self.sentence_vocab[symbol] = \
-                        self.vector_factory.genUnitaryVec(self.D)
-                else:
-                    self.sentence_vocab[symbol] = \
-                        self.vector_factory.genVec(self.D)
+                    self.sentence_vocab[symbol].make_unitary()
 
         posmap = {'n': self.nouns, 'a': self.adjectives,
                   'r': self.adverbs, 'v': self.verbs}
@@ -450,7 +444,7 @@ class WordnetExtractionTester(ExtractionTester):
 
             sentence = {}
             tag_vectors = {}
-            sentenceVector = np.zeros(self.D)
+            sentence_vector = hrr.HRR(data=np.zeros(self.D))
 
             # Pick role-fillers and create HRR representing the sentence
             for role in included_roles:
@@ -461,13 +455,16 @@ class WordnetExtractionTester(ExtractionTester):
                 sentence[role] = word
 
                 tag_vector = [self.sentence_vocab[x] for x in role]
-                tag_vector = reduce(lambda x, y: cconv(x, y), tag_vector)
+
+                tag_vector = reduce(lambda x, y: hrr.circconv(x, y),
+                                    tag_vector)
+
                 tag_vectors[role] = tag_vector
 
-                sentenceVector = sentenceVector + \
-                    cconv(tag_vector, self.id_vectors[word])
+                sentence_vector = sentence_vector + \
+                    hrr.circconv(tag_vector, self.id_vectors[word])
 
-            sentenceVector /= np.linalg.norm(sentenceVector)
+            sentence_vector /= np.linalg.norm(sentence_vector)
 
             print >> self.sentence_results_file, "Roles in sentence:"
             print >> self.sentence_results_file, sentence
@@ -486,7 +483,7 @@ class WordnetExtractionTester(ExtractionTester):
                 print >> self.sentence_results_file, "\nTesting ", role
 
                 result, correct, valid, exact = self.testLink(
-                    tag_vectors[role], sentenceVector, None, answer,
+                    tag_vectors[role], sentence_vector, None, answer,
                     output_file=self.sentence_results_file, return_vec=False,
                     num_relations=len(sentence), answers=[answer],
                     threshold=self.test_threshold)

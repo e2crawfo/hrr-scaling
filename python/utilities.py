@@ -1,7 +1,6 @@
 __author__ = 'e2crawfo'
 
 from corpora_management import CorpusHandler
-from probe import Probe
 
 import ConfigParser
 import argparse
@@ -91,9 +90,9 @@ def read_config(config_name="config"):
 
 
 #Setup corpus - just calls the functions in corpora_management.py which do all the heavy lifting.
-def setup_corpus(input_dir, relation_symbols, dim, vf, id_vecs=False, unitary_vecs = False, proportion = 1.0, num_synsets=-1):
+def setup_corpus(input_dir, relation_symbols, dim, id_vecs=False, unitary_vecs=False, proportion=1.0, num_synsets=-1):
 
-  corpus = CorpusHandler(D=dim, input_dir = input_dir, relation_symbols=relation_symbols, vf=vf)
+  corpus = CorpusHandler(D=dim, input_dir = input_dir, relation_symbols=relation_symbols)
 
   corpus.parseWordnet()
 

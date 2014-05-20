@@ -8,7 +8,6 @@ except ImportError:
 import numpy as np
 import utilities
 import symbol_definitions
-from vector_operations import VectorFactory
 from wordnet_extraction_tester import WordnetExtractionTester
 from extraction import Extraction
 from neural_extraction import NeuralExtraction
@@ -86,10 +85,8 @@ else:
 
 input_dir, output_dir = utilities.read_config()
 
-vector_factory = VectorFactory()
-
 (corpus_dict, id_vectors, semantic_pointers, relation_type_vectors) = \
-    utilities.setup_corpus(input_dir, relation_symbols, dim, vector_factory,
+    utilities.setup_corpus(input_dir, relation_symbols, dim,
                            use_pure_cleanup, unitary, proportion, num_synsets)
 
 # change these to use specific words/relations
@@ -159,8 +156,8 @@ tester = \
     WordnetExtractionTester(corpus_dict, id_vectors, semantic_pointers,
                             relation_type_vectors, associator,
                             test_seed, output_dir, h_test_symbols,
-                            sentence_symbols, vector_factory, unitary,
-                            verbose, outfile_suffix)
+                            sentence_symbols, unitary, verbose,
+                            outfile_suffix)
 
 if len(words) > 0:
     tester.set_jump_plan(words, relations)
