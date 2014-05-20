@@ -1,5 +1,5 @@
 # Neural Extraction Algorithm
-from assoc_memory import AssociativeMemory
+from extraction import Extraction
 from gpu_assoc_memory import AssociativeMemoryGPU
 
 import string
@@ -36,7 +36,7 @@ AssocParams = namedtuple('AssocParams',
                           'radius', 'eval_points', 'intercepts'])
 
 
-class NewNeuralAssociativeMemory(AssociativeMemory):
+class NeuralExtraction(Extraction):
 
     _type = "Neural"
 
@@ -544,7 +544,7 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
             ": " ",".join([str(tp) for tp in to_print])
 
     def print_config(self, output_file):
-        super(NewNeuralAssociativeMemory, self).print_config(output_file)
+        super(NeuralExtraction, self).print_config(output_file)
 
         output_file.write("Neurons per item: " +
                           str(self.neurons_per_item) + "\n")

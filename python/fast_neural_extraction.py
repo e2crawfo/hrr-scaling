@@ -1,6 +1,6 @@
 # Neural Extraction Algorithm
 from gpu_assoc_memory import AssociativeMemoryGPU
-from new_neural_assoc_memory import NewNeuralAssociativeMemory
+from neural_extraction import NeuralExtraction
 
 import datetime
 from collections import OrderedDict
@@ -17,7 +17,7 @@ def make_func(cls, attr):
     return f
 
 
-class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
+class FastNeuralExtraction(NeuralExtraction):
 
     _type = "Neural"
 
@@ -36,7 +36,7 @@ class FastNeuralAssociativeMemory(NewNeuralAssociativeMemory):
         tuples of the form (POS, number), indicating a synset, to numpy
         ndarrays containing the assigned vector
         """
-        super(FastNeuralAssociativeMemory, self).__init__(*args, **kwargs)
+        super(FastNeuralExtraction, self).__init__(*args, **kwargs)
 
     def setup_simulator(self):
         self.unbind_model = nengo.Network(label="Unbind", seed=self.seed)

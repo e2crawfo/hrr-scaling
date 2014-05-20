@@ -1,6 +1,6 @@
 # wordnet assoc memory tester
 from vector_operations import cconv, VectorFactory
-from assoc_memory_tester import AssociativeMemoryTester
+from extraction_tester import ExtractionTester
 import utilities as util
 
 import random
@@ -9,14 +9,14 @@ import numpy as np
 from mytools import hrr, nf
 
 
-class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
+class WordnetExtractionTester(ExtractionTester):
     def __init__(self, corpus, id_vectors, semantic_pointers,
                  relation_type_vectors, associator, seed, output_dir=".",
                  h_test_symbols=None, sentence_symbols=None,
                  vector_factory=VectorFactory(),
                  unitary=False, verbose=False, outfile_suffix=""):
 
-        super(WordnetAssociativeMemoryTester, self).__init__(
+        super(WordnetExtractionTester, self).__init__(
             id_vectors, semantic_pointers, associator, seed,
             output_dir, unitary, verbose, outfile_suffix)
 

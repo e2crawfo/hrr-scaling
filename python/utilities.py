@@ -33,8 +33,6 @@ def parse_args(print_args=False):
   parser.add_argument('--pstc', default=0.02, type=float, help='Post-synaptic time constant. Controls the shape of the post-synaptic current.')
   parser.add_argument('--steps', default=100, type=int, help='Number of steps to run the neural model for.')
 
-  parser.add_argument('--new', action='store_true', help='Supply to use neural associator based on new nengo')
-
   #configuring gpus
   parser.add_argument('--gpus', nargs='+', type=int, help='Specify the devices (gpus) to'
                       'use. Specified as a list of integers. e.g. "python run.py j 10 100 '

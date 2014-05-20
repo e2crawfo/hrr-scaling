@@ -9,11 +9,10 @@ import numpy as np
 import utilities
 import symbol_definitions
 from vector_operations import VectorFactory
-from wordnet_assoc_memory_tester import WordnetAssociativeMemoryTester
-from assoc_memory import AssociativeMemory
-from neural_assoc_memory import NeuralAssociativeMemory
-from new_neural_assoc_memory import NewNeuralAssociativeMemory
-from fast_neural_assoc_memory import FastNeuralAssociativeMemory
+from wordnet_extraction_tester import WordnetExtractionTester
+from extraction import Extraction
+from neural_extraction import NeuralExtraction
+from fast_neural_extraction import FastNeuralExtraction
 import random
 
 argvals = utilities.parse_args(True)
@@ -39,7 +38,6 @@ pstc = argvals.pstc
 noneg = argvals.noneg
 shortsent = argvals.shortsent
 num_synsets = argvals.num_synsets
-new = argvals.new
 ocl = argvals.ocl
 probeall = argvals.probeall
 fast = argvals.fast
@@ -126,41 +124,29 @@ random.seed(model_seed)
 
 # pick an associator
 if neural:
-    if new and fast and gpus:
+    if fast and gpus:
         associator = \
-            FastNeuralAssociativeMemory(id_vectors, semantic_pointers,
-                                        threshold=threshold,
-                                        output_dir=output_dir,
-                                        probe_keys=probe_keys,
-                                        timesteps=steps, synapse=pstc,
-                                        plot=plot, show=show, ocl=ocl,
-                                        gpus=gpus, identical=identical)
-    elif new:
-        associator = \
-            NewNeuralAssociativeMemory(id_vectors, semantic_pointers,
-                                       threshold=threshold,
-                                       output_dir=output_dir,
-                                       probe_keys=probe_keys,
-                                       timesteps=steps, synapse=pstc,
-                                       plot=plot, show=show, ocl=ocl,
-                                       gpus=gpus, identical=identical)
-
+            FastNeuralExtraction(id_vectors, semantic_pointers,
+                                 threshold=threshold,
+                                 output_dir=output_dir,
+                                 probe_keys=probe_keys,
+                                 timesteps=steps, synapse=pstc,
+                                 plot=plot, show=show, ocl=ocl,
+                                 gpus=gpus, identical=identical)
     else:
         associator = \
-            NeuralAssociativeMemory(id_vectors, semantic_pointers,
-                                    use_pure_cleanup,
-                                    unitary, use_bi_relations,
-                                    threshold,
-                                    output_dir=output_dir,
-                                    probe_keys=probe_keys,
-                                    timesteps=steps, quick=quick,
-                                    devices=gpus,
-                                    pstc=pstc, plot=plot)
+            NeuralExtraction(id_vectors, semantic_pointers,
+                             threshold=threshold,
+                             output_dir=output_dir,
+                             probe_keys=probe_keys,
+                             timesteps=steps, synapse=pstc,
+                             plot=plot, show=show, ocl=ocl,
+                             gpus=gpus, identical=identical)
 else:
-    associator = AssociativeMemory(id_vectors, semantic_pointers,
-                                   use_pure_cleanup, unitary,
-                                   use_bi_relations, threshold,
-                                   algorithm)
+    associator = Extraction(id_vectors, semantic_pointers,
+                            use_pure_cleanup, unitary,
+                            use_bi_relations, threshold,
+                            algorithm)
 
 np.random.seed(test_seed)
 random.seed(test_seed)
@@ -170,11 +156,11 @@ h_test_symbols = symbol_definitions.hierarchical_test_symbols()
 sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = \
-    WordnetAssociativeMemoryTester(corpus_dict, id_vectors, semantic_pointers,
-                                   relation_type_vectors, associator,
-                                   test_seed, output_dir, h_test_symbols,
-                                   sentence_symbols, vector_factory, unitary,
-                                   verbose, outfile_suffix)
+    WordnetExtractionTester(corpus_dict, id_vectors, semantic_pointers,
+                            relation_type_vectors, associator,
+                            test_seed, output_dir, h_test_symbols,
+                            sentence_symbols, vector_factory, unitary,
+                            verbose, outfile_suffix)
 
 if len(words) > 0:
     tester.set_jump_plan(words, relations)

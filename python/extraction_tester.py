@@ -10,7 +10,7 @@ import string
 import sys
 import shutil
 
-class AssociativeMemoryTester(object):
+class ExtractionTester(object):
   def __init__(self, id_vectors, semantic_pointers,  associator, seed, output_dir=".", unitary=False, verbose=False, outfile_suffix=""):
 
         self.num_jumps = 0
