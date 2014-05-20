@@ -1,8 +1,7 @@
 # assoc memory tester
-from bootstrap import Bootstrapper
 import utilities as util
 
-from mytools import hrr
+from mytools import hrr, bootstrap
 import numpy as np
 
 import datetime
@@ -293,7 +292,7 @@ class ExtractionTester(object):
                      file_open_func=None, write_raw_data=True):
         start_time = datetime.datetime.now()
 
-        self.bootstrapper = Bootstrapper(
+        self.bootstrapper = bootstrap.Bootstrapper(
             self.verbose, write_raw_data, seed=self.seed)
 
         # Now start running the tests
@@ -316,6 +315,7 @@ class ExtractionTester(object):
 
         end_time = datetime.datetime.now()
         delta_time = end_time - start_time
+
         self.print_bootstrap_runtime_summary(output_file, delta_time)
         self.print_relation_stats(output_file)
 
