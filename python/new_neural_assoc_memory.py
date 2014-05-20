@@ -5,6 +5,7 @@ from gpu_assoc_memory import AssociativeMemoryGPU
 import string
 import datetime
 from collections import OrderedDict, namedtuple
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -324,6 +325,8 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         if len(self.tester.current_target_keys) > 0:
             self.print_instance_difficulty(item, query)
 
+        self.reset()
+
         self.A_input_vector = item
         self.B_input_vector = query
 
@@ -339,8 +342,13 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         vector = self.simulator.data[self.output_probe][-1, :]
         return [vector]
 
-    def reset_nodes(self):
-        pass
+    def reset(self):
+        self.assoc_memory.reset()
+
+        if hasattr(self.simulator, 'reset'):
+            self.simulator.reset()
+        else:
+            warnings.warn("Non-GPU ensembles could not be reset")
 
     def build_simulator(self, model):
         if ocl_imported and self.ocl is not None:
@@ -485,12 +493,12 @@ class NewNeuralAssociativeMemory(AssociativeMemory):
         date_time_string = str(datetime.datetime.now()).split('.')[0]
         date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
                                   [date_time_string, ":", ".", " ", "-"])
-        plt.savefig('../graphs/extraction_'+date_time_string+".pdf")
+        plt.savefig('../graphs/extraction_'+date_time_string+".png")
 
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "plot")
 
-        if show:
+        if self.show:
             plt.show()
 
     def print_instance_difficulty(self, item, query):
