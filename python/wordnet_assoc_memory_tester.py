@@ -1,5 +1,5 @@
-#wordnet assoc memory tester
-from vector_operations import *
+# wordnet assoc memory tester
+from vector_operations import cconv, VectorFactory
 from assoc_memory_tester import AssociativeMemoryTester
 import utilities as util
 
@@ -8,21 +8,29 @@ from collections import defaultdict
 import numpy as np
 from mytools import hrr, nf
 
+
 class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
-  def __init__(self, corpus, id_vectors, semantic_pointers, relation_type_vectors, associator, seed, output_dir=".",
-               h_test_symbols = [], sentence_symbols = [], vector_factory=VectorFactory(),
-               unitary=False, verbose=False, outfile_suffix=""):
+    def __init__(self, corpus, id_vectors, semantic_pointers,
+                 relation_type_vectors, associator, seed, output_dir=".",
+                 h_test_symbols=None, sentence_symbols=None,
+                 vector_factory=VectorFactory(),
+                 unitary=False, verbose=False, outfile_suffix=""):
 
-        super(WordnetAssociativeMemoryTester, self).__init__(id_vectors,
-            semantic_pointers, associator, seed, output_dir, unitary, verbose, outfile_suffix)
+        super(WordnetAssociativeMemoryTester, self).__init__(
+            id_vectors, semantic_pointers, associator, seed,
+            output_dir, unitary, verbose, outfile_suffix)
 
-        self.sentence_results_file=None
-        self.jump_results_file=None
-        self.hierarchical_results_file=None
+        self.sentence_results_file = None
+        self.jump_results_file = None
+        self.hierarchical_results_file = None
 
         self.corpus = corpus
 
         self.relation_type_vectors = relation_type_vectors
+
+        h_test_symbols = [] if not h_test_symbols else h_test_symbols
+        sentence_symbols = [] if not sentence_symbols else sentence_symbols
+
         self.h_test_symbols = h_test_symbols
         self.sentence_symbols = sentence_symbols
 
@@ -35,56 +43,57 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         self.rng = random.Random(self.seed)
 
-  def set_jump_plan(self, w, ri):
-      self.jump_plan_words = w
-      self.jump_plan_relation_indices = ri
+    def set_jump_plan(self, w, ri):
+        self.jump_plan_words = w
+        self.jump_plan_relation_indices = ri
 
-  def singleTest(self, testName, n, expression):
-    #create a sentence
-    dim = len(self.id_vectors.values()[0])
-    expression = expression.replace('!id', 'p0')
+    def singleTest(self, testName, n, expression):
+        # create a sentence
+        dim = len(self.id_vectors.values()[0])
+        expression = expression.replace('!id', 'p0')
 
-    num_ids = expression.count('id')
-    expression = expression.replace('id', '%s')
-    temp_names = ['id'+str(i) for i in range(num_ids)]
-    expression = expression % tuple(temp_names)
+        num_ids = expression.count('id')
+        expression = expression.replace('id', '%s')
+        temp_names = ['id'+str(i) for i in range(num_ids)]
+        expression = expression % tuple(temp_names)
 
-    chosen_id_keys = random.sample(self.id_vectors, expression.count('id') + 1)
-    chosen_id_vectors = [hrr.HRR(data=self.id_vectors[key]) for key in chosen_id_keys]
-    target_key = chosen_id_keys[0]
+        chosen_id_keys = random.sample(self.id_vectors,
+                                       expression.count('id') + 1)
+        chosen_id_vectors = [hrr.HRR(data=self.id_vectors[key])
+                             for key in chosen_id_keys]
+        target_key = chosen_id_keys[0]
 
-    names_dict = dict(zip(['p0'] + temp_names, chosen_id_vectors))
-    names_keys_dict = dict(zip(['p0'] + temp_names, chosen_id_keys))
+        names_dict = dict(zip(['p0'] + temp_names, chosen_id_vectors))
+        names_keys_dict = dict(zip(['p0'] + temp_names, chosen_id_keys))
 
-    query_vectors = nf.find_query_vectors(expression, 'p0')
-    query_expression = '*'.join(query_vectors)
+        query_vectors = nf.find_query_vectors(expression, 'p0')
+        query_expression = '*'.join(query_vectors)
 
-    temp_names = expression.replace('*', '+').split('+')
-    temp_names = [tn.strip() for tn in temp_names]
-    unitary_names = [u for u in temp_names if u[-1:] == "u"]
+        temp_names = expression.replace('*', '+').split('+')
+        temp_names = [tn.strip() for tn in temp_names]
+        unitary_names = [u for u in temp_names if u[-1:] == "u"]
 
-    vocab = hrr.Vocabulary(dim, unitary=unitary_names)
-    for n, v in names_dict.iteritems():
-        vocab.add(n, v)
+        vocab = hrr.Vocabulary(dim, unitary=unitary_names)
+        for n, v in names_dict.iteritems():
+            vocab.add(n, v)
 
-    print "expression:", expression
-    print "query_expression:", query_expression
-    print "unitary_names:", unitary_names
-    print "target_key:", target_key
-    print "name_keys_dict:", names_keys_dict
+        print "expression:", expression
+        print "query_expression:", query_expression
+        print "unitary_names:", unitary_names
+        print "target_key:", target_key
+        print "name_keys_dict:", names_keys_dict
 
-    test_vector = eval(expression, {}, vocab)
-    test_vector.normalize()
+        test_vector = eval(expression, {}, vocab)
+        test_vector.normalize()
 
-    query_vector = eval(query_expression, {}, vocab)
-    #probe_indices.extend(chosen_id_keys)
-    #probe_indices = id_vectors.keys()
+        query_vector = eval(query_expression, {}, vocab)
 
-    result, correct, valid, exact = \
-        self.testLink(query_vector.v, test_vector.v, None, target_key, self.jump_results_file,
-                      return_vec=False, answers=[target_key], threshold=self.test_threshold)
+        result, correct, valid, exact = self.testLink(
+            query_vector.v, test_vector.v, None, target_key,
+            self.jump_results_file, return_vec=False, answers=[target_key],
+            threshold=self.test_threshold)
 
-  def jumpTest(self, testName, n):
+    def jumpTest(self, testName, n):
         # select a key, follow a hyp/hol link, record success / failure
 
         testNumber = 0
@@ -95,35 +104,48 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
         while testNumber < n:
             if testNumber < len(self.jump_plan_words):
-              words = self.jump_plan_words[testNumber: min(n, len(self.jump_plan_words))]
+                words = self.jump_plan_words[
+                    testNumber: min(n, len(self.jump_plan_words))
+                    ]
             else:
-              words = self.rng.sample(self.corpus, n-testNumber)
+                words = self.rng.sample(self.corpus, n-testNumber)
 
             for word in words:
-                testableLinks = [r for r in self.corpus[word] if r[0] in self.relation_type_vectors]
+                testableLinks = [r for r in self.corpus[word]
+                                 if r[0] in self.relation_type_vectors]
 
                 if len(testableLinks) > 0:
                     if testNumber < len(self.jump_plan_relation_indices):
-                      prompt = testableLinks[self.jump_plan_relation_indices[testNumber]]
+                        prompt = testableLinks[
+                            self.jump_plan_relation_indices[testNumber]
+                            ]
                     else:
-                      prompt = self.rng.sample(testableLinks, 1)[0]
+                        prompt = self.rng.sample(testableLinks, 1)[0]
 
                     util.print_header(self.jump_results_file, "New Jump Test")
 
-                    answers = [r[1] for r in self.corpus[word] if r[0]==prompt[0]]
+                    answers = [r[1] for r in self.corpus[word]
+                               if r[0] == prompt[0]]
                     relation_vec = self.relation_type_vectors[prompt[0]]
 
-                    result, correct, valid, exact = self.testLink(relation_vec, None, word, prompt[1], self.jump_results_file, num_relations = len(testableLinks), answers=answers, threshold=self.test_threshold)
+                    result, correct, valid, exact = self.testLink(
+                        relation_vec, None, word, prompt[1],
+                        self.jump_results_file,
+                        num_relations=len(testableLinks),
+                        answers=answers, threshold=self.test_threshold)
 
-                    print >> self.jump_results_file, "Correct goal? ",correct
-                    print >> self.jump_results_file, "Valid answers? ",valid
-                    print >> self.jump_results_file, "Exact goal? ",exact
+                    print >> self.jump_results_file, "Correct goal? ", correct
+                    print >> self.jump_results_file, "Valid answers? ", valid
+                    print >> self.jump_results_file, "Exact goal? ", exact
 
                     testNumber += 1
 
-                    if correct: correct_score += 1
-                    if valid: valid_score += 1
-                    if exact: exact_score += 1
+                    if correct:
+                        correct_score += 1
+                    if valid:
+                        valid_score += 1
+                    if exact:
+                        exact_score += 1
 
         # print the score
         title = "Jump Test Summary"
@@ -142,14 +164,16 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         self.add_data("jump_score_valid", valid_score)
         self.add_data("jump_score_exact", exact_score)
 
-  def hierarchicalTest(self, testName, p, stat_depth = 0, n=None, rtype=[], startFromParent=False, do_neg=True):
-        """Check whether word A is a type of word B. Test with n cases in which
-        word A IS NOT a descendant of word B and m cases where word A IS a
-        descendent of word B. The rtype parameter specifies which relationships
-        to use in the search (by default, only the isA relationships)."""
+    def hierarchicalTest(self, testName, p, stat_depth=0, n=None,
+                         rtype=[], startFromParent=False, do_neg=True):
+        """Check whether word A is a type of word B. Test with n cases in
+        which word A IS NOT a descendant of word B and m cases where word
+        A IS a descendent of word B. The rtype parameter specifies which
+        relationships to use in the search (by default, only the isA
+        relationships)."""
 
         if n is None:
-          n = p
+            n = p
 
         if not do_neg:
             n = 0
@@ -163,96 +187,116 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         negative_pairs = []
         positive_pairs = []
 
-        #find positive and negative pairs
+        # find positive and negative pairs
         while n_count < n:
-          start = self.rng.sample(self.corpus, 1)[0]
-          target = self.rng.sample(self.corpus, 1)[0]
+            start = self.rng.sample(self.corpus, 1)[0]
+            target = self.rng.sample(self.corpus, 1)[0]
 
-          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False)
+            parent_list = self.findAllParents(
+                start, None, rtype, False, stat_depth=0, print_output=False)
 
-          pair = (start, target)
-          if target in parent_list and p_count < p:
-            positive_pairs.append(pair)
-            p_count += 1
-          elif not (target in parent_list):
-            negative_pairs.append(pair)
-            n_count += 1
+            pair = (start, target)
+            if target in parent_list and p_count < p:
+                positive_pairs.append(pair)
+                p_count += 1
+            elif not (target in parent_list):
+                negative_pairs.append(pair)
+                n_count += 1
 
         while p_count < p:
-          start = self.rng.sample(self.corpus, 1)[0]
-          parent_list = self.findAllParents(start, None, rtype, False, stat_depth=0, print_output=False)
+            start = self.rng.sample(self.corpus, 1)[0]
+            parent_list = self.findAllParents(
+                start, None, rtype, False, stat_depth=0, print_output=False)
 
-          if len(parent_list) == 0: continue
+            if len(parent_list) == 0:
+                continue
 
-          target = self.rng.sample(parent_list, 1)[0]
-          positive_pairs.append((start, target))
-          p_count += 1
+            target = self.rng.sample(parent_list, 1)[0]
+            positive_pairs.append((start, target))
+            p_count += 1
 
-        #now run the tests!
+        # now run the tests
         title = "New Hierarchical Test - Negative"
         for pair in negative_pairs:
-          util.print_header(self.hierarchical_results_file, title)
+            util.print_header(self.hierarchical_results_file, title)
 
-          #for printing
-          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True)
-          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True)
-          if result == -1: n_score += 1
+            # for printing
+            self.findAllParents(
+                pair[0], pair[1], rtype, False, stat_depth=stat_depth,
+                print_output=True)
+
+            result = self.findAllParents(
+                pair[0], pair[1], rtype, True, stat_depth=stat_depth,
+                print_output=True)
+
+            if result == -1:
+                n_score += 1
 
         title = "New Hierarchical Test - Positive"
         for pair in positive_pairs:
-          util.print_header(self.hierarchical_results_file, title)
+            util.print_header(self.hierarchical_results_file, title)
 
-          self.findAllParents(pair[0], pair[1], rtype, False, stat_depth=stat_depth, print_output=True)
-          result = self.findAllParents(pair[0], pair[1], rtype, True, stat_depth=stat_depth, print_output=True)
-          if result > -1: p_score += 1
+            self.findAllParents(
+                pair[0], pair[1], rtype, False, stat_depth=stat_depth,
+                print_output=True)
 
+            result = self.findAllParents(
+                pair[0], pair[1], rtype, True, stat_depth=stat_depth,
+                print_output=True)
+
+            if result > -1:
+                p_score += 1
 
         # print the score
         title = "Hierarchical Test Summary"
         util.print_header(self.hierarchical_results_file, title)
         self.hierarchical_results_file.write("Start trial:\n")
-        self.hierarchical_results_file.write("FP,"+str(n - n_score)+"\n")#false positive
-        self.hierarchical_results_file.write("CR,"+str(n_score)+"\n")#correct rejections
+        self.hierarchical_results_file.write("FP,"+str(n - n_score)+"\n")
+        self.hierarchical_results_file.write("CR,"+str(n_score)+"\n")
         self.hierarchical_results_file.write("hits,"+str(p_score)+"\n")
         self.hierarchical_results_file.write("misses,"+str(p - p_score)+"\n")
-        self.hierarchical_results_file.write("TS,"+str(n_score + p_score)+" out of "+str(n+p)+"\n")#successful tests, out of total
-        self.hierarchical_results_file.write("NT,"+str(n)+"\n")#neg tests
-        self.hierarchical_results_file.write("PT,"+str(p)+"\n")#pos tests
+        self.hierarchical_results_file.write(
+            "TS,"+str(n_score + p_score)+" out of "+str(n+p)+"\n")
+        self.hierarchical_results_file.write("NT,"+str(n)+"\n")
+        self.hierarchical_results_file.write("PT,"+str(p)+"\n")
         util.print_footer(self.hierarchical_results_file, title)
 
         print "Start trial:\n"
-        print "FP,"+str(n-n_score)+"\n"#false positive
-        print "CR,"+str(n_score)+"\n"#correct negative
-        print "hits,"+str(p_score)+"\n"#correct positive
-        print "misses,"+str(p-p_score)+"\n"#false negative
-        print "TS,"+str(n_score+p_score)+" out of "+str(n+p)+"\n"#successful tests, out of total
-        print "NT,"+str(n)+"\n"#neg tests
-        print "PT,"+str(p)+"\n"#pos tests
+        print "FP,"+str(n-n_score)+"\n"
+        print "CR,"+str(n_score)+"\n"
+        print "hits,"+str(p_score)+"\n"
+        print "misses,"+str(p-p_score)+"\n"
+        print "TS,"+str(n_score+p_score)+" out of "+str(n+p)+"\n"
+        print "NT,"+str(n)+"\n"
+        print "PT,"+str(p)+"\n"
 
         overall_score = float(n_score + p_score) / float(p + n)
         self.add_data("hierarchical_score", overall_score)
 
         return result
 
-  def findAllParents(self, start_key, target_key=None, rtype=[], use_HRR=False, stat_depth=0, print_output = False):
+    def findAllParents(self, start_key, target_key=None, rtype=[],
+                       use_HRR=False, stat_depth=0, print_output=False):
 
         if print_output:
-          print >> self.hierarchical_results_file, "In find all parents, useHRR=", use_HRR
-          print >> self.hierarchical_results_file, "Start:", start_key
+            print >> self.hierarchical_results_file, \
+                "In find all parents, useHRR=", use_HRR
 
-          if target_key is not None:
-            print >> self.hierarchical_results_file, "Target:", target_key
+            print >> self.hierarchical_results_file, "Start:", start_key
+
+            if target_key is not None:
+                print >> self.hierarchical_results_file, "Target:", target_key
 
         use_vecs = use_HRR and self.associator.return_vec
 
         level = 0
         if use_vecs:
-          layerA = [self.semantic_pointers[start_key]]
+            layerA = [self.semantic_pointers[start_key]]
 
-          if target_key:
-            target_vector = self.semantic_pointers[target_key]
+            if target_key:
+                target_vector = self.semantic_pointers[target_key]
         else:
-          layerA = [start_key]
+            layerA = [start_key]
 
         layerB = []
         parents = set()
@@ -260,60 +304,84 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         while len(layerA) > 0:
             word = layerA.pop()
 
-            #test whether we've found the target
+            # test whether we've found the target
             found = False
             if use_vecs:
-              found = self.test_vector(word, target_vector)
+                found = self.test_vector(word, target_vector)
             else:
-              found = word == target_key
+                found = word == target_key
 
             if found:
-              if print_output:
-                print >> self.hierarchical_results_file, target_key, "found at level ", level
-              return level
+                if print_output:
+                    print >> self.hierarchical_results_file, target_key, \
+                        "found at level ", level
+
+                return level
 
             if use_vecs:
-              key = self.get_key_from_vector(word, self.semantic_pointers)
+                key = self.get_key_from_vector(word, self.semantic_pointers)
             else:
-              key = word
+                key = word
 
             if key:
-              if key in parents: continue
-              if level > 0:
-                parents.add(key)
+                if key in parents:
+                    continue
 
-                if print_output:
-                  print >> self.hierarchical_results_file, key, "found at level ", level
+                if level > 0:
+                    parents.add(key)
 
-              links =  []
-              if not use_HRR:
-                links = [r[1] for r in self.corpus[word] if r[0] in rtype]
-              else:
-                for symbol in rtype:
-                  answers = [r[1] for r in self.corpus[key] if r[0] == symbol]
-                  relation_vec = self.relation_type_vectors[symbol]
+                    if print_output:
+                        print >> self.hierarchical_results_file, key, \
+                            "found at level ", level
 
-                  if len(answers) == 0:
-                    target = None
-                  else:
-                    target = answers[0]
+                links = []
 
-                  num_relations = len(filter(lambda x: x[0] in self.relation_type_vectors, self.corpus[key]))
+                if not use_HRR:
+                    links = [r[1] for r in self.corpus[word] if r[0] in rtype]
+                else:
 
-                  if use_vecs:
-                    result = self.testLink(relation_vec, word, key, target, self.hierarchical_results_file, return_vec=True, depth=level, num_relations=num_relations, answers=answers)
-                    links.append( result )
-                  else:
-                    results = self.testLink(relation_vec, None, key, target, self.hierarchical_results_file, return_vec=False, depth=level, num_relations=num_relations, answers=answers)
-                    if answers:
-                      results=results[0]
-                    links.extend( results )
+                    for symbol in rtype:
+                        answers = [r[1] for r in self.corpus[key]
+                                   if r[0] == symbol]
+                        relation_vec = self.relation_type_vectors[symbol]
 
+                        if len(answers) == 0:
+                            target = None
+                        else:
+                            target = answers[0]
 
-              if len(links) > 0:
-                  layerB.extend(links)
+                        relations = filter(
+                            lambda x: x[0] in self.relation_type_vectors,
+                            self.corpus[key])
 
-            if len(layerA)==0:
+                        num_relations = len(relations)
+
+                        if use_vecs:
+                            result = self.testLink(
+                                relation_vec, word, key, target,
+                                self.hierarchical_results_file,
+                                return_vec=True, depth=level,
+                                num_relations=num_relations,
+                                answers=answers)
+
+                            links.append(result)
+
+                        else:
+                            results = self.testLink(
+                                relation_vec, None, key, target,
+                                self.hierarchical_results_file,
+                                return_vec=False, depth=level,
+                                num_relations=num_relations, answers=answers)
+
+                            if answers:
+                                results = results[0]
+
+                            links.extend(results)
+
+                if len(links) > 0:
+                    layerB.extend(links)
+
+            if len(layerA) == 0:
                 level = level + 1
                 layerA = layerB
                 layerB = []
@@ -323,7 +391,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
         else:
             return -1
 
-  def sentenceTest(self, testName, n, deep=False, short=False):
+    def sentenceTest(self, testName, n, deep=False, short=False):
         # check that POS lists exist (form them if required)
         if self.sentence_vocab is None:
             self.nouns = []
@@ -331,20 +399,32 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
             self.adverbs = []
             self.verbs = []
             for word in self.corpus.keys():
+
                 pos, offset = word
-                if pos == 'n': self.nouns.append(offset)
-                elif pos == 'a' : self.adjectives.append(offset)
-                elif pos == 'r' : self.adverbs.append(offset)
-                elif pos == 'v' : self.verbs.append(offset)
-                else: raise Exception('Unexpected POS token: '+pos)
+
+                if pos == 'n':
+                    self.nouns.append(offset)
+                elif pos == 'a':
+                    self.adjectives.append(offset)
+                elif pos == 'r':
+                    self.adverbs.append(offset)
+                elif pos == 'v':
+                    self.verbs.append(offset)
+                else:
+                    raise Exception('Unexpected POS token: '+pos)
+
             self.sentence_vocab = {}
             for symbol in self.sentence_symbols:
-                if self.unitary:
-                  self.sentence_vocab[symbol] = self.vector_factory.genUnitaryVec(self.D)
-                else:
-                  self.sentence_vocab[symbol] = self.vector_factory.genVec(self.D)
 
-        posmap = {'n':self.nouns, 'a':self.adjectives, 'r':self.adverbs, 'v':self.verbs}
+                if self.unitary:
+                    self.sentence_vocab[symbol] = \
+                        self.vector_factory.genUnitaryVec(self.D)
+                else:
+                    self.sentence_vocab[symbol] = \
+                        self.vector_factory.genVec(self.D)
+
+        posmap = {'n': self.nouns, 'a': self.adjectives,
+                  'r': self.adverbs, 'v': self.verbs}
 
         score = defaultdict(float)
 
@@ -370,7 +450,7 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
             sentence = {}
             tag_vectors = {}
-            sentenceVector = numpy.zeros(self.D)
+            sentenceVector = np.zeros(self.D)
 
             # Pick role-fillers and create HRR representing the sentence
             for role in included_roles:
@@ -384,7 +464,8 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
                 tag_vector = reduce(lambda x, y: cconv(x, y), tag_vector)
                 tag_vectors[role] = tag_vector
 
-                sentenceVector = sentenceVector + cconv(tag_vector, self.id_vectors[word])
+                sentenceVector = sentenceVector + \
+                    cconv(tag_vector, self.id_vectors[word])
 
             sentenceVector /= np.linalg.norm(sentenceVector)
 
@@ -404,9 +485,11 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
                 print >> self.sentence_results_file, "\nTesting ", role
 
-                result, correct, valid, exact = self.testLink(tag_vectors[role], sentenceVector, None, answer,
-                    output_file = self.sentence_results_file, return_vec=False,
-                    num_relations=len(sentence), answers=[answer], threshold = self.test_threshold)
+                result, correct, valid, exact = self.testLink(
+                    tag_vectors[role], sentenceVector, None, answer,
+                    output_file=self.sentence_results_file, return_vec=False,
+                    num_relations=len(sentence), answers=[answer],
+                    threshold=self.test_threshold)
 
                 depth = len(role)
                 if correct:
@@ -422,12 +505,16 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
             for d in sentence_score:
                 sentence_percent = sentence_score[d] / sentence_length[d]
-                print >> self.sentence_results_file, "Percent correct for \
-                        current sentence at depth %d: %f" %(d, sentence_percent)
+
+                print >> self.sentence_results_file, \
+                    "Percent correct for current sentence at depth %d: %f" \
+                    % (d, sentence_percent)
+
                 score[d] = score[d] + sentence_percent
 
         for d in score:
-            print "Sentence test score at depth %d: %f out of %d" %(d, score[d], n)
+            print "Sentence test score at depth %d: %f out of %d" \
+                % (d, score[d], n)
 
             percent = score[d] / n
 
@@ -440,98 +527,108 @@ class WordnetAssociativeMemoryTester(AssociativeMemoryTester):
 
             self.add_data("sentence_score_%d" % d, percent)
 
-  def openJumpResultsFile(self, mode='w'):
-    if not self.jump_results_file:
-      self.jump_results_file=open(self.output_dir+'/jump_results_' + self.date_time_string + self.outfile_suffix, mode)
+    def openJumpResultsFile(self, mode='w'):
+        if not self.jump_results_file:
+            self.jump_results_file = open(
+                self.output_dir+'/jump_results_' +
+                self.date_time_string + self.outfile_suffix, mode)
 
-  def openHierarchicalResultsFile(self, mode='w'):
-    if not self.hierarchical_results_file:
-      self.hierarchical_results_file=open(self.output_dir+'/hierarchical_results_' + self.date_time_string + self.outfile_suffix, mode)
+    def openHierarchicalResultsFile(self, mode='w'):
+        if not self.hierarchical_results_file:
+            self.hierarchical_results_file = open(
+                self.output_dir+'/hierarchical_results_' +
+                self.date_time_string + self.outfile_suffix, mode)
 
-  def openSentenceResultsFile(self, mode='w'):
-    if not self.sentence_results_file:
-      self.sentence_results_file=open(self.output_dir+'/sentence_results_' + self.date_time_string + self.outfile_suffix, mode)
+    def openSentenceResultsFile(self, mode='w'):
+        if not self.sentence_results_file:
+            self.sentence_results_file = open(
+                self.output_dir+'/sentence_results_' +
+                self.date_time_string + self.outfile_suffix, mode)
 
-  def closeFiles(self):
-    if self.sentence_results_file:
-      self.sentence_results_file.close()
+    def closeFiles(self):
+        if self.sentence_results_file:
+            self.sentence_results_file.close()
 
-    if self.jump_results_file:
-      self.jump_results_file.close()
+        if self.jump_results_file:
+            self.jump_results_file.close()
 
-    if self.hierarchical_results_file:
-      self.hierarchical_results_file.close()
+        if self.hierarchical_results_file:
+            self.hierarchical_results_file.close()
 
-  def runBootstrap_single(self, sample_size, num_trials_per_sample,
-                          num_bootstrap_samples=999, expression=''):
+    def runBootstrap_single(self, sample_size, num_trials_per_sample,
+                            num_bootstrap_samples=999, expression=''):
 
-    single_test = lambda x, y: self.singleTest(x, y, expression)
+        single_test = lambda x, y: self.singleTest(x, y, expression)
 
-    self.openJumpResultsFile()
+        self.openJumpResultsFile()
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, single_test)
+        self.runBootstrap(
+            sample_size, num_trials_per_sample, num_bootstrap_samples,
+            self.jump_results_file, single_test)
 
+    def runBootstrap_jump(self, sample_size, num_trials_per_sample,
+                          num_bootstrap_samples=999):
 
-  def runBootstrap_jump(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999):
+        self.openJumpResultsFile()
 
-    self.openJumpResultsFile()
+        self.runBootstrap(
+            sample_size, num_trials_per_sample, num_bootstrap_samples,
+            self.jump_results_file, self.jumpTest)
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.jump_results_file, self.jumpTest)
+    def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample,
+                                  num_bootstrap_samples=999, stats_depth=0,
+                                  symbols=None, do_neg=True):
 
+        file_open_func = self.openHierarchicalResultsFile
+        file_open_func()
 
-  def runBootstrap_hierarchical(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, stats_depth=0, symbols=None, do_neg=True):
+        if not symbols:
+            symbols = self.h_test_symbols
 
-    file_open_func = self.openHierarchicalResultsFile
-    file_open_func()
+        htest = lambda x, y: self.hierarchicalTest(
+            x, y, stats_depth, rtype=symbols, do_neg=do_neg)
 
-    if not symbols:
-      symbols = self.h_test_symbols
+        self.runBootstrap(
+            sample_size, num_trials_per_sample, num_bootstrap_samples,
+            self.hierarchical_results_file, htest, file_open_func)
 
-    htest = lambda x, y: self.hierarchicalTest(x, y, stats_depth, rtype=symbols, do_neg=do_neg)
+    def runBootstrap_sentence(self, sample_size, num_trials_per_sample,
+                              num_bootstrap_samples=999, deep=False,
+                              short=False):
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.hierarchical_results_file, htest, file_open_func)
+        self.openSentenceResultsFile()
 
+        stest = lambda x, y: self.sentenceTest(x, y, deep=deep, short=short)
 
-  def runBootstrap_sentence(self, sample_size, num_trials_per_sample, num_bootstrap_samples=999, deep=False, short=False):
+        self.runBootstrap(
+            sample_size, num_trials_per_sample, num_bootstrap_samples,
+            self.sentence_results_file, stest)
 
-    self.openSentenceResultsFile()
+    def print_relation_stats(self, output_file):
+        relation_counts = {}
+        relation_count = 0
+        relation_hist = {}
 
-    stest = lambda x, y: self.sentenceTest(x,y, deep=deep, short=short)
+        for key in self.corpus:
+            lst = self.corpus[key]
+            length = len(lst)
 
-    self.runBootstrap(sample_size, num_trials_per_sample, num_bootstrap_samples, self.sentence_results_file, stest)
+            if length not in relation_hist:
+                relation_hist[length] = 1
+            else:
+                relation_hist[length] += 1
 
-  def print_relation_stats(self, output_file):
-    relation_counts = {}
-    relation_count = 0
-    relation_hist = {}
+            for relation in lst:
+                relation_count += 1
+                if not relation[0] in relation_counts:
+                    relation_counts[relation[0]] = 1
+                else:
+                    relation_counts[relation[0]] += 1
 
-    lt_x = 0
-    x = 20
-    for key in self.corpus:
-      #lst = filter(lambda x: x in self.relation_type_vectors, self.corpus[key])
-      lst = self.corpus[key]
-      length = len(lst)
-
-      if not length in relation_hist:
-        relation_hist[length] = 1
-      else:
-        relation_hist[length] += 1
-      if length < x:
-        lt_x += 1
-
-      for relation in lst:
-        relation_count += 1
-        if not relation[0] in relation_counts:
-          relation_counts[relation[0]] = 1
-        else:
-          relation_counts[relation[0]] += 1
-
-    title = "Relation Distribution"
-    util.print_header(output_file, title)
-    output_file.write("relation_counts: " + str(relation_counts) + " \n")
-    output_file.write("relation_count: " + str(relation_count) + " \n")
-    output_file.write("relation_hist: " + str(relation_hist) + " \n")
-    output_file.write("lt"+str(x)+": " + str(float(lt_x)/float(len(relation_hist))) + " \n")
-    print float(sum(relation_hist.values())) / float(len(relation_hist))
-    util.print_footer(output_file, title)
-
+        title = "Relation Distribution"
+        util.print_header(output_file, title)
+        output_file.write("relation_counts: " + str(relation_counts) + " \n")
+        output_file.write("relation_count: " + str(relation_count) + " \n")
+        output_file.write("relation_hist: " + str(relation_hist) + " \n")
+        print float(sum(relation_hist.values())) / float(len(relation_hist))
+        util.print_footer(output_file, title)

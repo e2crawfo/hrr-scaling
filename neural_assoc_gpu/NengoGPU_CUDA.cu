@@ -443,10 +443,12 @@ void reset_neural_associative_memory(NengoGPUData* nengo_data)
       sizeof(float) * nengo_data->dimension * nengo_data->num_steps);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda array");
 
-  err = cudaMemset(nengo_data->encode_result->array, 0, sizeof(float) * nengo_data->num_items);
+  err = cudaMemset(nengo_data->encode_result->array, 0,
+      sizeof(float) * nengo_data->num_items);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
 
-  err = cudaMemset(nengo_data->decoded_values->array, 0, sizeof(float) * nengo_data->num_items);
+  err = cudaMemset(nengo_data->decoded_values->array, 0,
+      sizeof(float) * nengo_data->num_items);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
 
   err = cudaMemset(nengo_data->output_device->array, 0,

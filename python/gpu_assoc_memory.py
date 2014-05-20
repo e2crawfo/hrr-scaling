@@ -222,7 +222,8 @@ class AssociativeMemoryGPU(object):
         return self._output
 
     def multi_step(self, input):
-        self._c_input = convert_to_carray(np.reshape(input, self.num_steps * self.dimensions), c_float, 1)
+        self._c_input = convert_to_carray(
+            np.reshape(input, self.num_steps * self.dimensions), c_float, 1)
 
         c_start_time = c_float(self.elapsed_time)
         c_end_time = c_float(self.elapsed_time + self.dt)
@@ -270,4 +271,5 @@ class AssociativeMemoryGPU(object):
 
     def reset(self):
         self.elapsed_time = 0.0
+        self.n_steps = 0
         self.libNeuralAssocGPU.reset()
