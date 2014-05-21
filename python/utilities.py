@@ -23,9 +23,10 @@ def parse_args(print_args=False):
   parser.add_argument('--test-seed', default=-1, type=int, help='Seed for the random number generator that creates the tests.')
   parser.add_argument('--seed', default=-1, type=int, help='Seed for the random number generator that controls everything. Overrides the other seeds if supplied.')
 
-  #picking the type of cleanup memory
-  parser.add_argument('-l', action='store_true', help='Supply this argument do cleanup using pure linear algebra rather than neurons. If -l is not supplied, cleanup is performed by a neural network.')
-  parser.add_argument('-a', action='store_true', help='Supply this argument do cleanup using pure linear algebra, but using the neural algorithm (i.e. thresholding and summing). Only has effect if -l is also supplied.')
+  #picking the type of extractor
+  parser.add_argument('--abstract', action='store_true',
+                      help='Supply this argument do extraction using pure '
+                           'linear algebra (i.e. thresholding and summing).')
 
   #parameters for the neural network
   parser.add_argument('-t', default=0.3, type=float, help='Specify the cleanup threshold. A float between 0 and 1.')
@@ -69,14 +70,13 @@ def parse_args(print_args=False):
 
   return argvals
 
-def create_outfile_suffix(neural, unitary, identity, bidirectional, algorithm):
+def create_outfile_suffix(neural, unitary, identity, bidirectional):
   suff = "_"
 
   if neural: suff += "n"
   if unitary: suff += "u"
   if identity: suff += "i"
   if bidirectional: suff += "b"
-  if algorithm: suff += "a"
 
   return suff
 

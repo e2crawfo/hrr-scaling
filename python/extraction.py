@@ -13,7 +13,7 @@ class Extraction(object):
     # the associative memory maps from indices to items
     # indices and items must both be dictionaries, whose values are vectors
     def __init__(self, indices, items, identity, unitary,
-                 bidirectional=False, threshold=0.3, return_vec=False):
+                 bidirectional=False, threshold=0.3):
 
         self.indices = indices
         self.items = items
@@ -27,13 +27,13 @@ class Extraction(object):
 
         self.unitary = unitary
         self.identity = identity
-        self.return_vec = return_vec
+        self.return_vec = True
         self.bidirectional = bidirectional
 
     def set_tester(self, tester):
         self.tester = tester
 
-    def unbind_and_associate(self, item, query, key=None):
+    def extract(self, item, query, key=None):
         item_hrr = hrr.HRR(data=item)
         query_hrr = hrr.HRR(data=query)
         noisy_hrr = item_hrr.convolve(~query_hrr)
@@ -48,46 +48,14 @@ class Extraction(object):
         for key in keys:
             self.similarities[key] = np.dot(noisy_vector, self.indices[key])
 
-        if self.return_vec:
-            result = np.zeros(self.dim)
+        result = np.zeros(self.dim)
 
-            for key in keys:
-                sim = self.similarities[key]
-                if sim > self.threshold:
-                    result += self.items[key]
+        for key in keys:
+            sim = self.similarities[key]
+            if sim > self.threshold:
+                result += self.items[key]
 
-            results = [result]
-
-        else:
-            results = filter(
-                lambda item: item[1] > self.threshold,
-                self.similarities.iteritems())
-
-            result_keys = [item[0] for item in results]
-
-            if len(result_keys) == 0:
-                if self.return_vec:
-                    results = [np.zeros(self.dim)]
-                else:
-                    results = []
-
-                print("Nothing reached threshold")
-            else:
-                print(str(len(result_keys)) + " reached threshold")
-
-                # Here we are getting the at most 10 largest from result keys,
-                # in order from greatest to smallest dot product. and in
-                # general we are returning the keys
-                max_passes = 10
-                if len(result_keys) > max_passes:
-                    results = heapq.nlargest(max_passes, results,
-                                             key=lambda x: x[1])
-
-                results.sort(reverse=True, key=lambda x: x[1])
-                if self.return_vec:
-                    results = [self.items[r[0]] for r in results]
-                else:
-                    results = [r[0] for r in results]
+        results = [result]
 
         # Bookkeeping
         target_keys = self.tester.current_target_keys
@@ -109,9 +77,6 @@ class Extraction(object):
         self.tester.add_data("num_reaching_threshold", len(results))
 
         return results
-
-    def drawCombinedGraph(self, indices=None):
-        pass
 
     def print_config(self, output_file):
         output_file.write("Unitary: " + str(self.unitary) + "\n")

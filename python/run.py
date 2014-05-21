@@ -26,9 +26,8 @@ proportion = argvals.p
 threshold = argvals.t
 do_relation_stats = argvals.r
 use_bi_relations = argvals.b
-linalg = argvals.l
-algorithm = argvals.a and linalg
-neural = not linalg
+abstract = argvals.abstract
+neural = not abstract
 quick = argvals.q and neural
 plot = argvals.plot and can_plot and neural
 show = argvals.show and plot
@@ -55,7 +54,7 @@ if ocl is not None:
 
 outfile_suffix = \
     utilities.create_outfile_suffix(neural, unitary, use_pure_cleanup,
-                                    use_bi_relations, algorithm)
+                                    use_bi_relations)
 
 if corpus_seed == -1:
     corpus_seed = random.randrange(1000)
@@ -122,28 +121,25 @@ random.seed(model_seed)
 # pick an extraction algorithm
 if neural:
     if fast and gpus:
-        extractor = \
-            FastNeuralExtraction(id_vectors, semantic_pointers,
-                                 threshold=threshold,
-                                 output_dir=output_dir,
-                                 probe_keys=probe_keys,
-                                 timesteps=steps, synapse=pstc,
-                                 plot=plot, show=show, ocl=ocl,
-                                 gpus=gpus, identical=identical)
+        extractor = FastNeuralExtraction(id_vectors, semantic_pointers,
+                                         threshold=threshold,
+                                         output_dir=output_dir,
+                                         probe_keys=probe_keys,
+                                         timesteps=steps, synapse=pstc,
+                                         plot=plot, show=show, ocl=ocl,
+                                         gpus=gpus, identical=identical)
     else:
-        extractor = \
-            NeuralExtraction(id_vectors, semantic_pointers,
-                             threshold=threshold,
-                             output_dir=output_dir,
-                             probe_keys=probe_keys,
-                             timesteps=steps, synapse=pstc,
-                             plot=plot, show=show, ocl=ocl,
-                             gpus=gpus, identical=identical)
+        extractor = NeuralExtraction(id_vectors, semantic_pointers,
+                                     threshold=threshold,
+                                     output_dir=output_dir,
+                                     probe_keys=probe_keys,
+                                     timesteps=steps, synapse=pstc,
+                                     plot=plot, show=show, ocl=ocl,
+                                     gpus=gpus, identical=identical)
 else:
     extractor = Extraction(id_vectors, semantic_pointers,
-                            use_pure_cleanup, unitary,
-                            use_bi_relations, threshold,
-                            algorithm)
+                           use_pure_cleanup, unitary,
+                           use_bi_relations, threshold)
 
 np.random.seed(test_seed)
 random.seed(test_seed)
