@@ -119,10 +119,10 @@ if probeall:
 np.random.seed(model_seed)
 random.seed(model_seed)
 
-# pick an associator
+# pick an extraction algorithm
 if neural:
     if fast and gpus:
-        associator = \
+        extractor = \
             FastNeuralExtraction(id_vectors, semantic_pointers,
                                  threshold=threshold,
                                  output_dir=output_dir,
@@ -131,7 +131,7 @@ if neural:
                                  plot=plot, show=show, ocl=ocl,
                                  gpus=gpus, identical=identical)
     else:
-        associator = \
+        extractor = \
             NeuralExtraction(id_vectors, semantic_pointers,
                              threshold=threshold,
                              output_dir=output_dir,
@@ -140,7 +140,7 @@ if neural:
                              plot=plot, show=show, ocl=ocl,
                              gpus=gpus, identical=identical)
 else:
-    associator = Extraction(id_vectors, semantic_pointers,
+    extractor = Extraction(id_vectors, semantic_pointers,
                             use_pure_cleanup, unitary,
                             use_bi_relations, threshold,
                             algorithm)
@@ -154,7 +154,7 @@ sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = \
     WordnetExtractionTester(corpus_dict, id_vectors, semantic_pointers,
-                            relation_type_vectors, associator,
+                            relation_type_vectors, extractor,
                             test_seed, output_dir, h_test_symbols,
                             sentence_symbols, unitary, verbose,
                             outfile_suffix)

@@ -1,4 +1,4 @@
-# assoc memory tester
+# extraction tester
 import utilities as util
 
 from mytools import hrr, bootstrap
@@ -11,7 +11,7 @@ import shutil
 
 
 class ExtractionTester(object):
-    def __init__(self, id_vectors, semantic_pointers, associator,
+    def __init__(self, id_vectors, semantic_pointers, extractor,
                  seed, output_dir=".", unitary=False, verbose=False,
                  outfile_suffix=""):
 
@@ -28,8 +28,8 @@ class ExtractionTester(object):
         self.jump_results_file = None
         self.hierarchical_results_file = None
 
-        self.associator = associator
-        self.associator.set_tester(self)
+        self.extractor = extractor
+        self.extractor.set_tester(self)
 
         self.id_vectors = id_vectors
         self.semantic_pointers = semantic_pointers
@@ -56,9 +56,9 @@ class ExtractionTester(object):
 
         self.seed = seed
 
-    def unbind_and_associate(self, item, query):
+    def extract(self, item, query):
         self.num_jumps += 1
-        result = self.associator.unbind_and_associate(item, query)
+        result = self.extractor.extract(item, query)
 
         return result
 
@@ -87,10 +87,10 @@ class ExtractionTester(object):
         self.current_target_keys = answers
         self.current_num_relations = num_relations
 
-        cleanResult = self.unbind_and_associate(word_vec, query_vector)
+        cleanResult = self.extract(word_vec, query_vector)
 
         if goal:
-            if self.associator.return_vec:
+            if self.extractor.return_vec:
                 cleanResultVector = cleanResult[0]
 
                 if goal in answers:
@@ -141,7 +141,7 @@ class ExtractionTester(object):
 
             if return_vec:
                 # here there should be an error about trying to return vectors
-                # even though we don't get them back from the associator
+                # even though we don't get them back from the extractor
                 pass
 
             # here we are returning keys
@@ -163,7 +163,7 @@ class ExtractionTester(object):
                 return cleanResult
 
         else:
-            if self.associator.return_vec:
+            if self.extractor.return_vec:
                 cleanResultVector = cleanResult[0]
 
                 cleanResult, largest, size = self.getStats(
@@ -286,7 +286,7 @@ class ExtractionTester(object):
 
     # Run a series of bootstrap runs, then combine the success rate from each
     # individual run into a total mean success rate with confidence intervals
-    # the associator on the run to be displayed
+    # the extractor on the run to be displayed
     def runBootstrap(self, sample_size, num_trials_per_sample,
                      num_bootstrap_samples, output_file, func, statNames=None,
                      file_open_func=None, write_raw_data=True):
@@ -299,7 +299,7 @@ class ExtractionTester(object):
         self.num_jumps = 0
         output_file.write("Begin series of " + str(sample_size) + " runs with "
                           + str(num_trials_per_sample) + " trials each.\n")
-        self.associator.print_config(output_file)
+        self.extractor.print_config(output_file)
 
         for i in range(sample_size):
 
@@ -347,5 +347,5 @@ class ExtractionTester(object):
                                       self.date_time_string, 'w')
 
         self.runBootstrap(1, 1, 999, self.similarities_file,
-                          self.associator.get_similarities_sample,
+                          self.extractor.get_similarities_sample,
                           write_raw_data=False)

@@ -1,4 +1,4 @@
-# wordnet assoc memory tester
+# wordnet extraction tester
 from extraction_tester import ExtractionTester
 import utilities as util
 
@@ -10,12 +10,12 @@ from mytools import hrr, nf
 
 class WordnetExtractionTester(ExtractionTester):
     def __init__(self, corpus, id_vectors, semantic_pointers,
-                 relation_type_vectors, associator, seed, output_dir=".",
+                 relation_type_vectors, extractor, seed, output_dir=".",
                  h_test_symbols=None, sentence_symbols=None,
                  unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetExtractionTester, self).__init__(
-            id_vectors, semantic_pointers, associator, seed,
+            id_vectors, semantic_pointers, extractor, seed,
             output_dir, unitary, verbose, outfile_suffix)
 
         self.sentence_results_file = None
@@ -283,7 +283,7 @@ class WordnetExtractionTester(ExtractionTester):
             if target_key is not None:
                 print >> self.hierarchical_results_file, "Target:", target_key
 
-        use_vecs = use_HRR and self.associator.return_vec
+        use_vecs = use_HRR and self.extractor.return_vec
 
         level = 0
         if use_vecs:
