@@ -32,7 +32,7 @@ class WordnetExtractionTester(ExtractionTester):
         self.h_test_symbols = h_test_symbols
         self.sentence_symbols = sentence_symbols
 
-        self.sentence_vocab = None
+        self.role_hrrs = None
 
         self.jump_plan_words = []
         self.jump_plan_relation_indices = []
@@ -389,7 +389,7 @@ class WordnetExtractionTester(ExtractionTester):
 
     def sentenceTest(self, testName, n, deep=False, short=False):
         # check that POS lists exist (form them if required)
-        if self.sentence_vocab is None:
+        if self.role_hrrs is None:
             self.nouns = []
             self.adjectives = []
             self.adverbs = []
@@ -409,13 +409,13 @@ class WordnetExtractionTester(ExtractionTester):
                 else:
                     raise Exception('Unexpected POS token: '+pos)
 
-            self.sentence_vocab = {}
+            self.role_hrrs = {}
             for symbol in self.sentence_symbols:
 
-                self.sentence_vocab[symbol] = hrr.HRR(self.D)
+                self.role_hrrs[symbol] = hrr.HRR(self.D)
 
                 if self.unitary:
-                    self.sentence_vocab[symbol].make_unitary()
+                    self.role_hrrs[symbol].make_unitary()
 
         posmap = {'n': self.nouns, 'a': self.adjectives,
                   'r': self.adverbs, 'v': self.verbs}
@@ -432,7 +432,10 @@ class WordnetExtractionTester(ExtractionTester):
             included_roles = []
 
             for symbol in self.sentence_symbols:
-                if self.rng.random() < self.sentence_symbols[symbol][0]:
+                valid_pos = posmap[self.sentence_symbols[symbol][1]]
+                include = self.rng.random() < self.sentence_symbols[symbol][0]
+
+                if valid_pos and include:
                     included_roles.append((symbol,))
 
             if deep:
@@ -444,9 +447,11 @@ class WordnetExtractionTester(ExtractionTester):
 
             sentence = {}
             tag_vectors = {}
-            sentence_vector = hrr.HRR(data=np.zeros(self.D))
+            sentence_hrr = hrr.HRR(data=np.zeros(self.D))
 
             # Pick role-fillers and create HRR representing the sentence
+            # Also store the hrr to use as the query to extract each synset
+            # included in the sentence.
             for role in included_roles:
                 print >> self.sentence_results_file, role
                 pos = self.sentence_symbols[role[-1]][1]
@@ -454,17 +459,17 @@ class WordnetExtractionTester(ExtractionTester):
 
                 sentence[role] = word
 
-                tag_vector = [self.sentence_vocab[x] for x in role]
+                tag_hrr = [self.role_hrrs[x] for x in role]
 
-                tag_vector = reduce(lambda x, y: hrr.circconv(x, y),
-                                    tag_vector)
+                tag_hrr = reduce(lambda x, y: x * y, tag_hrr)
 
-                tag_vectors[role] = tag_vector
+                sentence_hrr += tag_hrr * hrr.HRR(data=self.id_vectors[word])
 
-                sentence_vector = sentence_vector + \
-                    hrr.circconv(tag_vector, self.id_vectors[word])
+                tag_vectors[role] = tag_hrr.v
 
-            sentence_vector /= np.linalg.norm(sentence_vector)
+            sentence_hrr.normalize()
+
+            sentence_vector = sentence_hrr.v
 
             print >> self.sentence_results_file, "Roles in sentence:"
             print >> self.sentence_results_file, sentence
