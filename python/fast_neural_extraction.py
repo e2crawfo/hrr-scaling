@@ -104,7 +104,7 @@ class FastNeuralExtraction(NeuralExtraction):
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
 
-    def unbind_and_associate(self, item, query, *args, **kwargs):
+    def extract(self, item, query, *args, **kwargs):
         self.print_instance_difficulty(item, query)
 
         then = datetime.datetime.now()

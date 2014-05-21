@@ -319,7 +319,7 @@ class NeuralExtraction(Extraction):
             self.output_probe = nengo.Probe(output_output, 'output',
                                             synapse=0.02)
 
-    def unbind_and_associate(self, item, query, *args, **kwargs):
+    def extract(self, item, query, *args, **kwargs):
         then = datetime.datetime.now()
 
         if len(self.tester.current_target_keys) > 0:
