@@ -501,40 +501,6 @@ class NeuralExtraction(Extraction):
         if self.show:
             plt.show()
 
-    def print_instance_difficulty(self, item, query):
-        if len(self.tester.current_target_keys) > 0:
-            # Print data about how difficult the current instance is
-
-            correct_key = self.tester.current_target_keys[0]
-
-            item_hrr = hrr.HRR(data=item)
-            query_hrr = hrr.HRR(data=query)
-            noisy_hrr = item_hrr.convolve(~query_hrr)
-
-            correct_hrr = hrr.HRR(data=self.index_vectors[correct_key])
-            sim = noisy_hrr.compare(correct_hrr)
-            dot = np.dot(noisy_hrr.v, correct_hrr.v)
-            norm = np.linalg.norm(noisy_hrr.v)
-            print "Ideal similarity: ", sim
-            print "Ideal dot: ", dot
-            print "Ideal norm: ", norm
-
-            self.ideal_dot = dot
-
-            hrrs = [(key, hrr.HRR(data=iv))
-                    for key, iv in self.index_vectors.iteritems()
-                    if key != correct_key]
-
-            sims = [noisy_hrr.compare(h) for (k, h) in hrrs]
-            dots = [np.dot(noisy_hrr.v, h.v) for (k, h) in hrrs]
-            sim = max(sims)
-            dot = max(dots)
-
-            print "Similarity of closest incorrect index vector ", sim
-            print "Dot product of closest incorrect index vector ", dot
-
-            self.second_dot = dot
-
     def write_to_runtime_file(self, delta, label=''):
         to_print = [self.dim, self.num_items,
                     self.neurons_per_item, self.neurons_per_dim,

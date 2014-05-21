@@ -10,30 +10,38 @@ class Extraction(object):
     _type = "Direct"
     tester = None
 
-    # the associative memory maps from indices to items
-    # indices and items must both be dictionaries, whose values are vectors
-    def __init__(self, indices, items, identity, unitary,
+    # the associative memory maps from index_vectors to stored_vectors
+    # index_vectors and stored_vectors must both be OrderedDicts whose values
+    # are vectors
+    def __init__(self, index_vectors, stored_vectors, identity, unitary,
                  bidirectional=False, threshold=0.3):
 
-        self.indices = indices
-        self.items = items
+        self.index_vectors = index_vectors
+        self.stored_vectors = stored_vectors
         self.threshold = threshold
-        self.dim = len(indices.values()[0])
-        self.num_items = len(indices)
+        self.dim = len(index_vectors.values()[0])
+        self.num_items = len(index_vectors)
         self.hrr_vecs = collections.OrderedDict(
-            [(key, hrr.HRR(data=self.indices[key])) for key in self.indices])
+            [(key, hrr.HRR(data=self.index_vectors[key]))
+             for key in self.index_vectors])
+
         self.similarities = collections.OrderedDict(
-            zip(self.indices, [0 for i in range(len(indices))]))
+            zip(self.index_vectors, [0 for i in range(len(index_vectors))]))
 
         self.unitary = unitary
         self.identity = identity
-        self.return_vec = True
         self.bidirectional = bidirectional
+
+        self.return_vec = True
 
     def set_tester(self, tester):
         self.tester = tester
 
     def extract(self, item, query, key=None):
+
+        if len(self.tester.current_target_keys) > 0:
+            self.print_instance_difficulty(item, query)
+
         item_hrr = hrr.HRR(data=item)
         query_hrr = hrr.HRR(data=query)
         noisy_hrr = item_hrr.convolve(~query_hrr)
@@ -43,17 +51,18 @@ class Extraction(object):
 
         print("********In Associate*********")
 
-        keys = self.indices.keys()
+        keys = self.index_vectors.keys()
 
         for key in keys:
-            self.similarities[key] = np.dot(noisy_vector, self.indices[key])
+            self.similarities[key] = np.dot(
+                noisy_vector, self.index_vectors[key])
 
         result = np.zeros(self.dim)
 
         for key in keys:
             sim = self.similarities[key]
             if sim > self.threshold:
-                result += self.items[key]
+                result += self.stored_vectors[key]
 
         results = [result]
 
@@ -77,6 +86,40 @@ class Extraction(object):
         self.tester.add_data("num_reaching_threshold", len(results))
 
         return results
+
+    def print_instance_difficulty(self, item, query):
+        if len(self.tester.current_target_keys) > 0:
+            # Print data about how difficult the current instance is
+
+            correct_key = self.tester.current_target_keys[0]
+
+            item_hrr = hrr.HRR(data=item)
+            query_hrr = hrr.HRR(data=query)
+            noisy_hrr = item_hrr.convolve(~query_hrr)
+
+            correct_hrr = hrr.HRR(data=self.index_vectors[correct_key])
+            sim = noisy_hrr.compare(correct_hrr)
+            dot = np.dot(noisy_hrr.v, correct_hrr.v)
+            norm = np.linalg.norm(noisy_hrr.v)
+            print "Ideal similarity: ", sim
+            print "Ideal dot: ", dot
+            print "Ideal norm: ", norm
+
+            self.ideal_dot = dot
+
+            hrrs = [(key, hrr.HRR(data=iv))
+                    for key, iv in self.index_vectors.iteritems()
+                    if key != correct_key]
+
+            sims = [noisy_hrr.compare(h) for (k, h) in hrrs]
+            dots = [np.dot(noisy_hrr.v, h.v) for (k, h) in hrrs]
+            sim = max(sims)
+            dot = max(dots)
+
+            print "Similarity of closest incorrect index vector ", sim
+            print "Dot product of closest incorrect index vector ", dot
+
+            self.second_dot = dot
 
     def print_config(self, output_file):
         output_file.write("Unitary: " + str(self.unitary) + "\n")
