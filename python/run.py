@@ -94,21 +94,6 @@ id_vectors = corpus[1]
 semantic_pointers = corpus[2]
 relation_type_vectors = corpus[3]
 
-# change these to use specific words/relations
-probe_keys = []
-words = []
-relations = []
-
-if num_words > 0:
-    probe_keys, words, relations = \
-        utilities.gen_probe_keys(corpus_dict, num_words,
-                                 relation_symbols, words, relations)
-
-if not (len(relations) == len(words) and len(words) > 0):
-    words = []
-    relations = []
-
-
 test = argvals.test[0] if len(argvals.test) > 0 else 'j'
 
 if test != 'f':
@@ -151,18 +136,12 @@ np.random.seed(test_seed)
 random.seed(test_seed)
 
 # get symbols for the different tests
-h_test_symbols = symbol_definitions.hierarchical_test_symbols()
-sentence_symbols = symbol_definitions.sentence_role_symbols()
 
 tester = \
     WordnetExtractionTester(corpus_dict, id_vectors, semantic_pointers,
                             relation_type_vectors, extractor,
-                            test_seed, output_dir, h_test_symbols,
-                            sentence_symbols, unitary_roles, verbose,
+                            test_seed, output_dir, unitary_roles, verbose,
                             outfile_suffix)
-
-if len(words) > 0:
-    tester.set_jump_plan(words, relations)
 
 if test == 'j':
     tester.runBootstrap_jump(num_runs, num_trials)

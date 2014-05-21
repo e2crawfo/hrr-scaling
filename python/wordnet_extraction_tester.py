@@ -6,12 +6,12 @@ import random
 from collections import defaultdict
 import numpy as np
 from mytools import hrr, nf
+import symbol_definitions
 
 
 class WordnetExtractionTester(ExtractionTester):
     def __init__(self, corpus, id_vectors, semantic_pointers,
                  relation_type_vectors, extractor, seed, output_dir=".",
-                 h_test_symbols=None, sentence_symbols=None,
                  unitary=False, verbose=False, outfile_suffix=""):
 
         super(WordnetExtractionTester, self).__init__(
@@ -26,22 +26,15 @@ class WordnetExtractionTester(ExtractionTester):
 
         self.relation_type_vectors = relation_type_vectors
 
-        h_test_symbols = [] if not h_test_symbols else h_test_symbols
-        sentence_symbols = [] if not sentence_symbols else sentence_symbols
+        h_test_symbols = symbol_definitions.hierarchical_test_symbols()
+        sentence_symbols = symbol_definitions.sentence_role_symbols()
 
         self.h_test_symbols = h_test_symbols
         self.sentence_symbols = sentence_symbols
 
         self.role_hrrs = None
 
-        self.jump_plan_words = []
-        self.jump_plan_relation_indices = []
-
         self.rng = random.Random(self.seed)
-
-    def set_jump_plan(self, w, ri):
-        self.jump_plan_words = w
-        self.jump_plan_relation_indices = ri
 
     def singleTest(self, testName, n, expression):
         # create a sentence
@@ -90,7 +83,7 @@ class WordnetExtractionTester(ExtractionTester):
             threshold=self.test_threshold)
 
     def jumpTest(self, testName, n):
-        # select a key, follow a hyp/hol link, record success / failure
+        # select a key, follow a link, record success / failure
 
         testNumber = 0
 
@@ -99,24 +92,14 @@ class WordnetExtractionTester(ExtractionTester):
         exact_score = 0
 
         while testNumber < n:
-            if testNumber < len(self.jump_plan_words):
-                words = self.jump_plan_words[
-                    testNumber: min(n, len(self.jump_plan_words))
-                    ]
-            else:
-                words = self.rng.sample(self.corpus, n-testNumber)
+            words = self.rng.sample(self.corpus, n-testNumber)
 
             for word in words:
                 testableLinks = [r for r in self.corpus[word]
                                  if r[0] in self.relation_type_vectors]
 
                 if len(testableLinks) > 0:
-                    if testNumber < len(self.jump_plan_relation_indices):
-                        prompt = testableLinks[
-                            self.jump_plan_relation_indices[testNumber]
-                            ]
-                    else:
-                        prompt = self.rng.sample(testableLinks, 1)[0]
+                    prompt = self.rng.sample(testableLinks, 1)[0]
 
                     util.print_header(self.jump_results_file, "New Jump Test")
 
@@ -216,7 +199,7 @@ class WordnetExtractionTester(ExtractionTester):
         for pair in negative_pairs:
             util.print_header(self.hierarchical_results_file, title)
 
-            # for printing
+            # do it symbolically first, for comparison
             self.findAllParents(
                 pair[0], pair[1], rtype, False, stat_depth=stat_depth,
                 print_output=True)
@@ -232,6 +215,7 @@ class WordnetExtractionTester(ExtractionTester):
         for pair in positive_pairs:
             util.print_header(self.hierarchical_results_file, title)
 
+            # do it symbolically first, for comparison
             self.findAllParents(
                 pair[0], pair[1], rtype, False, stat_depth=stat_depth,
                 print_output=True)
