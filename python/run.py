@@ -42,7 +42,8 @@ fast = argvals.fast
 identical = argvals.identical
 verbose = argvals.v
 use_pure_cleanup = argvals.i
-unitary = argvals.u
+unitary_roles = argvals.unitary_roles
+unitary_relations = argvals.unitary_relations
 
 gpus = argvals.gpus
 if gpus is not None:
@@ -53,8 +54,8 @@ if ocl is not None:
     ocl.sort()
 
 outfile_suffix = \
-    utilities.create_outfile_suffix(neural, unitary, use_pure_cleanup,
-                                    use_bi_relations)
+    utilities.create_outfile_suffix(neural, unitary_relations,
+                                    use_pure_cleanup, use_bi_relations)
 
 if corpus_seed == -1:
     corpus_seed = random.randrange(1000)
@@ -84,9 +85,14 @@ else:
 
 input_dir, output_dir = utilities.read_config()
 
-(corpus_dict, id_vectors, semantic_pointers, relation_type_vectors) = \
-    utilities.setup_corpus(input_dir, relation_symbols, dim,
-                           use_pure_cleanup, unitary, proportion, num_synsets)
+corpus = utilities.setup_corpus(input_dir, relation_symbols, dim,
+                                use_pure_cleanup, unitary_relations,
+                                proportion, num_synsets)
+
+corpus_dict = corpus[0]
+id_vectors = corpus[1]
+semantic_pointers = corpus[2]
+relation_type_vectors = corpus[3]
 
 # change these to use specific words/relations
 probe_keys = []
@@ -138,7 +144,7 @@ if neural:
                                      gpus=gpus, identical=identical)
 else:
     extractor = Extraction(id_vectors, semantic_pointers,
-                           use_pure_cleanup, unitary,
+                           use_pure_cleanup, unitary_relations,
                            use_bi_relations, threshold)
 
 np.random.seed(test_seed)
@@ -152,7 +158,7 @@ tester = \
     WordnetExtractionTester(corpus_dict, id_vectors, semantic_pointers,
                             relation_type_vectors, extractor,
                             test_seed, output_dir, h_test_symbols,
-                            sentence_symbols, unitary, verbose,
+                            sentence_symbols, unitary_roles, verbose,
                             outfile_suffix)
 
 if len(words) > 0:
