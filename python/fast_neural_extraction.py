@@ -152,3 +152,7 @@ class FastNeuralExtraction(NeuralExtraction):
                     "GPUS: "+str(self.gpus), "fast", delta]
         print >> self.runtimes_file, label, \
             ": " ",".join([str(tp) for tp in to_print])
+
+    def print_config(self, output_file):
+        super(FastNeuralExtraction, self).print_config(output_file)
+        output_file.write("Fast neural extractor config:")

@@ -13,13 +13,12 @@ class Extraction(object):
     # the associative memory maps from index_vectors to stored_vectors
     # index_vectors and stored_vectors must both be OrderedDicts whose values
     # are vectors
-    def __init__(self, index_vectors, stored_vectors, identity, unitary,
-                 bidirectional=False, threshold=0.3):
+    def __init__(self, index_vectors, stored_vectors, threshold=0.3):
 
         self.index_vectors = index_vectors
         self.stored_vectors = stored_vectors
         self.threshold = threshold
-        self.dim = len(index_vectors.values()[0])
+        self.dimension = len(index_vectors.values()[0])
         self.num_items = len(index_vectors)
         self.hrr_vecs = collections.OrderedDict(
             [(key, hrr.HRR(data=self.index_vectors[key]))
@@ -27,10 +26,6 @@ class Extraction(object):
 
         self.similarities = collections.OrderedDict(
             zip(self.index_vectors, [0 for i in range(len(index_vectors))]))
-
-        self.unitary = unitary
-        self.identity = identity
-        self.bidirectional = bidirectional
 
         self.return_vec = True
 
@@ -57,7 +52,7 @@ class Extraction(object):
             self.similarities[key] = np.dot(
                 noisy_vector, self.index_vectors[key])
 
-        result = np.zeros(self.dim)
+        result = np.zeros(self.dimension)
 
         for key in keys:
             sim = self.similarities[key]
@@ -120,16 +115,6 @@ class Extraction(object):
             print "Dot product of closest incorrect index vector ", dot
 
             self.second_dot = dot
-
-    def print_config(self, output_file):
-        output_file.write("Unitary: " + str(self.unitary) + "\n")
-        output_file.write("Identity: " + str(self.identity) + "\n")
-        output_file.write("Bidirectional: " + str(self.bidirectional) + "\n")
-        output_file.write("Num items: " + str(self.num_items) + "\n")
-        output_file.write("Dimension: " + str(self.dim) + "\n")
-        output_file.write("Threshold: " + str(self.threshold) + "\n")
-        output_file.write("Test Seed: " + str(self.tester.seed) + "\n")
-        output_file.write("Associator type: " + str(self._type) + "\n")
 
     def get_similarities_random(self, s, n, dataFunc=None):
         samples_per_vec = 500
@@ -196,3 +181,9 @@ class Extraction(object):
                 self.tester.add_data("all", similarity)
 
             remaining_keys.remove(idkey1)
+
+    def print_config(self, output_file):
+        output_file.write("Extractor config:")
+        output_file.write("Num items: " + str(self.num_items) + "\n")
+        output_file.write("Dimension: " + str(self.dimension) + "\n")
+        output_file.write("Threshold: " + str(self.threshold) + "\n")

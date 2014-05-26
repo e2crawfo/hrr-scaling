@@ -58,10 +58,6 @@ class NeuralExtraction(Extraction):
 
         then = datetime.datetime.now()
 
-        self.unitary = False
-        self.bidirectional = False
-        self.identity = False
-
         self.ideal_dot = None
         self.second_dot = None
 
@@ -74,7 +70,7 @@ class NeuralExtraction(Extraction):
 
         self.runtimes_file = open(self.output_dir+'/neural_runtimes', 'a')
 
-        self.dim = len(self.index_vectors.values()[0])
+        self.dimension = len(self.index_vectors.values()[0])
         self.num_items = len(self.index_vectors)
         self.neurons_per_item = neurons_per_item
         self.neurons_per_dim = neurons_per_dim
@@ -111,12 +107,12 @@ class NeuralExtraction(Extraction):
         # other population parameters
         n_eval_points = 750
         self.eval_points = np.random.normal(0, 0.06, (n_eval_points, 1))
-        self.radius = 5.0 / np.sqrt(self.dim)
+        self.radius = 5.0 / np.sqrt(self.dimension)
         self.solver = nengo.decoders.lstsq_L2
         self.synapse = synapse
 
-        self.A_input_vector = np.zeros(self.dim)
-        self.B_input_vector = np.zeros(self.dim)
+        self.A_input_vector = np.zeros(self.dimension)
+        self.B_input_vector = np.zeros(self.dimension)
 
         self.setup_simulator()
 
@@ -143,22 +139,22 @@ class NeuralExtraction(Extraction):
         radius = self.radius
         eval_points = self.eval_points
         synapse = self.synapse
-        dim = self.dim
+        dimension = self.dimension
 
         with model:
-            A_input = nengo.Node(output=A_input_func, size_out=dim)
-            B_input = nengo.Node(output=B_input_func, size_out=dim)
+            A_input = nengo.Node(output=A_input_func, size_out=dimension)
+            B_input = nengo.Node(output=B_input_func, size_out=dimension)
 
-            A = EnsembleArray(nengo.LIF(neurons_per_dim), dim, label="A",
+            A = EnsembleArray(nengo.LIF(neurons_per_dim), dimension, label="A",
                               radius=radius, eval_points=eval_points)
 
-            B = EnsembleArray(nengo.LIF(neurons_per_dim), dim, label="B",
+            B = EnsembleArray(nengo.LIF(neurons_per_dim), dimension, label="B",
                               radius=radius, eval_points=eval_points)
 
             cconv = CircularConvolution(nengo.LIF(int(2 * neurons_per_dim)),
-                                        dim, invert_b=True, radius=0.2)
+                                        dimension, invert_b=True, radius=0.2)
 
-            D = EnsembleArray(nengo.LIF(neurons_per_dim), dim, label="D",
+            D = EnsembleArray(nengo.LIF(neurons_per_dim), dimension, label="D",
                               radius=radius, eval_points=eval_points)
 
             if self.solver != nengo.decoders.lstsq_L2nz:
@@ -179,7 +175,7 @@ class NeuralExtraction(Extraction):
                                                  function=p,
                                                  decoder_solver=solver)
 
-                cconv_output = nengo.Node(size_in=dim)
+                cconv_output = nengo.Node(size_in=dimension)
 
                 nengo.Connection(prod_output, cconv_output,
                                  transform=cconv.transform_out)
@@ -243,8 +239,9 @@ class NeuralExtraction(Extraction):
                     output_vector = self.assoc_memory.step(input_vector)
                     return output_vector
 
-                assoc = nengo.Node(output=gpu_function,
-                                   size_in=self.dim, size_out=self.dim)
+                assoc = nengo.Node(
+                    output=gpu_function, size_in=self.dimension,
+                    size_out=self.dimension)
 
                 nengo.Connection(self.D_output, assoc, synapse=synapse)
                 nengo.Connection(assoc, self.output.input, synapse=synapse)
@@ -259,14 +256,18 @@ class NeuralExtraction(Extraction):
                 encoders = np.ones((neurons_per_item, 1))
 
                 # Cuts down on synapse computation
-                assoc_in = nengo.Node(size_in=self.dim, label="Assoc Input")
-                assoc_out = nengo.Node(size_in=self.dim, label="Assoc Output")
+                assoc_in = nengo.Node(
+                    size_in=self.dimension, label="Assoc Input")
+
+                assoc_out = nengo.Node(
+                    size_in=self.dimension, label="Assoc Output")
+
                 nengo.Connection(self.D_output, assoc_in, synapse=synapse)
                 nengo.Connection(assoc_out, self.output.input, synapse=synapse)
 
                 for k in self.index_vectors:
-                    iv = self.index_vectors[k].reshape((1, self.dim))
-                    sv = self.stored_vectors[k].reshape((self.dim, 1))
+                    iv = self.index_vectors[k].reshape((1, self.dimension))
+                    sv = self.stored_vectors[k].reshape((self.dimension, 1))
 
                     label = "Associate: " + str(k)
                     neurons = nengo.LIF(self.neurons_per_item,
@@ -304,7 +305,7 @@ class NeuralExtraction(Extraction):
         with model:
 
             self.output = EnsembleArray(nengo.LIF(self.neurons_per_dim),
-                                        self.dim, label="output",
+                                        self.dimension, label="output",
                                         radius=self.radius)
 
             if self.solver != nengo.decoders.lstsq_L2nz:
@@ -384,7 +385,7 @@ class NeuralExtraction(Extraction):
         sim = self.simulator
         t = sim.trange()
 
-        max_val = 5.0 / np.sqrt(self.dim)
+        max_val = 5.0 / np.sqrt(self.dimension)
 
         gs = gridspec.GridSpec(9, 2)
         plt.figure(figsize=(10, 10))
@@ -502,7 +503,7 @@ class NeuralExtraction(Extraction):
             plt.show()
 
     def write_to_runtime_file(self, delta, label=''):
-        to_print = [self.dim, self.num_items,
+        to_print = [self.dimension, self.num_items,
                     self.neurons_per_item, self.neurons_per_dim,
                     self.timesteps, "OCL: "+str(self.ocl),
                     "GPUS: "+str(self.gpus), delta]
@@ -512,7 +513,36 @@ class NeuralExtraction(Extraction):
     def print_config(self, output_file):
         super(NeuralExtraction, self).print_config(output_file)
 
+        output_file.write("Neural extractor config:")
+
         output_file.write("Neurons per item: " +
                           str(self.neurons_per_item) + "\n")
-        output_file.write("Neurons per dim: " +
+        output_file.write("Neurons per dimension: " +
                           str(self.neurons_per_dim) + "\n")
+
+        output_file.write("Assoc params dimension: " +
+                          str(self.assoc_params) + "\n")
+
+        output_file.write("eval_points:" + str(self.eval_points) + "\n")
+        output_file.write("radius:" + str(self.radius) + "\n")
+        output_file.write("solver:" + str(self.solver) + "\n")
+        output_file.write("synapse:" + str(self.synapse) + "\n")
+
+        output_file.write("dimension:" + str(self.dimension) + "\n")
+        output_file.write("num_items:" + str(self.num_items) + "\n")
+        output_file.write("neurons_per_item:"
+                          + str(self.neurons_per_item) + "\n")
+        output_file.write("neurons_per_dim:" +
+                          + str(self.neurons_per_dim) + "\n")
+        output_file.write("dt:" + str(self.dt) + "\n")
+        output_file.write("timesteps:" + str(self.timesteps) + "\n")
+        output_file.write("plot:" + str(self.plot) + "\n")
+        output_file.write("show:" + str(self.show) + "\n")
+        output_file.write("gpus:" + str(self.gpus) + "\n")
+        output_file.write("ocl:" + str(self.ocl) + "\n")
+        output_file.write("probe_keys:" + str(self.probe_keys) + "\n")
+        output_file.write("identical:" + str(self.identical) + "\n")
+        output_file.write("seed:" + str(self.seed) + "\n")
+
+        output_file.write("threshold:" + str(self.threshold) + "\n")
+        output_file.write("threshold_func:" + str(self.threshold_func) + "\n")

@@ -1,30 +1,47 @@
 import random
 import Queue
 import collections
-from mytools import hrr, bootstrap
+from mytools import hrr
+import symbol_definitions
+import utilities as util
 
 
-class CorpusHandler:
+class VectorizedCorpus:
 
-    corpusDict = None
+    corpus_dict = None
 
-    def __init__(self, D=512, input_dir=".", relation_symbols=[]):
-        self.D = D
+    def __init__(self, dimension=512, input_dir=".",
+                 unitary_relations=False, proportion=1.0, num_synsets=-1,
+                 id_vecs=False, relation_symbols=[]):
+
+        self.dimension = dimension
         self.input_dir = input_dir
-        self.relation_symbols = relation_symbols
-        self.bootstrapper = bootstrap.Bootstrapper()
+        self.relation_symbols = symbol_definitions.uni_relation_symbols()
+        self.unitary_relations = unitary_relations
 
-    def parseWordnet(self):
+        self.parse_wordnet()
+
+        self.proportion = (float(num_synsets)/len(self.corpus_dict)
+                           if num_synsets > 0 else proportion)
+
+        if self.proportion < 1.0:
+            self.create_corpus_subset(self.proportion)
+
+        print "Wordnet data parsed."
+        self.form_knowledge_base(id_vecs, unitary_relations)
+        print "Knowledge base formed."
+
+    def parse_wordnet(self):
 
         fileposmap = {self.input_dir+'/data.noun': 'n',
                       self.input_dir+'/data.verb': 'v',
                       self.input_dir+'/data.adj': 'a',
                       self.input_dir+'/data.adv': 'r'}
 
-        if self.corpusDict is not None:
+        if self.corpus_dict is not None:
             print "Warning: overwriting existing corpus dictionary."
 
-        self.corpusDict = {}
+        self.corpus_dict = {}
 
         # See http://wordnet.princeton.edu/wordnet/man/wndb.5WN.html
         # and http://wordnet.princeton.edu/wordnet/man/wninput.5WN.html
@@ -38,7 +55,7 @@ class CorpusHandler:
                 while line:
                     parse = line.split()
                     tag = (pos, int(parse[0]))
-                    self.corpusDict[tag] = []
+                    self.corpus_dict[tag] = []
                     w_cnt = int(parse[3], 16)
                     p_i = 4+w_cnt*2
                     p_cnt = int(parse[p_i])
@@ -53,13 +70,13 @@ class CorpusHandler:
                             ss_type = 'a'
 
                         pointerTag = (ss_type, offset)
-                        self.corpusDict[tag].append((ptr, pointerTag))
+                        self.corpus_dict[tag].append((ptr, pointerTag))
                         # ignoring parse[p_i+4] (word/word mappings)
                         p_i = p_i + 4
 
                     line = f.readline()
 
-    def createCorpusSubset(self, proportion):
+    def create_corpus_subset(self, proportion):
         # randomly pick a starting point, following all links from that node,
         # do the same recursively for each node we just added.
 
@@ -73,21 +90,21 @@ class CorpusHandler:
         proportion = max(0.0, min(1.0, proportion))
 
         size = 0
-        target_size = proportion * len(self.corpusDict)
+        target_size = proportion * len(self.corpus_dict)
 
         queue = Queue.Queue()
 
         while size < target_size:
             if queue.empty():
-                queue.put(random.choice(self.corpusDict.keys()))
+                queue.put(random.choice(self.corpus_dict.keys()))
 
             next_entry = queue.get()
 
             if next_entry in subset_dict:
                 continue
 
-            subset_dict[next_entry] = self.corpusDict[next_entry]
-            new_entries = self.corpusDict[next_entry]
+            subset_dict[next_entry] = self.corpus_dict[next_entry]
+            new_entries = self.corpus_dict[next_entry]
             size = size + 1
 
             for item in new_entries:
@@ -103,7 +120,7 @@ class CorpusHandler:
             for item in removal_list:
                 subset_dict[key].remove(item)
 
-        self.corpusDict = subset_dict
+        self.corpus_dict = subset_dict
 
     def processCorpus(self):
         '''Remove excessive relationships, handle circularity, etc.'''
@@ -111,7 +128,7 @@ class CorpusHandler:
         processed = set()
         stack = []
 
-        for item in self.corpusDict:
+        for item in self.corpus_dict:
             if item in processed:
                 continue
 
@@ -122,7 +139,7 @@ class CorpusHandler:
             while activeItem is not None:
                 # find all relations of current item
                 if activeItem not in localProcessed:
-                    for relation in self.corpusDict[activeItem]:
+                    for relation in self.corpus_dict[activeItem]:
                         if relation[0] in self.relation_symbols:
                             localStack.append(relation)
                             localProcessed.add(activeItem)
@@ -148,7 +165,7 @@ class CorpusHandler:
                 if activeRelation is not None:
                     if activeRelation[1] in localProcessed:
                         # delete a relation if a circular definition was found
-                        self.corpusDict[activeItem].remove(activeRelation)
+                        self.corpus_dict[activeItem].remove(activeRelation)
                         print 'deleting', activeRelation, 'from', activeItem
                     elif activeRelation[1] not in processed:
                         activeItem = activeRelation[1]
@@ -157,13 +174,15 @@ class CorpusHandler:
 
         processed.update(localProcessed)
 
-    def formKnowledgeBase(self, identity_cleanup=False, unitary=False):
+    def form_knowledge_base(self, identity_cleanup=False, unitary=False):
+
         # Check existence of corpus
-        if self.corpusDict is None:
-            raise Exception("Attempted to form the knowledge"
+        if self.corpus_dict is None:
+            raise Exception("Attempted to form the knowledge "
                             "base without a corpus.")
 
-        print "Number of items in knowledge base:", len(self.corpusDict)
+        print "Number of items in knowledge base:", len(self.corpus_dict)
+
         if identity_cleanup:
             print "Processing Corpus"
             self.processCorpus()
@@ -171,26 +190,27 @@ class CorpusHandler:
         print "Generating relation type vectors"
         print "Using relation types: ", self.relation_symbols
 
-        self.relation_type_vectors = {symbol: hrr.HRR(self.D)
+        self.relation_type_vectors = {symbol: hrr.HRR(self.dimension)
                                       for symbol in self.relation_symbols}
         if unitary:
-            for k, h in self.relation_type_vectors:
+            for k, h in self.relation_type_vectors.iteritems():
                 h.make_unitary()
 
         # Order words by the dependencies of their definitions
         # Only have to do this if we're forming an identity cleanup
         if not identity_cleanup:
-            key_order = self.corpusDict.keys()
+            key_order = self.corpus_dict.keys()
         else:
             key_order = []
             resolved = set(self.relation_symbols)
 
             dependencies = {}
-            for key in self.corpusDict.keys():
-                dependencies[key] = set([tag[1] for tag in self.corpusDict[key]
-                                         if tag[0] in self.relation_symbols])
+            for key in self.corpus_dict.keys():
+                dependencies[key] = set(
+                    [tag[1] for tag in self.corpus_dict[key]
+                     if tag[0] in self.relation_symbols])
 
-            while len(key_order) < (len(self.corpusDict)
+            while len(key_order) < (len(self.corpus_dict)
                                     + len(self.relation_symbols)):
 
                 resolvable = set()
@@ -213,7 +233,7 @@ class CorpusHandler:
 
             del resolved
             del resolvable
-            if len(key_order) < len(self.corpusDict):
+            if len(key_order) < len(self.corpus_dict):
                 raise Exception("Dependency resolution failed.")
 
         self.semantic_pointers = collections.OrderedDict()
@@ -225,13 +245,13 @@ class CorpusHandler:
             self.id_vectors = collections.OrderedDict()
 
             for key in key_order:
-                self.id_vectors[key] = hrr.HRR(self.D)
+                self.id_vectors[key] = hrr.HRR(self.dimension)
 
         print "Generating HRR vectors"
         for key in key_order:
-            semantic_pointer = hrr.HRR(self.D)
+            semantic_pointer = hrr.HRR(self.dimension)
 
-            for relation in self.corpusDict[key]:
+            for relation in self.corpus_dict[key]:
                 if relation[0] not in self.relation_type_vectors:
                     continue
 
@@ -267,3 +287,44 @@ class CorpusHandler:
             f.readline()
             c = f.read(1)
         f.seek(-1, 1)
+
+    def print_config(self, output_file):
+        output_file.write("Dimension: " + str(self.dimension) + "\n")
+        output_file.write("Unitary relations: " +
+                          str(self.unitary_relations) + "\n")
+        output_file.write("Proportion: " + str(self.proportion) + "\n")
+        output_file.write("Num items: " + str(len(self.id_vectors)) + "\n")
+
+        self.print_relation_stats(output_file)
+
+    def print_relation_stats(self, output_file):
+        relation_counts = {}
+        relation_count = 0
+        relation_hist = {}
+
+        for key in self.corpus_dict:
+            lst = self.corpus_dict[key]
+            length = len(lst)
+
+            if length not in relation_hist:
+                relation_hist[length] = 1
+            else:
+                relation_hist[length] += 1
+
+            for relation in lst:
+                relation_count += 1
+                if not relation[0] in relation_counts:
+                    relation_counts[relation[0]] = 1
+                else:
+                    relation_counts[relation[0]] += 1
+
+        title = "Relation Distribution"
+        util.print_header(output_file, title)
+
+        output_file.write("relation_counts: " + str(relation_counts) + " \n")
+
+        output_file.write("relation_count: " + str(relation_count) + " \n")
+
+        output_file.write("relation_hist: " + str(relation_hist) + " \n")
+
+        util.print_footer(output_file, title)
