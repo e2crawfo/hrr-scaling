@@ -120,11 +120,6 @@ def parse_args(print_args=False):
         help='Whether to use fast gpu algorithm with new nengo code')
 
     parser.add_argument(
-        '-v', action='store_true',
-        help='Supply this argument to print the data '
-             'that is printed to the file')
-
-    parser.add_argument(
         '--numwords', default=0, type=int,
         help='Number of planned words. Only has an effect on jump tests.')
 
@@ -132,10 +127,6 @@ def parse_args(print_args=False):
     parser.add_argument(
         '-b', action='store_true',
         help='Supply this argument to use bidirectional relations.')
-
-    parser.add_argument(
-        '-r', action='store_true',
-        help='Supply this argument to collect the relation stats.')
 
     parser.add_argument(
         '--plot', action='store_true',

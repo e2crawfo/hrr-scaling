@@ -43,10 +43,6 @@ extractor_seed = argvals.extractor_seed
 test_seed = argvals.test_seed
 seed = argvals.seed
 
-# general args
-verbose = argvals.v
-do_relation_stats = argvals.r
-
 # corpus args
 dimension = argvals.d
 num_synsets = argvals.num_synsets
