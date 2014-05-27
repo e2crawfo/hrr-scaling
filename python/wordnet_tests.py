@@ -101,7 +101,9 @@ class WordnetTest(object):
         now = datetime.datetime.now()
         delta_time = now - then
 
-        self.add_data("step_runtime", to_seconds(delta_time))
+        self.add_data(
+            "runtime_per_trial",
+            to_seconds(delta_time) / float(self.num_trials))
 
         self.bootstrapper.print_summary(self.output_file)
         self.output_file.flush()
