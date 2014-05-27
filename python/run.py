@@ -21,166 +21,179 @@ from wordnet_tests import ExpressionTest, JumpTest
 from wordnet_tests import HierarchicalTest
 from wordnet_tests import SentenceTest
 
-argvals = utilities.parse_args(True)
 
-# specify tests
-num_runs = argvals.num_runs
+def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
+        unitary_roles, short_sentence, do_neg, steps, corpus_seed,
+        extractor_seed, test_seed, seed, dimension, num_synsets,
+        proportion, unitary_relations, abstract, neural, synapse, timesteps,
+        threshold, probeall, identical, fast, plot, show, gpus, ocl):
 
-jump_trials = argvals.jump
-hier_trials = argvals.hier
-sent_trials = argvals.sent
-deep_trials = argvals.deep
-expr = argvals.expr
+    if gpus is not None:
+        gpus.sort()
 
-unitary_roles = argvals.unitary_roles
-short_sentence = argvals.shortsent
-do_neg = not argvals.noneg
+    if ocl is not None:
+        ocl.sort()
 
-# seeds
-steps = argvals.steps
-corpus_seed = argvals.corpus_seed
-extractor_seed = argvals.extractor_seed
-test_seed = argvals.test_seed
-seed = argvals.seed
+    def make_corpus_factory(dimension, input_dir, unitary_relations,
+                            proportion, num_synsets):
 
-# corpus args
-dimension = argvals.d
-num_synsets = argvals.num_synsets
-proportion = argvals.p
-unitary_relations = argvals.unitary_relations
-use_bi_relations = argvals.b
+        def make_corpus():
+            corpus = VectorizedCorpus(
+                dimension, input_dir, unitary_relations,
+                proportion, num_synsets)
 
-# extractor args
-abstract = argvals.abstract
-neural = not abstract
-synapse = argvals.synapse
-timesteps = argvals.steps
-threshold = argvals.t
-probeall = argvals.probeall
-identical = argvals.identical
-fast = argvals.fast
-plot = argvals.plot and can_plot and neural
-show = argvals.show and plot
+            return corpus
 
-gpus = argvals.gpus
-if gpus is not None:
-    gpus.sort()
+        return make_corpus
 
-ocl = argvals.ocl
-if ocl is not None:
-    ocl.sort()
+    def make_extractor_factory(neural, fast, gpus, ocl, plot, show, threshold,
+                               output_dir, timesteps, synapse):
 
-
-input_dir, output_dir = utilities.read_config()
-
-
-def make_corpus_factory(dimension, input_dir, unitary_relations,
-                        proportion, num_synsets):
-
-    def make_corpus():
-        corpus = VectorizedCorpus(
-            dimension, input_dir, unitary_relations, proportion, num_synsets)
-
-        return corpus
-
-    return make_corpus
-
-
-def make_extractor_factory(neural, fast, gpus, ocl, plot, show, threshold,
-                           output_dir, timesteps, synapse):
-
-    # pick an extraction algorithm
-    def make_extractor(id_vectors, semantic_pointers, probe_keys):
-        if neural:
-            if fast and gpus:
-                extractor = FastNeuralExtraction(
-                    id_vectors, semantic_pointers,
-                    threshold=threshold,
-                    output_dir=output_dir,
-                    probe_keys=probe_keys,
-                    timesteps=steps, synapse=synapse,
-                    plot=plot, show=show, ocl=ocl,
-                    gpus=gpus, identical=identical)
+        # pick an extraction algorithm
+        def make_extractor(id_vectors, semantic_pointers, probe_keys):
+            if neural:
+                if fast and gpus:
+                    extractor = FastNeuralExtraction(
+                        id_vectors, semantic_pointers,
+                        threshold=threshold,
+                        output_dir=output_dir,
+                        probe_keys=probe_keys,
+                        timesteps=steps, synapse=synapse,
+                        plot=plot, show=show, ocl=ocl,
+                        gpus=gpus, identical=identical)
+                else:
+                    extractor = NeuralExtraction(
+                        id_vectors, semantic_pointers, threshold=threshold,
+                        output_dir=output_dir, probe_keys=probe_keys,
+                        timesteps=steps, synapse=synapse,
+                        plot=plot, show=show, ocl=ocl, gpus=gpus,
+                        identical=identical)
             else:
-                extractor = NeuralExtraction(
-                    id_vectors, semantic_pointers, threshold=threshold,
-                    output_dir=output_dir, probe_keys=probe_keys,
-                    timesteps=steps, synapse=synapse,
-                    plot=plot, show=show, ocl=ocl, gpus=gpus,
-                    identical=identical)
-        else:
-            extractor = Extraction(id_vectors, semantic_pointers, threshold)
+                extractor = Extraction(
+                    id_vectors, semantic_pointers, threshold)
 
-        return extractor
+            return extractor
 
-    return make_extractor
+        return make_extractor
 
-corpus_factory = make_corpus_factory(
-    dimension, input_dir, unitary_relations, proportion, num_synsets)
+    corpus_factory = make_corpus_factory(
+        dimension, input_dir, unitary_relations, proportion, num_synsets)
 
-extractor_factory = make_extractor_factory(
-    neural, fast, gpus, ocl, plot, show, threshold,
-    output_dir, timesteps, synapse)
+    extractor_factory = make_extractor_factory(
+        neural, fast, gpus, ocl, plot, show, threshold,
+        output_dir, timesteps, synapse)
 
-outfile_suffix = \
-    utilities.create_outfile_suffix(neural, unitary_relations)
+    outfile_suffix = \
+        utilities.create_outfile_suffix(neural, unitary_relations)
 
-if corpus_seed == -1:
-    corpus_seed = random.randrange(1000)
+    if corpus_seed == -1:
+        corpus_seed = random.randrange(1000)
 
-if extractor_seed == -1:
-    extractor_seed = random.randrange(1000)
+    if extractor_seed == -1:
+        extractor_seed = random.randrange(1000)
 
-if test_seed == -1:
-    test_seed = random.randrange(1000)
+    if test_seed == -1:
+        test_seed = random.randrange(1000)
 
-if seed != -1:
-    random.seed(seed)
-    corpus_seed = random.randrange(1000)
-    extractor_seed = random.randrange(1000)
-    test_seed = random.randrange(1000)
+    if seed != -1:
+        random.seed(seed)
+        corpus_seed = random.randrange(1000)
+        extractor_seed = random.randrange(1000)
+        test_seed = random.randrange(1000)
 
-np.random.seed(test_seed)
-random.seed(test_seed)
+    np.random.seed(test_seed)
+    random.seed(test_seed)
 
-test_runner = ExtractionTester(corpus_factory, extractor_factory,
-                               corpus_seed, extractor_seed, test_seed,
-                               probeall, output_dir, outfile_suffix)
+    test_runner = ExtractionTester(corpus_factory, extractor_factory,
+                                   corpus_seed, extractor_seed, test_seed,
+                                   probeall, output_dir, outfile_suffix)
 
-if jump_trials > 0:
+    if jump_trials > 0:
 
-    test = JumpTest(test_runner, jump_trials)
+        test = JumpTest(test_runner, jump_trials)
 
-    test_runner.add_test(test)
+        test_runner.add_test(test)
 
-if hier_trials > 0:
+    if hier_trials > 0:
 
-    test = HierarchicalTest(test_runner, hier_trials, do_neg=do_neg)
+        test = HierarchicalTest(test_runner, hier_trials, do_neg=do_neg)
 
-    test_runner.add_test(test)
+        test_runner.add_test(test)
 
-if sent_trials > 0:
+    if sent_trials > 0:
 
-    test = SentenceTest(
-        test_runner, sent_trials, deep=False,
-        unitary=unitary_roles, short=short_sentence)
+        test = SentenceTest(
+            test_runner, sent_trials, deep=False,
+            unitary=unitary_roles, short=short_sentence)
 
-    test_runner.add_test(test)
+        test_runner.add_test(test)
 
-if deep_trials > 0:
+    if deep_trials > 0:
 
-    test = SentenceTest(
-        test_runner, deep_trials, deep=True,
-        unitary=unitary_roles, short=short_sentence)
+        test = SentenceTest(
+            test_runner, deep_trials, deep=True,
+            unitary=unitary_roles, short=short_sentence)
 
-    test_runner.add_test(test)
+        test_runner.add_test(test)
 
-if expr:
-    expr_trials = expr[0]
-    expr = expr[1]
+    if expr:
+        expr_trials = expr[0]
+        expr = expr[1]
 
-    test = ExpressionTest(test_runner, expr_trials, expression=expr)
+        test = ExpressionTest(test_runner, expr_trials, expression=expr)
 
-    test_runner.add_test(test)
+        test_runner.add_test(test)
 
-test_runner.run_bootstrap(num_runs)
+    test_runner.run_bootstrap(num_runs)
+
+if __name__ == "__main__":
+    argvals = utilities.parse_args(True)
+
+    # specify tests
+    num_runs = argvals.num_runs
+
+    jump_trials = argvals.jump
+    hier_trials = argvals.hier
+    sent_trials = argvals.sent
+    deep_trials = argvals.deep
+    expr = argvals.expr
+
+    unitary_roles = argvals.unitary_roles
+    short_sentence = argvals.shortsent
+    do_neg = not argvals.noneg
+
+    # seeds
+    steps = argvals.steps
+    corpus_seed = argvals.corpus_seed
+    extractor_seed = argvals.extractor_seed
+    test_seed = argvals.test_seed
+    seed = argvals.seed
+
+    # corpus args
+    dimension = argvals.d
+    num_synsets = argvals.num_synsets
+    proportion = argvals.p
+    unitary_relations = argvals.unitary_relations
+
+    # extractor args
+    abstract = argvals.abstract
+    neural = not abstract
+    synapse = argvals.synapse
+    timesteps = argvals.steps
+    threshold = argvals.t
+    probeall = argvals.probeall
+    identical = argvals.identical
+    fast = argvals.fast
+    plot = argvals.plot and can_plot and neural
+    show = argvals.show and plot
+
+    gpus = argvals.gpus
+    ocl = argvals.ocl
+
+    input_dir, output_dir = utilities.read_config()
+
+    run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
+        unitary_roles, short_sentence, do_neg, steps, corpus_seed,
+        extractor_seed, test_seed, seed, dimension, num_synsets,
+        proportion, unitary_relations, abstract, neural, synapse, timesteps,
+        threshold, probeall, identical, fast, plot, show, gpus, ocl)
