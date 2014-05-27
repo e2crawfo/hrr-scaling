@@ -11,7 +11,8 @@ class ExtractionTester(object):
 
     def __init__(self, corpus_factory, extractor_factory,
                  corpus_seed, extractor_seed, test_seed,
-                 probeall=False, output_dir=".", outfile_suffix=""):
+                 probeall=False, output_dir=".", outfile_suffix="",
+                 outfile_format=""):
 
         self.corpus_factory = corpus_factory
         self.extractor_factory = extractor_factory
@@ -27,8 +28,11 @@ class ExtractionTester(object):
             lambda y, z: string.replace(y, z, "_"),
             [date_time_string, ":", " ", "-"])
 
-        self.filename_format = (output_dir + '/%s_results_' +
-                                date_time_string + outfile_suffix)
+        if outfile_format:
+            self.filename_format = outfile_format
+        else:
+            self.filename_format = (output_dir + '/%s_results_' +
+                                    date_time_string + outfile_suffix)
 
         self.tests = []
 
@@ -90,6 +94,3 @@ class ExtractionTester(object):
 
         for test in self.tests:
             test.bootstrap_end()
-
-    def print_config(self, output_file):
-        pass

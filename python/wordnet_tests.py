@@ -754,7 +754,7 @@ class SentenceTest(WordnetTest):
 
     def __init__(self, test_runner, num_trials, deep, short, unitary):
 
-        test_name = 'sentence'
+        test_name = 'sentence' if not deep else 'deep'
 
         super(SentenceTest, self).__init__(test_runner, test_name, num_trials)
 

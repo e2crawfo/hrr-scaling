@@ -23,10 +23,15 @@ from wordnet_tests import SentenceTest
 
 
 def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
-        unitary_roles, short_sentence, do_neg, steps, corpus_seed,
+        unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, abstract, neural, synapse, timesteps,
-        threshold, probeall, identical, fast, plot, show, gpus, ocl):
+        proportion, unitary_relations, abstract, synapse, timesteps,
+        threshold, probeall, identical, fast, plot, show, gpus, ocl,
+        outfile_format=""):
+
+    input_dir, output_dir = utilities.read_config()
+
+    neural = not abstract
 
     if gpus is not None:
         gpus.sort()
@@ -58,14 +63,14 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
                         threshold=threshold,
                         output_dir=output_dir,
                         probe_keys=probe_keys,
-                        timesteps=steps, synapse=synapse,
+                        timesteps=timesteps, synapse=synapse,
                         plot=plot, show=show, ocl=ocl,
                         gpus=gpus, identical=identical)
                 else:
                     extractor = NeuralExtraction(
                         id_vectors, semantic_pointers, threshold=threshold,
                         output_dir=output_dir, probe_keys=probe_keys,
-                        timesteps=steps, synapse=synapse,
+                        timesteps=timesteps, synapse=synapse,
                         plot=plot, show=show, ocl=ocl, gpus=gpus,
                         identical=identical)
             else:
@@ -106,7 +111,8 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
 
     test_runner = ExtractionTester(corpus_factory, extractor_factory,
                                    corpus_seed, extractor_seed, test_seed,
-                                   probeall, output_dir, outfile_suffix)
+                                   probeall, output_dir, outfile_suffix,
+                                   outfile_format)
 
     if jump_trials > 0:
 
@@ -163,7 +169,6 @@ if __name__ == "__main__":
     do_neg = not argvals.noneg
 
     # seeds
-    steps = argvals.steps
     corpus_seed = argvals.corpus_seed
     extractor_seed = argvals.extractor_seed
     test_seed = argvals.test_seed
@@ -177,23 +182,20 @@ if __name__ == "__main__":
 
     # extractor args
     abstract = argvals.abstract
-    neural = not abstract
     synapse = argvals.synapse
     timesteps = argvals.steps
     threshold = argvals.t
     probeall = argvals.probeall
     identical = argvals.identical
     fast = argvals.fast
-    plot = argvals.plot and can_plot and neural
+    plot = argvals.plot and can_plot and not abstract
     show = argvals.show and plot
 
     gpus = argvals.gpus
     ocl = argvals.ocl
 
-    input_dir, output_dir = utilities.read_config()
-
     run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
-        unitary_roles, short_sentence, do_neg, steps, corpus_seed,
+        unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, abstract, neural, synapse, timesteps,
+        proportion, unitary_relations, abstract, synapse, timesteps,
         threshold, probeall, identical, fast, plot, show, gpus, ocl)
