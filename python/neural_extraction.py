@@ -525,10 +525,17 @@ class NeuralExtraction(Extraction):
         output_file.write("Neurons per dimension: " +
                           str(self.neurons_per_dim) + "\n")
 
-        output_file.write("Assoc params dimension: " +
-                          str(self.assoc_params) + "\n")
+        output_file.write("Assoc params tau_rc: " +
+                          str(self.assoc_params.tau_rc) + "\n")
+        output_file.write("Assoc params tau_ref: " +
+                          str(self.assoc_params.tau_ref) + "\n")
+        output_file.write("Assoc params synapse: " +
+                          str(self.assoc_params.synapse) + "\n")
+        output_file.write("Assoc params radius: " +
+                          str(self.assoc_params.radius) + "\n")
+        output_file.write("Assoc params intercepts: " +
+                          str(self.assoc_params.intercepts) + "\n")
 
-        output_file.write("eval_points:" + str(self.eval_points) + "\n")
         output_file.write("radius:" + str(self.radius) + "\n")
         output_file.write("solver:" + str(self.solver) + "\n")
         output_file.write("synapse:" + str(self.synapse) + "\n")
@@ -537,7 +544,7 @@ class NeuralExtraction(Extraction):
         output_file.write("num_items:" + str(self.num_items) + "\n")
         output_file.write("neurons_per_item:"
                           + str(self.neurons_per_item) + "\n")
-        output_file.write("neurons_per_dim:" +
+        output_file.write("neurons_per_dim:"
                           + str(self.neurons_per_dim) + "\n")
         output_file.write("dt:" + str(self.dt) + "\n")
         output_file.write("timesteps:" + str(self.timesteps) + "\n")
