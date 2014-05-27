@@ -220,6 +220,11 @@ class NeuralExtraction(Extraction):
         with model:
             if self.gpus:
 
+                if not self.identical:
+                    raise NotImplementedError(
+                        "Currently, can only use gpu if --identical"
+                        " is also specified")
+
                 # Add a nengo.Node which calls out to a GPU library for
                 # simulating the associative memory
                 self.assoc_memory = \
