@@ -59,13 +59,18 @@ class WordnetTest(object):
 
     @corpus.setter
     def corpus(self, _corpus):
+        if _corpus is None:
+            self.corpus_dict = None
+            self.id_vectors = None
+            self.semantic_pointers = None
+            self.relation_type_vectors = None
+        else:
+            self.corpus_dict = _corpus.corpus_dict
+            self.id_vectors = _corpus.id_vectors
+            self.semantic_pointers = _corpus.semantic_pointers
+            self.relation_type_vectors = _corpus.relation_type_vectors
 
         self._corpus = _corpus
-
-        self.corpus_dict = _corpus.corpus_dict
-        self.id_vectors = _corpus.id_vectors
-        self.semantic_pointers = _corpus.semantic_pointers
-        self.relation_type_vectors = _corpus.relation_type_vectors
 
     def add_data(self, index, data):
         if self.bootstrapper:

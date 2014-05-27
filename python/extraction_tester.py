@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import string
 import random
+import gc
 
 
 class ExtractionTester(object):
@@ -72,10 +73,20 @@ class ExtractionTester(object):
                 test.corpus = corpus
                 test.extractor = extractor
 
+            for test in self.tests:
                 if i == 0:
                     test.print_config()
 
                 test.bootstrap_step(i)
+
+            corpus = None
+            extractor = None
+
+            for test in self.tests:
+                test.corpus = None
+                test.extractor = None
+
+            gc.collect()
 
         for test in self.tests:
             test.bootstrap_end()
