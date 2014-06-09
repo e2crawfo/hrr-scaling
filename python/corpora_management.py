@@ -76,6 +76,13 @@ class VectorizedCorpus:
 
                     line = f.readline()
 
+    def has_valid_relations(self, key):
+        valid_relations = filter(
+            lambda x: x[0] in self.relation_symbols,
+            self.corpus_dict[key])
+
+        return len(valid_relations) > 0
+
     def create_corpus_subset(self, proportion):
         # randomly pick a starting point, following all links from that node,
         # do the same recursively for each node we just added.
@@ -96,7 +103,12 @@ class VectorizedCorpus:
 
         while size < target_size:
             if queue.empty():
-                queue.put(random.choice(self.corpus_dict.keys()))
+                key = random.choice(self.corpus_dict.keys())
+
+                while key in subset_dict or not self.has_valid_relations(key):
+                    key = random.choice(self.corpus_dict.keys())
+
+                queue.put(key)
 
             next_entry = queue.get()
 
@@ -108,7 +120,8 @@ class VectorizedCorpus:
             size = size + 1
 
             for item in new_entries:
-                queue.put(item[1])
+                if item[0] in self.relation_symbols:
+                    queue.put(item[1])
 
         for key in subset_dict:
             removal_list = []
