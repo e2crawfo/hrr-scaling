@@ -5,6 +5,8 @@ import datetime
 import string
 import random
 import gc
+import psutil
+import os
 
 
 class ExtractionTester(object):
@@ -34,14 +36,33 @@ class ExtractionTester(object):
             self.filename_format = (output_dir + '/%s_results_' +
                                     date_time_string + outfile_suffix)
 
+        self.corpus_rng = random.Random()
+        self.corpus_rng.seed(self.corpus_seed)
+
+        self.extractor_rng = random.Random()
+        self.extractor_rng.seed(self.extractor_seed)
+
         self.tests = []
+
+    def next_extractor_seed(self):
+        return self.extractor_rng.randint(0, np.iinfo(np.int32).max)
+
+    def next_corpus_seed(self):
+        return self.corpus_rng.randint(0, np.iinfo(np.int32).max)
 
     def add_test(self, test):
         self.tests.append(test)
 
+    def memory_usage_psutil(self):
+        # return the memory usage in MB
+        process = psutil.Process(os.getpid())
+        mem = process.get_memory_info()[0] / float(2 ** 20)
+        return mem
+
     def initialize(self):
-        np.random.seed(self.corpus_seed)
-        random.seed(self.corpus_seed)
+        corpus_seed = self.next_corpus_seed()
+        np.random.seed(corpus_seed)
+        random.seed(corpus_seed)
 
         self.corpus = self.corpus_factory()
 
@@ -53,8 +74,9 @@ class ExtractionTester(object):
         else:
             probe_keys = []
 
-        np.random.seed(self.extractor_seed)
-        random.seed(self.extractor_seed)
+        extractor_seed = self.next_extractor_seed()
+        np.random.seed(extractor_seed)
+        random.seed(extractor_seed)
 
         self.extractor = self.extractor_factory(
             id_vectors, semantic_pointers, probe_keys)
@@ -91,6 +113,10 @@ class ExtractionTester(object):
                 test.extractor = None
 
             gc.collect()
+
+            for test in self.tests:
+                test.add_data(
+                    'memory_usage_in_mb', self.memory_usage_psutil())
 
         for test in self.tests:
             test.bootstrap_end()
