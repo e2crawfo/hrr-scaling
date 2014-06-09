@@ -51,6 +51,7 @@ class WordnetTest(object):
 
     @extractor.setter
     def extractor(self, _extractor):
+        self.num_jumps = 0
         self._extractor = _extractor
 
     @property
@@ -102,8 +103,8 @@ class WordnetTest(object):
         delta_time = now - then
 
         self.add_data(
-            "runtime_per_trial",
-            to_seconds(delta_time) / float(self.num_trials))
+            "runtime_per_jump",
+            to_seconds(delta_time) / float(self.num_jumps))
 
         self.bootstrapper.print_summary(self.output_file)
         self.output_file.flush()
@@ -764,13 +765,13 @@ class SentenceTest(WordnetTest):
 
         self.sentence_symbols = symbol_definitions.sentence_role_symbols()
 
-        self.role_hrrs = None
-
     def run(self):
         self.start_run()
 
-        if not self.role_hrrs:
-            self.create_role_hrrs()
+        self.dimension = len(self.id_vectors.values()[0])
+
+        self.role_hrrs = self.create_role_hrrs()
+        self.pos_map = self.create_pos_map()
 
         score = defaultdict(float)
 
@@ -846,7 +847,7 @@ class SentenceTest(WordnetTest):
                 if self.short:
                     break
 
-            for d in sentence_score:
+            for d in sentence_length:
                 sentence_percent = sentence_score[d] / sentence_length[d]
 
                 print >> self.output_file, \
@@ -870,10 +871,7 @@ class SentenceTest(WordnetTest):
 
             self.add_data("sentence_score_%d" % d, percent)
 
-    def create_role_hrrs(self):
-
-        self.dimension = len(self.id_vectors.values()[0])
-
+    def create_pos_map(self):
         nouns = []
         adjectives = []
         adverbs = []
@@ -894,16 +892,21 @@ class SentenceTest(WordnetTest):
             else:
                 raise Exception('Unexpected POS token: '+pos)
 
-        self.role_hrrs = {}
+        pos_map = {'n': nouns, 'a': adjectives, 'r': adverbs, 'v': verbs}
+
+        return pos_map
+
+    def create_role_hrrs(self):
+
+        role_hrrs = {}
         for role in self.sentence_symbols:
 
-            self.role_hrrs[role] = hrr.HRR(self.dimension)
+            role_hrrs[role] = hrr.HRR(self.dimension)
 
             if self.unitary:
-                self.role_hrrs[role].make_unitary()
+                role_hrrs[role].make_unitary()
 
-        self.posmap = {'n': nouns, 'a': adjectives,
-                       'r': adverbs, 'v': verbs}
+        return role_hrrs
 
     def generate_sentence(self):
         """Returns a dictionary mapping role symbols to synsets."""
@@ -911,12 +914,12 @@ class SentenceTest(WordnetTest):
         sentence = {}
 
         for role in self.sentence_symbols:
-            valid_pos = self.posmap[self.sentence_symbols[role][1]]
+            valid_pos = self.pos_map[self.sentence_symbols[role][1]]
             include = self.rng.random() < self.sentence_symbols[role][0]
 
             if valid_pos and include:
                 pos = self.sentence_symbols[role][1]
-                synset = (pos, self.rng.sample(self.posmap[pos], 1)[0])
+                synset = (pos, self.rng.sample(self.pos_map[pos], 1)[0])
                 sentence[(role,)] = synset
 
         return sentence

@@ -1,6 +1,7 @@
 try:
     import matplotlib as mpl
-    mpl.use('Qt4Agg')
+    # mpl.use('Qt4Agg')
+    mpl.use('Agg')
     can_plot = True
 except ImportError:
     can_plot = False
@@ -91,20 +92,20 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     outfile_suffix = \
         utilities.create_outfile_suffix(neural, unitary_relations)
 
-    if corpus_seed == -1:
-        corpus_seed = random.randrange(1000)
-
-    if extractor_seed == -1:
-        extractor_seed = random.randrange(1000)
-
-    if test_seed == -1:
-        test_seed = random.randrange(1000)
-
     if seed != -1:
         random.seed(seed)
         corpus_seed = random.randrange(1000)
         extractor_seed = random.randrange(1000)
         test_seed = random.randrange(1000)
+    else:
+        if corpus_seed == -1:
+            corpus_seed = random.randrange(1000)
+
+        if extractor_seed == -1:
+            extractor_seed = random.randrange(1000)
+
+        if test_seed == -1:
+            test_seed = random.randrange(1000)
 
     np.random.seed(test_seed)
     random.seed(test_seed)

@@ -130,6 +130,7 @@ class NeuralExtraction(Extraction):
 
         print "Building simulator"
         self.simulator = self.build_simulator(self.model)
+        print "Done building simulator"
 
     def build_unbind(self, model):
         A_input_func = make_func(self, "A_input_vector")
@@ -357,7 +358,7 @@ class NeuralExtraction(Extraction):
             warnings.warn("Non-GPU ensembles could not be reset")
 
     def build_simulator(self, model):
-        if ocl_imported and self.ocl is not None:
+        if ocl_imported and self.ocl:
             platforms = pyopencl.get_platforms()
 
             # 0 is the Nvidia platform
@@ -376,7 +377,7 @@ class NeuralExtraction(Extraction):
 
         return simulator
 
-    def plot_cleanup_activities(self, item_indices=[], run_index=-1):
+    def plot_cleanup_activities(self):
         """
         neither argument is currently used
         """
@@ -393,7 +394,7 @@ class NeuralExtraction(Extraction):
         max_val = 5.0 / np.sqrt(self.dimension)
 
         gs = gridspec.GridSpec(9, 2)
-        plt.figure(figsize=(10, 10))
+        fig = plt.figure(figsize=(10, 10))
 
         ax = plt.subplot(gs[0, 0])
 
@@ -506,6 +507,8 @@ class NeuralExtraction(Extraction):
 
         if self.show:
             plt.show()
+
+        plt.close(fig)
 
     def write_to_runtime_file(self, delta, label=''):
         to_print = [self.dimension, self.num_items,
