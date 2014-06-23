@@ -284,8 +284,10 @@ class VectorizedCorpus:
             h = self.semantic_pointers[k]
             self.semantic_pointers[k] = h.v
 
-            h = self.id_vectors[k]
-            self.id_vectors[k] = h.v
+        if not identity_cleanup:
+            for k in key_order:
+                h = self.id_vectors[k]
+                self.id_vectors[k] = h.v
 
         for k in self.relation_type_vectors:
             h = self.relation_type_vectors[k]
