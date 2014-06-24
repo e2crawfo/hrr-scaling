@@ -1,5 +1,8 @@
 import argparse
 
+from corpora_management import VectorizedCorpus
+from neural_extraction import NeuralExtraction
+
 
 def plot_performance(y_vals, error_lo, error_hi, measure_labels,
                      condition_labels, filename='', show=False, colors=None,
@@ -255,6 +258,58 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     if show:
         plt.show()
 
+
+def plot_hierarchical_simulation():
+    dimension = 512
+    input_dir = '../wordnetData/'
+    unitary_relations = False
+    proportion = .1
+    num_synsets = -1
+
+    output_dir = '../results'
+
+    corpus = VectorizedCorpus(
+        dimension, input_dir, unitary_relations,
+        proportion, num_synsets)
+
+    num_links = 5
+
+    starting_synset = ('puppy')
+    synsets = ['puppy', 'dog', 'canine', 
+
+    id_vectors = corpus.id_vectors
+    semantic_pointers = corpus.semantic_pointers
+
+    extractor = NeuralExtraction(
+        id_vectors, semantic_pointers, threshold=0.3,
+        output_dir=output_dir, probe_keys=probe_keys,
+        timesteps=500, synapse=synapse,
+        plot=False, show=False, ocl=False, gpus=[0],
+        identical=True)
+
+    model = extractor.model
+
+    # Add the probes in here
+    with model:
+        pass
+
+    # can't use extractor.extract() because it calls reset
+
+    num_links = 4
+
+    sim = model.simulator
+
+    for i in num_links:
+        model.A_input_vector = items[i]
+        model.B_input_vector = query
+
+        sim.run(0.1)
+
+    # now collect data from probes and plot
+
+    # Probe the relevant things
+
+    # Have to probe spikes on the GPU, not sure if we can currently do that.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Draw a bar graph")
