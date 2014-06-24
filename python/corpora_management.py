@@ -293,6 +293,27 @@ class VectorizedCorpus:
             h = self.relation_type_vectors[k]
             self.relation_type_vectors[k] = h.v
 
+    def find_chain(self, chain_length, relation_symbol='@', exclusive=True):
+        chains = []
+
+        for key in self.corpus_dict:
+            chain = [key]
+            while len(chain) < chain_length + 1:
+                relations = filter(lambda x: x[0] == relation_symbol,
+                                   self.corpus_dict[chain[-1]])
+
+                valid = (not exclusive and len(relations) > 1)
+                valid = valid or (exclusive and len(relations) == 1)
+                if valid:
+                    chain.append(relations[0][1])
+                else:
+                    break
+
+            if len(chain) == chain_length + 1:
+                chains.append(chain)
+
+        return chains
+
     # File parsing utilities
     def skipNotice(self, f):
         '''Seeks to the beginning of actual data in data files
