@@ -12,12 +12,13 @@ class VectorizedCorpus:
 
     def __init__(self, dimension=512, input_dir=".",
                  unitary_relations=False, proportion=1.0, num_synsets=-1,
-                 id_vecs=False, relation_symbols=[]):
+                 id_vecs=False, relation_symbols=[], create_namedict=False):
 
         self.dimension = dimension
         self.input_dir = input_dir
         self.relation_symbols = symbol_definitions.uni_relation_symbols()
         self.unitary_relations = unitary_relations
+        self.create_namedict = create_namedict
 
         self.parse_wordnet()
 
@@ -42,6 +43,7 @@ class VectorizedCorpus:
             print "Warning: overwriting existing corpus dictionary."
 
         self.corpus_dict = {}
+        self.name_dict = collections.defaultdict(list)
 
         # See http://wordnet.princeton.edu/wordnet/man/wndb.5WN.html
         # and http://wordnet.princeton.edu/wordnet/man/wninput.5WN.html
@@ -54,11 +56,15 @@ class VectorizedCorpus:
                 line = f.readline()
                 while line:
                     parse = line.split()
+                    description = line.strip().split('|')[-1]
                     tag = (pos, int(parse[0]))
                     self.corpus_dict[tag] = []
                     w_cnt = int(parse[3], 16)
                     p_i = 4+w_cnt*2
                     p_cnt = int(parse[p_i])
+
+                    if self.create_namedict:
+                        self.name_dict[parse[4]].append((tag, description))
 
                     for i in range(p_cnt):
                         ptr = parse[p_i+1]
