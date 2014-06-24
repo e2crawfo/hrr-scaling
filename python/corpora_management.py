@@ -301,10 +301,15 @@ class VectorizedCorpus:
             h = self.relation_type_vectors[k]
             self.relation_type_vectors[k] = h.v
 
-    def find_chain(self, chain_length, relation_symbol='@', exclusive=True):
+    def find_chain(self, chain_length, relation_symbol='@', exclusive=True,
+                   starting_keys=None):
+
         chains = []
 
-        for key in self.corpus_dict:
+        if not starting_keys:
+            starting_keys = self.corpus_dict
+
+        for key in starting_keys:
             chain = [key]
             while len(chain) < chain_length + 1:
                 relations = filter(lambda x: x[0] == relation_symbol,
@@ -312,6 +317,7 @@ class VectorizedCorpus:
 
                 valid = not exclusive and len(relations) > 1
                 valid = valid or (exclusive and len(relations) == 1)
+
                 if valid:
                     chain.append(relations[0][1])
                 else:
