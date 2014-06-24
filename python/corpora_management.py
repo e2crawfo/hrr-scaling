@@ -43,7 +43,8 @@ class VectorizedCorpus:
             print "Warning: overwriting existing corpus dictionary."
 
         self.corpus_dict = {}
-        self.name_dict = collections.defaultdict(list)
+        self.name2key = collections.defaultdict(list)
+        self.key2name = {}
 
         # See http://wordnet.princeton.edu/wordnet/man/wndb.5WN.html
         # and http://wordnet.princeton.edu/wordnet/man/wninput.5WN.html
@@ -64,7 +65,8 @@ class VectorizedCorpus:
                     p_cnt = int(parse[p_i])
 
                     if self.create_namedict:
-                        self.name_dict[parse[4]].append((tag, description))
+                        self.name2key[parse[4]].append((tag, description))
+                        self.key2name[tag] = parse[4]
 
                     for i in range(p_cnt):
                         ptr = parse[p_i+1]
@@ -308,7 +310,7 @@ class VectorizedCorpus:
                 relations = filter(lambda x: x[0] == relation_symbol,
                                    self.corpus_dict[chain[-1]])
 
-                valid = (not exclusive and len(relations) > 1)
+                valid = not exclusive and len(relations) > 1
                 valid = valid or (exclusive and len(relations) == 1)
                 if valid:
                     chain.append(relations[0][1])
