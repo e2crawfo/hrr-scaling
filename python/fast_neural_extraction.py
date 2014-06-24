@@ -133,7 +133,7 @@ class FastNeuralExtraction(NeuralExtraction):
         self.data[self.D_probe] = self.unbind_simulator.data[self.D_probe]
 
         if self.plot:
-            self.plot_cleanup_activities()
+            self.plot_simulation()
 
         vector = self.data[self.output_probe][-1, :]
         return [vector]

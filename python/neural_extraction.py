@@ -344,7 +344,7 @@ class NeuralExtraction(Extraction):
         self.write_to_runtime_file(now - then, "unbind")
 
         if self.plot:
-            self.plot_cleanup_activities()
+            self.plot_simulation()
 
         vector = self.simulator.data[self.output_probe][-1, :]
         return [vector]
@@ -377,10 +377,7 @@ class NeuralExtraction(Extraction):
 
         return simulator
 
-    def plot_cleanup_activities(self):
-        """
-        neither argument is currently used
-        """
+    def plot_simulation(self):
 
         then = datetime.datetime.now()
 

@@ -21,6 +21,16 @@ def to_seconds(delta):
 
 
 class WordnetTest(object):
+    """
+    Subclass this class to create a test which will be run on an instance of
+    the extraction algorithm (neural or abstract or...other?).
+
+    Subclasses have to define __init__ to set the test up, and run to execute
+    the test. During the run method, should store the results by calling
+    self.add_data with a unique index (i.e. performance on each hierarchal
+    test is recorded by calling data data with "hierarchical_score" as the
+    index)
+    """
 
     def __init__(self, test_runner, test_name, num_trials):
 
