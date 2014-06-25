@@ -26,9 +26,9 @@ except:
     ocl_imported = False
 
 
-def make_func(cls, attr):
+def make_func(obj, attr):
     def f(t):
-        return getattr(cls, attr)
+        return getattr(obj, attr)
     return f
 
 AssocParams = namedtuple('AssocParams',
@@ -108,7 +108,6 @@ class NeuralExtraction(Extraction):
         n_eval_points = 750
         self.eval_points = np.random.normal(0, 0.06, (n_eval_points, 1))
         self.radius = 5.0 / np.sqrt(self.dimension)
-        self.solver = nengo.decoders.lstsq_L2
         self.synapse = synapse
 
         self.A_input_vector = np.zeros(self.dimension)
@@ -146,49 +145,26 @@ class NeuralExtraction(Extraction):
             A_input = nengo.Node(output=A_input_func, size_out=dimension)
             B_input = nengo.Node(output=B_input_func, size_out=dimension)
 
-            A = EnsembleArray(nengo.LIF(neurons_per_dim), dimension, label="A",
-                              radius=radius, eval_points=eval_points)
+            A = EnsembleArray(
+                n_neurons=neurons_per_dim, n_ensembles=dimension, label="A",
+                radius=radius, eval_points=eval_points)
 
-            B = EnsembleArray(nengo.LIF(neurons_per_dim), dimension, label="B",
-                              radius=radius, eval_points=eval_points)
+            B = EnsembleArray(
+                n_neurons=neurons_per_dim, n_ensembles=dimension, label="B",
+                radius=radius, eval_points=eval_points)
 
-            cconv = CircularConvolution(nengo.LIF(int(2 * neurons_per_dim)),
-                                        dimension, invert_b=True, radius=0.2)
+            cconv = CircularConvolution(
+                n_neurons=int(2 * neurons_per_dim), dimensions=dimension,
+                invert_b=True, radius=0.2)
 
-            D = EnsembleArray(nengo.LIF(neurons_per_dim), dimension, label="D",
-                              radius=radius, eval_points=eval_points)
+            D = EnsembleArray(
+                n_neurons=neurons_per_dim, n_ensembles=dimension, label="D",
+                radius=radius, eval_points=eval_points)
 
-            if self.solver != nengo.decoders.lstsq_L2nz:
-                solver = self.solver
-
-                attr_name = 'lstqs_L2'
-                A_output = A.add_output(attr_name,
-                                        function=None,
-                                        decoder_solver=solver)
-
-                B_output = B.add_output(attr_name,
-                                        function=None,
-                                        decoder_solver=solver)
-
-                p = lambda x: x[0] * x[1]
-                product = cconv.product.product
-                prod_output = product.add_output(attr_name,
-                                                 function=p,
-                                                 decoder_solver=solver)
-
-                cconv_output = nengo.Node(size_in=dimension)
-
-                nengo.Connection(prod_output, cconv_output,
-                                 transform=cconv.transform_out)
-
-                D_output = D.add_output(attr_name,
-                                        function=None,
-                                        decoder_solver=solver)
-            else:
-                A_output = A.output
-                B_output = B.output
-                D_output = D.output
-                cconv_output = cconv.output
+            A_output = A.output
+            B_output = B.output
+            D_output = D.output
+            cconv_output = cconv.output
 
             nengo.Connection(A_input, A.input)
             nengo.Connection(B_input, B.input)
@@ -198,10 +174,19 @@ class NeuralExtraction(Extraction):
             nengo.Connection(cconv_output, D.input, synapse=synapse)
 
             assoc_synapse = self.assoc_params.synapse
+
             self.D_probe = nengo.Probe(D_output, 'output',
                                        synapse=assoc_synapse)
 
+            self.input_probe = nengo.Probe(
+                A_output, 'output', synapse=synapse)
+
             self.D_output = D_output
+
+            self.A = A
+            self.B = B
+            self.cconv = cconv
+            self.D = D
 
     def build_association(self, model):
 
@@ -217,6 +202,7 @@ class NeuralExtraction(Extraction):
 
         assoc_probes = OrderedDict()
         threshold_probes = OrderedDict()
+        assoc_spike_probes = OrderedDict()
 
         with model:
             if self.gpus:
@@ -276,14 +262,16 @@ class NeuralExtraction(Extraction):
                     sv = self.stored_vectors[k].reshape((self.dimension, 1))
 
                     label = "Associate: " + str(k)
-                    neurons = nengo.LIF(self.neurons_per_item,
-                                        tau_rc=tau_rc, tau_ref=tau_ref)
+                    neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
 
-                    assoc = nengo.Ensemble(neurons, 1,
+                    assoc = nengo.Ensemble(n_neurons=self.neurons_per_item,
+                                           dimensions=1,
                                            intercepts=intercepts,
                                            encoders=encoders,
                                            label=label, seed=self.seed,
-                                           radius=radius,)
+                                           radius=radius,
+                                           max_rates=Uniform(200, 350),
+                                           neuron_type=neuron_type,)
 
                     nengo.Connection(assoc_in, assoc,
                                      transform=iv, synapse=None)
@@ -294,37 +282,33 @@ class NeuralExtraction(Extraction):
 
                     if k in self.probe_keys:
 
-                        assoc_probes[k] = \
-                            nengo.Probe(assoc, 'decoded_output',
-                                        synapse=synapse)
+                        assoc_probes[k] = nengo.Probe(
+                            assoc, 'decoded_output', synapse=synapse)
 
-                        threshold_probes[k] = \
-                            nengo.Probe(assoc, 'decoded_output',
-                                        synapse=synapse,
-                                        function=self.threshold_func,
-                                        seed=self.seed)
+                        threshold_probes[k] = nengo.Probe(
+                            assoc, 'decoded_output',
+                            synapse=synapse,
+                            function=self.threshold_func,
+                            seed=self.seed)
+
+                        assoc_spike_probes[k] = nengo.Probe(
+                            assoc, 'spikes', synapse=None)
 
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
+        self.assoc_spike_probes = assoc_spike_probes
 
     def build_output(self, model):
         with model:
 
-            self.output = EnsembleArray(nengo.LIF(self.neurons_per_dim),
-                                        self.dimension, label="output",
-                                        radius=self.radius)
+            self.output = EnsembleArray(
+                n_neurons=self.neurons_per_dim, n_ensembles=self.dimension,
+                label="output", radius=self.radius)
 
-            if self.solver != nengo.decoders.lstsq_L2nz:
-                attr_name = 'lstqs_L2'
-                output_output = \
-                    self.output.add_output(attr_name,
-                                           function=None,
-                                           decoder_solver=self.solver)
-            else:
-                output_output = self.output.output
+            output_output = self.output.output
 
-            self.output_probe = nengo.Probe(output_output, 'output',
-                                            synapse=0.02)
+            self.output_probe = nengo.Probe(
+                output_output, 'output', synapse=0.02)
 
     def extract(self, item, query, *args, **kwargs):
         then = datetime.datetime.now()
