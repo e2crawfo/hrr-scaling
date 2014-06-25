@@ -304,8 +304,6 @@ class VectorizedCorpus:
     def find_chain(self, chain_length, relation_symbol='@', exclusive=True,
                    starting_keys=None):
 
-        chains = []
-
         if not starting_keys:
             starting_keys = self.corpus_dict
 
@@ -324,9 +322,7 @@ class VectorizedCorpus:
                     break
 
             if len(chain) == chain_length + 1:
-                chains.append(chain)
-
-        return chains
+                yield chain
 
     # File parsing utilities
     def skipNotice(self, f):

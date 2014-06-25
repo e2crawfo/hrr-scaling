@@ -1,7 +1,19 @@
-import argparse
+show = True
+import matplotlib as mpl
+if show:
+    mpl.use('Qt4Agg')
+else:
+    mpl.use('Agg')
+import matplotlib.pyplot as plt
 
 from corpora_management import VectorizedCorpus
 from neural_extraction import NeuralExtraction
+
+import nengo
+from nengo.utils.distributions import Uniform
+from nengo.utils.ensemble import tuning_curves
+import numpy as np
+import matplotlib.gridspec as gridspec
 
 
 def plot_performance(y_vals, error_lo, error_hi, measure_labels,
@@ -24,7 +36,6 @@ def plot_performance(y_vals, error_lo, error_hi, measure_labels,
         mpl.use('Qt4Agg')
     else:
         mpl.use('Agg')
-
     import matplotlib.pyplot as plt
 
     assert(len(y_vals[0]) ==
@@ -32,8 +43,7 @@ def plot_performance(y_vals, error_lo, error_hi, measure_labels,
            len(error_hi[0]))
 
     assert(len(y_vals) ==
-           len(error_lo) ==
-           len(error_hi))
+           len(error_lo) == len(error_hi))
 
     # this is the number of different bar locations
     # typically each location is a measure
@@ -142,13 +152,8 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     Plot tuning curves for an association population and for a standard
     subpopulation (of the neural extraction network).
     """
-
-    import nengo
-    from nengo.utils.distributions import Uniform
-    from nengo.utils.ensemble import tuning_curves
-    import numpy as np
-    import matplotlib.gridspec as gridspec
     import matplotlib as mpl
+
     if show:
         mpl.use('Qt4Agg')
     else:
@@ -253,84 +258,133 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     plt.tight_layout()
 
     if filename:
-        plt.savefig(filename)
-
+            plt.savefig(filename)
     if show:
-        plt.show()
+            plt.show()
 
 
-def plot_hierarchical_simulation():
-    dimension = 512
+def hierarchical_simulation_data(dimension=128, num_synsets=50):
     input_dir = '../wordnetData/'
     unitary_relations = False
-    proportion = .1
-    num_synsets = -1
+    proportion = .001
 
     output_dir = '../results'
 
-    corpus = VectorizedCorpus(
+    vc = VectorizedCorpus(
         dimension, input_dir, unitary_relations,
-        proportion, num_synsets)
+        proportion, num_synsets, create_namedict=True)
 
-    num_links = 5
+    num_links = 3
 
-    starting_synset = ('puppy')
-    synsets = ['puppy', 'dog', 'canine', 
+    chain = vc.find_chain(num_links, starting_keys=[]).next()
+    names = [vc.key2name[c] for c in chain]
+    print names
 
-    id_vectors = corpus.id_vectors
-    semantic_pointers = corpus.semantic_pointers
+    id_vectors = vc.id_vectors
+    semantic_pointers = vc.semantic_pointers
 
     extractor = NeuralExtraction(
         id_vectors, semantic_pointers, threshold=0.3,
-        output_dir=output_dir, probe_keys=probe_keys,
-        timesteps=500, synapse=synapse,
-        plot=False, show=False, ocl=False, gpus=[0],
+        output_dir=output_dir, probe_keys=chain,
+        timesteps=500, synapse=0.005,
+        plot=False, show=False, ocl=False, gpus=[],
         identical=True)
 
-    model = extractor.model
+    input_probe = extractor.input_probe
+    D_probe = extractor.D_probe
+    output_probe = extractor.output_probe
 
-    # Add the probes in here
-    with model:
-        pass
+    sim = extractor.simulator
 
-    # can't use extractor.extract() because it calls reset
+    query_vector = vc.relation_type_vectors['@']
 
-    num_links = 4
+    extractor.A_input_vector = semantic_pointers[chain[0]]
+    extractor.B_input_vector = query_vector
 
-    sim = model.simulator
-
-    for i in num_links:
-        model.A_input_vector = items[i]
-        model.B_input_vector = query
-
+    for i in range(num_links):
+        extractor.A_input_vector = semantic_pointers[chain[i]]
         sim.run(0.1)
 
-    # now collect data from probes and plot
+    t = sim.trange()
+    chain_sp = [semantic_pointers[c][:, np.newaxis] for c in chain]
+    chain_sp = np.concatenate(chain_sp, axis=1)
+    input_similarities = np.dot(sim.data[input_probe], chain_sp)
 
-    # Probe the relevant things
+    chain_id = [id_vectors[c][:, np.newaxis] for c in chain]
+    chain_id = np.concatenate(chain_id, axis=1)
+    before = np.dot(sim.data[D_probe], chain_id)
+    after = np.dot(sim.data[output_probe], chain_sp)
 
-    # Have to probe spikes on the GPU, not sure if we can currently do that.
+    spike_probes = extractor.assoc_spike_probes
+    spikes = [sim.data[spike_probes[key]] for key in chain]
+    spikes = np.concatenate(spikes, axis=1)
+
+    return names, t, input_similarities, before, after, spikes
+
+
+def hierarchical_simulation_plot(names, t, input_similarities,
+                                 before, after, spikes, show=True):
+    mpl.rc('font', size=13)
+
+    gs = gridspec.GridSpec(4, 1)
+
+    linestyles = ['-'] * 4
+
+    linewidth = 2.0
+
+    # --------------------
+    def do_plot(index, sims, title):
+        ax = plt.subplot(gs[index, 0])
+
+        lines = []
+
+        for s, ls, n in zip(sims.T, linestyles, names):
+            line = plt.plot(t, s, ls=ls, label=n, lw=linewidth)
+            lines.extend(line)
+
+        plt.ylabel(title)
+        plt.ylim((-0.4, 1.1))
+
+        return ax, lines
+
+    # --------------------
+    yticks = [0, 0.5, 1.0]
+    title = 'Input'
+    ax, lines = do_plot(0, input_similarities, title)
+    plt.setp(ax, xticks=[])
+    plt.yticks(yticks)
+
+    plt.legend(lines, names, loc=4, fontsize='small')
+
+    # --------------------
+    title = 'Before Association'
+    ax, lines = do_plot(1, before, title)
+    plt.setp(ax, xticks=[])
+    plt.yticks(yticks)
+
+    # --------------------
+    ax = plt.subplot(gs[2, 0])
+
+    n_assoc_neurons = int(spikes.shape[1] / len(names))
+
+    colors = [plt.getp(line, 'color') for line in lines]
+    spike_colors = [colors[int(i / n_assoc_neurons)]
+                    for i in range(spikes.shape[1])]
+
+    nengo.utils.matplotlib.rasterplot(t, spikes, ax, colors=spike_colors)
+    plt.setp(ax, xticks=[])
+    plt.ylabel('Association Spikes')
+
+    # --------------------
+    title = 'After Association'
+    ax, lines = do_plot(3, after, title)
+    plt.xlabel('Time (s)')
+    plt.yticks(yticks)
+
+    plt.show()
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Draw a bar graph")
 
-    parser.add_argument(
-        '-s', action='store_true',
-        help='Supply this argument to save the graph')
-
-    argvals = parser.parse_args()
-
-    if argvals.s:
-        filename = 'prgraph.pdf'
-    else:
-        filename = ''
-
-    # condition (down) by measure(across)
-    y_vals = [[99.25, 96.125, 86.7611, 55.24722],
-              [100.0, 95.5, 99.6, 99.6]]
-    error_lo = [[98.75, 94.375, 85.5888, 53.486],
-                [100.0, 94.3, 99.3, 99.2]]
-    error_hi = [[99.7, 97.75, 88.069, 56.986],
-                [100.0, 96.9, 99.8, 99.7]]
-
-    plot_performance(y_vals, error_lo, error_hi, filename=filename, show=True)
+    data = hierarchical_simulation_data()
+    hierarchical_simulation_plot(*data, show=True)

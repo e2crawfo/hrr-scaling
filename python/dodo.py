@@ -208,9 +208,18 @@ def task_tuning_curve_plot():
 
     filename = 'tuning_curves.pdf'
     yield {
+        'name': 'tuning_curves',
         'actions': [(plot.plot_tuning_curves, [filename])],
-        'targets': filename
+        'targets': [filename]
         }
+
+
+def task_hierarchical_simulation():
+    yield {
+        'name': 'hierarchical_simulation',
+        'actions': [(plot.plot_hierarchical_simulation, [])],
+        'targets': ['']
+    }
 
 # if __name__ == '__main__':
 #     task_iter = task_neural_experiments()
