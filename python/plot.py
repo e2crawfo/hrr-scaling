@@ -263,7 +263,7 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
             plt.show()
 
 
-def hierarchical_simulation_data(dimension=128, num_synsets=50):
+def hierarchical_simulation_data(dimension=128, num_synsets=50, num_links=3):
     input_dir = '../wordnetData/'
     unitary_relations = False
     proportion = .001
@@ -273,8 +273,6 @@ def hierarchical_simulation_data(dimension=128, num_synsets=50):
     vc = VectorizedCorpus(
         dimension, input_dir, unitary_relations,
         proportion, num_synsets, create_namedict=True)
-
-    num_links = 3
 
     chain = vc.find_chain(num_links, starting_keys=[]).next()
     names = [vc.key2name[c] for c in chain]
@@ -332,7 +330,6 @@ def hierarchical_simulation_plot(names, t, input_similarities,
 
     linewidth = 2.0
 
-    # --------------------
     def do_plot(index, sims, title):
         ax = plt.subplot(gs[index, 0])
 
