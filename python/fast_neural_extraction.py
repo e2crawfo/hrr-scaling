@@ -77,20 +77,23 @@ class FastNeuralExtraction(NeuralExtraction):
                                  seed=self.seed,
                                  num_steps=self.timesteps)
 
-        self.assoc_output = np.zeros((1, self.dim))
+        self.assoc_output = np.zeros((1, self.dimension))
 
     def build_output(self, model):
 
         assoc_probes = OrderedDict()
         threshold_probes = OrderedDict()
+        assoc_spike_probes = OrderedDict()
 
         synapse = self.assoc_params.synapse
 
         with model:
             input = nengo.Node(output=self.assoc_output_func)
-            output = EnsembleArray(nengo.LIF(self.neurons_per_dim),
-                                   self.dim, label="output",
+            output = EnsembleArray(n_neurons=self.neurons_per_dim,
+                                   n_ensembles=self.dimension,
+                                   label="output",
                                    radius=self.radius)
+
             nengo.Connection(input, output.input, synapse=synapse)
             self.output_probe = nengo.Probe(output.output, 'output',
                                             synapse=0.02)
@@ -101,8 +104,12 @@ class FastNeuralExtraction(NeuralExtraction):
 
                 threshold_probes[k] = probe
 
+                node = nengo.Node(output=self.assoc_memory.spike_func(k))
+                assoc_spike_probes[k] = nengo.Probe(node, synapse=None)
+
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
+        self.assoc_spike_probes = assoc_spike_probes
 
     def extract(self, item, query, *args, **kwargs):
         self.print_instance_difficulty(item, query)
@@ -131,6 +138,8 @@ class FastNeuralExtraction(NeuralExtraction):
         # for plotting
         self.data = {k: v for (k, v) in self.output_simulator.data.iteritems()}
         self.data[self.D_probe] = self.unbind_simulator.data[self.D_probe]
+        self.data[self.input_probe] = \
+            self.unbind_simulator.data[self.input_probe]
 
         if self.plot:
             self.plot_simulation()
@@ -146,7 +155,7 @@ class FastNeuralExtraction(NeuralExtraction):
         pass
 
     def write_to_runtime_file(self, delta, label=''):
-        to_print = [self.dim, self.num_items,
+        to_print = [self.dimension, self.num_items,
                     self.neurons_per_item, self.neurons_per_dim,
                     self.timesteps, "OCL: "+str(self.ocl),
                     "GPUS: "+str(self.gpus), "fast", delta]
