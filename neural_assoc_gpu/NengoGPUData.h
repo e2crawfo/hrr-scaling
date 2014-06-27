@@ -96,6 +96,8 @@ struct NengoGPUData_t{
   int dimension;
   int num_items;
   int num_probes;
+  int num_spikes;
+
   int num_steps;
 
   float pstc;
@@ -130,6 +132,10 @@ struct NengoGPUData_t{
   floatArray* probes_host;
   floatArray* probes_device;
   intArray* probe_map;
+
+  floatArray* spikes_host;
+  floatArray* spikes_device;
+  intArray* spike_map;
 };
 
 typedef struct NengoGPUData_t NengoGPUData;

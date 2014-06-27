@@ -310,6 +310,8 @@ NengoGPUData* getNewNengoGPUData()
   new->neurons_per_item = 0;
   new->dimension = 0;
   new->num_items = 0;
+  new->num_probes = 0;
+  new->num_spikes = 0;
 
   new->tau = 0;
   new->pstc = 0;
@@ -343,6 +345,10 @@ NengoGPUData* getNewNengoGPUData()
   new->probes_host = NULL;
   new->probes_device = NULL;
   new->probe_map = NULL;
+
+  new->spikes_host = NULL;
+  new->spikes_device = NULL;
+  new->spike_map = NULL;
 
   return new;
 }
@@ -386,6 +392,11 @@ void initializeNengoGPUData(NengoGPUData* new)
   new->probe_map = newIntArray(new->num_probes, name);
   name = "probes_host";
   new->probes_host = newFloatArray(new->num_probes * new->num_steps, name);
+
+  name = "spike_map";
+  new->spike_map = newIntArray(new->num_spikes, name);
+  name = "spikes_host";
+  new->spikes_host = newFloatArray(new->num_spikes * new->num_steps, name);
 }
 
 
@@ -416,6 +427,7 @@ void moveToDeviceNengoGPUData(NengoGPUData* nengo_data)
     moveToDeviceFloatArray(nengo_data->gain);
     moveToDeviceFloatArray(nengo_data->bias);
     moveToDeviceIntArray(nengo_data->probe_map);
+    moveToDeviceIntArray(nengo_data->spike_map);
 
     nengo_data->on_device = 1;
   }
@@ -445,6 +457,10 @@ void freeNengoGPUData(NengoGPUData* nengo_data)
   freeFloatArray(nengo_data->probes_host);
   freeFloatArray(nengo_data->probes_device);
   freeIntArray(nengo_data->probe_map);
+
+  freeFloatArray(nengo_data->spikes_host);
+  freeFloatArray(nengo_data->spikes_device);
+  freeIntArray(nengo_data->spike_map);
 
   if(nengo_data->fp)
     fclose(nengo_data->fp);

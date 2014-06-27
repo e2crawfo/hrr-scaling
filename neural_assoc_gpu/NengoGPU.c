@@ -303,15 +303,16 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
            int dimension, int** index_vectors, int** stored_vectors, float tau,
            float* decoders, int neurons_per_item, float* gain, float* bias,
            float tau_ref, float tau_rc, float radius, int identical_ensembles,
-           int print_data, int* probe_indices, int num_probes, int num_steps)
+           int print_data, int* probe_indices, int num_probes, int do_spikes,
+           int num_steps)
 {
 
-  int i, j;
+  int i, j, k;
 
   int num_available_devices = getGPUDeviceCount();
 
   do_print = print_data;
-  //if(do_print)
+
   printf("NeuralAssocGPU: SETUP\n");
 
   num_devices = num_devices_requested > num_available_devices ? num_available_devices : num_devices_requested;
@@ -370,6 +371,7 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     current_data->num_items = items_for_current_device;
     current_data->identical_ensembles = identical_ensembles;
 
+    // find the number of probes on current device
     probe_count = 0;
     for(j = 0; j < num_probes; j++)
     {
@@ -381,6 +383,11 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
     }
 
     current_data->num_probes = probe_count;
+
+    if(do_spikes)
+    {
+        current_data->num_spikes = probe_count * neurons_per_item;
+    }
 
     // create the arrays
     initializeNengoGPUData(current_data);
@@ -406,6 +413,16 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
            probe_indices[j] < item_index + items_for_current_device)
         {
             current_data->probe_map->array[probe_count] = probe_indices[j] - item_index;
+
+            if(do_spikes)
+            {
+                for(k = 0; k < neurons_per_item; k++)
+                {
+                    current_data->spike_map->array[probe_count * neurons_per_item + k] =
+                        (probe_indices[j] - item_index) * neurons_per_item + k;
+                }
+            }
+
             probe_count++;
         }
     }
@@ -426,14 +443,14 @@ void setup(int num_devices_requested, int* devices_to_use, float dt, int num_ite
 // form for processing, then tells each GPU thread to take a step. Once they've finished
 // the step, this function puts the representedOutputValues and spikes in the appropriate
 // python arrays so that they can be read on the python side when this call returns
-void step(float* input, float* output, float* probes, float start, float end, int n_steps)
+void step(float* input, float* output, float* probes, float* spikes, float start, float end, int n_steps)
 {
   start_time = start;
   end_time = end;
 
   NengoGPUData* current_data;
 
-  int i, j, k;
+  int i, j, k, l;
 
   for( i = 0; i < num_devices; i++)
   {
@@ -463,7 +480,7 @@ void step(float* input, float* output, float* probes, float start, float end, in
       }
   }
 
-  int probe_index = 0;
+  int probe_index = 0, spike_index = 0, index = 0;
   for(i = 0; i < nengo_data_array[0]->num_steps; i++)
   {
       for(j = 0; j < num_devices; j++)
@@ -474,6 +491,19 @@ void step(float* input, float* output, float* probes, float start, float end, in
           {
               probes[probe_index] =
                   current_data->probes_host->array[i * current_data->num_probes + k];
+
+              if(current_data->num_spikes > 0)
+              {
+                  index = i * current_data->num_spikes
+                          + k * current_data->neurons_per_item;
+
+                  for(l = 0; l < current_data->neurons_per_item; l++)
+                  {
+                      spikes[spike_index] = current_data->spikes_host->array[index + l];
+                      spike_index++;
+                  }
+              }
+
               probe_index++;
           }
       }

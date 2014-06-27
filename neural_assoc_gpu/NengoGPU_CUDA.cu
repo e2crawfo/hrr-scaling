@@ -270,7 +270,7 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   int lda = nengo_data->dimension;
 
   int step;
-  int input_offset = 0, output_offset = 0, probe_offset = 0;
+  int input_offset = 0, output_offset = 0, probe_offset = 0, spike_offset = 0;
 
   // Copy input from host to GPU
   cudaMemcpy(nengo_data->input_device->array, nengo_data->input_host->array,
@@ -316,13 +316,25 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
                                              nengo_data->probe_map->array,
                                              nengo_data->probes_device->array + probe_offset,
                                              nengo_data->decoded_values->array);
-
           probe_offset += nengo_data->num_probes;
       }
 
-      // Multiplying the matrix whose columns are the result vectors by the vector of values
-      // decoded from the association populations. The result is the decoded vector that is
-      // fed into the output population.  op should not be transposed here.
+      if(nengo_data->num_spikes > 0)
+      {
+
+          dimGrid.x = nengo_data->num_spikes / dimBlock.x + 1;
+          moveGPUData<<<dimBlock, dimGrid>>>(nengo_data->num_spikes,
+                                             nengo_data->spike_map->array,
+                                             nengo_data->spikes_device->array + spike_offset,
+                                             nengo_data->spikes->array);
+
+          spike_offset += nengo_data->num_spikes;
+      }
+
+      // Multiplying the matrix whose columns are the result vectors by the vector of
+      // values decoded from the association populations. The result is the decoded
+      // vector that is fed into the output population.  op should not be transposed
+      // here.
       //
       // output_vector(dimension, 1) =
       //    stored_vectors(dimension, num_items) x decoded_values(num_items, 1)
@@ -369,9 +381,19 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
              (nengo_data->dimension * nengo_data->num_steps) * sizeof(float),
              cudaMemcpyDeviceToHost);
 
-  cudaMemcpy(nengo_data->probes_host->array, nengo_data->probes_device->array,
-             (nengo_data->num_probes * nengo_data->num_steps) * sizeof(float),
-             cudaMemcpyDeviceToHost);
+  if(nengo_data->num_probes > 0)
+  {
+      cudaMemcpy(nengo_data->probes_host->array, nengo_data->probes_device->array,
+                 (nengo_data->num_probes * nengo_data->num_steps) * sizeof(float),
+                 cudaMemcpyDeviceToHost);
+  }
+
+  if(nengo_data->num_spikes > 0)
+  {
+      cudaMemcpy(nengo_data->spikes_host->array, nengo_data->spikes_device->array,
+                 (nengo_data->num_spikes * nengo_data->num_steps) * sizeof(float),
+                 cudaMemcpyDeviceToHost);
+  }
 }
 
 float* allocateCudaFloatArray(int size)
@@ -429,6 +451,10 @@ void initializeDeviceInputAndOutput(NengoGPUData* nengo_data)
   nengo_data->probes_device = newFloatArrayOnDevice(
                             nengo_data->num_probes * nengo_data->num_steps, name);
 
+  name = "spikes_device";
+  nengo_data->spikes_device = newFloatArrayOnDevice(
+                            nengo_data->num_spikes * nengo_data->num_steps, name);
+
   reset_neural_associative_memory(nengo_data);
 }
 
@@ -469,6 +495,10 @@ void reset_neural_associative_memory(NengoGPUData* nengo_data)
 
   err = cudaMemset(nengo_data->probes_device->array, 0,
       sizeof(float) * nengo_data->num_steps * nengo_data->num_probes);
+  checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
+
+  err = cudaMemset(nengo_data->spikes_device->array, 0,
+      sizeof(float) * nengo_data->num_steps * nengo_data->num_spikes);
   checkCudaErrorWithDevice(err, nengo_data->device, "Resetting Cuda arrays");
 
   if(nengo_data->do_print)
