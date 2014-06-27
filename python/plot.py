@@ -1,5 +1,6 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import random
 
 from corpora_management import VectorizedCorpus
 from neural_extraction import NeuralExtraction
@@ -258,7 +259,8 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
             plt.show()
 
 
-def chain_simulation_data(dimension=128, num_synsets=50, num_links=3):
+def chain_simulation_data(dimension=512, num_synsets=-1,
+                          num_links=4, num_others=5000):
     input_dir = '../wordnetData/'
     unitary_relations = False
     proportion = .001
@@ -273,7 +275,11 @@ def chain_simulation_data(dimension=128, num_synsets=50, num_links=3):
 
     chain = vc.find_chain(num_links, starting_keys=[]).next()
     names = [vc.key2name[c] for c in chain]
-    print names
+
+    other_keys = vc.semantic_pointers.keys()
+    other_keys = filter(lambda o: o not in chain, other_keys)
+    num_others = min(num_others, len(other_keys))
+    others = random.sample(other_keys, num_others)
 
     id_vectors = vc.id_vectors
     semantic_pointers = vc.semantic_pointers
@@ -305,15 +311,43 @@ def chain_simulation_data(dimension=128, num_synsets=50, num_links=3):
         sim.run(0.1)
 
     t = sim.trange()
+
+    # -------------
     chain_sp = [semantic_pointers[c][:, np.newaxis] for c in chain]
     chain_sp = np.concatenate(chain_sp, axis=1)
+
     input_similarities = np.dot(sim.data[input_probe], chain_sp)
 
     chain_id = [id_vectors[c][:, np.newaxis] for c in chain]
     chain_id = np.concatenate(chain_id, axis=1)
+
     before = np.dot(sim.data[D_probe], chain_id)
     after = np.dot(sim.data[output_probe], chain_sp)
 
+    # -------------
+    other_id = [id_vectors[o][:, np.newaxis] for o in others]
+    other_id = np.concatenate(other_id, axis=1)
+
+    other_before = np.dot(sim.data[D_probe], other_id)
+    other_before = np.max(other_before, axis=1)[:, np.newaxis]
+
+    before = np.concatenate((before, other_before), axis=1)
+
+    # other_sp = [semantic_pointers[o][:, np.newaxis] for o in others]
+    # other_sp = np.concatenate(other_sp, axis=1)
+
+    # other_input_similarities = np.dot(sim.data[input_probe], other_sp)
+
+    # other_after = np.dot(sim.data[output_probe], other_sp)
+    # other_after = np.max(other_after, axis=1)[:, np.newaxis]
+
+    # input_similarities = np.concatenate(
+    #     (input_similarities, other_input_similarities), axis=1)
+    # after = np.concatenate((after, other_after), axis=1)
+
+    names.append('Other')
+
+    # -------------
     spikes = np.array([])
     if collect_spikes:
         spike_probes = extractor.assoc_spike_probes
@@ -328,12 +362,13 @@ def chain_simulation_plot(names, t, input_similarities, before,
 
     print "Plotting"
 
-    mpl.rc('font', size=13)
+    #mpl.rc('font', size=13, family='Computer Modeen')
+
+    plt.figure(figsize=(7, 8))
 
     gs = gridspec.GridSpec(4, 1)
 
-    linestyles = ['-'] * 4
-    colors = ['b', 'g', 'r', 'y']
+    linestyles = ['-'] * (len(names) - 1) + ['--']
 
     linewidth = 2.0
 
@@ -342,8 +377,8 @@ def chain_simulation_plot(names, t, input_similarities, before,
 
         lines = []
 
-        for s, ls, n, c in zip(sims.T, linestyles, names, colors):
-            line = plt.plot(t, s, ls=ls, lw=linewidth, c=c)
+        for s, ls, n, in zip(sims.T, linestyles, names):
+            line = plt.plot(t, s, ls=ls, lw=linewidth)
             lines.extend(line)
 
         plt.ylabel(title)
@@ -358,7 +393,7 @@ def chain_simulation_plot(names, t, input_similarities, before,
     plt.setp(ax, xticks=[])
     plt.yticks(yticks)
 
-    plt.legend(lines, names, loc=4, fontsize='small')
+    plt.legend(lines, names, loc=4, fontsize='x-small')
 
     # --------------------
     title = 'Before Association'
@@ -370,7 +405,7 @@ def chain_simulation_plot(names, t, input_similarities, before,
     ax = plt.subplot(gs[2, 0])
 
     if spikes.size > 0:
-        n_assoc_neurons = int(spikes.shape[1] / len(names))
+        n_assoc_neurons = int(spikes.shape[1] / (len(names) - 1))
 
         colors = [plt.getp(line, 'color') for line in lines]
         spike_colors = [colors[int(i / n_assoc_neurons)]
