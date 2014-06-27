@@ -37,9 +37,9 @@ class AssociativeMemoryGPU(object):
     def __init__(self, devices, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
                  tau_ref=0.002, radius=1.0, intercepts=Uniform(0.0, 0.3),
-                 max_rates=Uniform(200, 400), identical=False,
+                 max_rates=Uniform(200, 350), identical=False,
                  probe_keys=[], do_print=False, seed=None, num_steps=1,
-                 eval_points=None):
+                 eval_points=None, collect_spikes=False):
 
         if not isinstance(index_vectors, OrderedDict):
             raise ValueError("index_vectors must be an OrderedDict")
@@ -62,49 +62,51 @@ class AssociativeMemoryGPU(object):
         self.dimensions = len(index_vectors.values()[0])
         self.dt = dt
         self.num_steps = num_steps
+        self.neurons_per_item = neurons_per_item
         num_devices = len(devices)
 
         if identical:
             model = nengo.Network("Associative Memory")
             with model:
-                neurons = nengo.LIF(neurons_per_item,
-                                    tau_rc=tau_rc,
-                                    tau_ref=tau_ref)
+                neuron_type = nengo.LIF(
+                    tau_rc=tau_rc, tau_ref=tau_ref)
 
-                assoc = nengo.Ensemble(neurons, 1, intercepts=intercepts,
-                                       max_rates=max_rates,
-                                       encoders=encoders, label="assoc",
-                                       seed=seed, radius=radius,
-                                       eval_points=eval_points)
+                assoc = nengo.Ensemble(
+                    n_neurons=neurons_per_item, dimensions=1,
+                    intercepts=intercepts, max_rates=max_rates,
+                    encoders=encoders, label="assoc", seed=seed,
+                    radius=radius, eval_points=eval_points,
+                    neuron_type=neuron_type)
 
-                dummy = nengo.Ensemble(nengo.LIF(1), 1)
+                dummy = nengo.Ensemble(1, 1)
 
                 conn = nengo.Connection(assoc, dummy,
                                         function=threshold_func, seed=seed)
 
             sim = nengo.Simulator(model)
 
-            gain = sim.data[assoc.neurons].gain
-            bias = sim.data[assoc.neurons].bias
+            gain = sim.data[assoc].gain
+            bias = sim.data[assoc].bias
             decoders = sim.data[conn].decoders[0]
         else:
+            raise NotImplementedError(
+                "GPU can currently only be used if identical is also supplied")
+
             # Currently does not work
             model = nengo.Network("Associative Memory")
             with model:
-                dummy = nengo.Ensemble(nengo.LIF(1), 1)
+                dummy = nengo.Ensemble(1, 1)
 
                 for i in range(self.num_items):
 
-                    neurons = nengo.LIF(neurons_per_item,
-                                        tau_rc=tau_rc,
-                                        tau_ref=tau_ref)
+                    neuron_type = nengo.LIF(
+                        tau_rc=tau_rc, tau_ref=tau_ref)
 
-                    assoc = nengo.Ensemble(nengo.LIF(neurons_per_item), 1,
-                                           intercepts=intercepts,
-                                           max_rates=max_rates,
-                                           encoders=encoders,
-                                           label="assoc",
-                                           radius=radius)
+                    assoc = nengo.Ensemble(
+                        n_neurons=neurons_per_item, dimensions=1,
+                        intercepts=intercepts, max_rates=max_rates,
+                        encoders=encoders, label="assoc", radius=radius,
+                        neuron_type=neuron_type)
 
                     conn = nengo.Connection(assoc, dummy,
                                             function=threshold_func)
@@ -116,8 +118,8 @@ class AssociativeMemoryGPU(object):
             decoders = []
 
             for i in range(self.num_items):
-                gain.append(sim.data[assoc.neurons].gain)
-                bias.append(sim.data[assoc.neurons].bias)
+                gain.append(sim.data[assoc].gain)
+                bias.append(sim.data[assoc].bias)
                 decoders.append(sim.data[conn].decoders[0])
 
             gain = np.array(gain).T
@@ -139,12 +141,10 @@ class AssociativeMemoryGPU(object):
 
         keys = index_vectors.keys()
 
-        order = range(len(probe_keys))
-
-        probe_indices = [keys.index(pk) for pk in probe_keys]
-        order.sort(key=lambda x: probe_indices[x])
-        self.probe_map = dict(zip(probe_keys, order))
-        probe_indices.sort()
+        probe_map = {pk: keys.index(pk) for pk in probe_keys}
+        sorted(probe_keys, key=lambda x: probe_map[x])
+        self.probe_map = dict(zip(probe_keys, range(len(probe_keys))))
+        probe_indices = [probe_map[pk] for pk in probe_keys]
 
         c_probe_indices = convert_to_carray(probe_indices, c_int, 1)
 
@@ -161,6 +161,7 @@ class AssociativeMemoryGPU(object):
         c_identical = c_int(int(identical))
         c_do_print = c_int(int(do_print))
         c_num_probes = c_int(len(probe_indices))
+        c_do_spikes = c_int(int(collect_spikes))
         c_num_steps = c_int(num_steps)
 
         gpu_lib = self.libNeuralAssocGPU
@@ -168,7 +169,7 @@ class AssociativeMemoryGPU(object):
                       c_dimensions, c_index_vectors, c_stored_vectors, c_pstc,
                       c_decoders, c_neurons_per_item, c_gain, c_bias,
                       c_tau_ref, c_tau_rc, c_radius, c_identical, c_do_print,
-                      c_probe_indices, c_num_probes, c_num_steps)
+                      c_probe_indices, c_num_probes, c_do_spikes, c_num_steps)
 
         self.elapsed_time = 0.0
         self.n_steps = 0
@@ -178,13 +179,17 @@ class AssociativeMemoryGPU(object):
         if num_steps == 1:
             self._output = np.zeros(self.dimensions)
             self._probes = np.zeros(len(probe_indices))
+            self._spikes = np.zeros(len(probe_indices) * neurons_per_item)
 
             self._c_input = None
             self._c_output = convert_to_carray(self._output, c_float, 1)
             self._c_probes = convert_to_carray(self._probes, c_float, 1)
+            self._c_spikes = convert_to_carray(self._spikes, c_float, 1)
         else:
             self._output = np.zeros((num_steps, self.dimensions))
             self._probes = np.zeros((num_steps, len(probe_indices)))
+            self._spikes = np.zeros(
+                (num_steps, len(probe_indices) * neurons_per_item))
 
             self._c_input = None
 
@@ -193,6 +198,10 @@ class AssociativeMemoryGPU(object):
 
             _probes = np.zeros(num_steps * len(probe_indices))
             self._c_probes = convert_to_carray(_probes, c_float, 1)
+
+            _spikes = np.zeros(
+                num_steps * len(probe_indices) * neurons_per_item)
+            self._c_spikes = convert_to_carray(_spikes, c_float, 1)
 
     def step(self, input_vector):
 
@@ -207,7 +216,8 @@ class AssociativeMemoryGPU(object):
 
         gpu_lib = self.libNeuralAssocGPU
         gpu_lib.step(self._c_input, self._c_output,
-                     self._c_probes, c_start_time, c_end_time,
+                     self._c_probes, self._c_spikes,
+                     c_start_time, c_end_time,
                      c_n_steps)
 
         for i in range(self._output.size):
@@ -215,6 +225,9 @@ class AssociativeMemoryGPU(object):
 
         for i in range(self._probes.size):
             self._probes[i] = self._c_probes[i]
+
+        for i in range(self._spikes.size):
+            self._spikes[i] = self._c_spikes[i]
 
         self.n_steps += 1
         self.elapsed_time += 1
@@ -226,13 +239,13 @@ class AssociativeMemoryGPU(object):
             np.reshape(input, self.num_steps * self.dimensions), c_float, 1)
 
         c_start_time = c_float(self.elapsed_time)
-        c_end_time = c_float(self.elapsed_time + self.dt)
+        c_end_time = c_float(self.elapsed_time + self.dt * self.n_steps)
         c_n_steps = c_int(self.n_steps)
 
         gpu_lib = self.libNeuralAssocGPU
         gpu_lib.step(self._c_input, self._c_output,
-                     self._c_probes, c_start_time, c_end_time,
-                     c_n_steps)
+                     self._c_probes, self._c_spikes,
+                     c_start_time, c_end_time, c_n_steps)
 
         shape0 = self._output.shape[0]
         shape1 = self._output.shape[1]
@@ -246,12 +259,25 @@ class AssociativeMemoryGPU(object):
             for j in range(shape1):
                 self._probes[i, j] = self._c_probes[i * shape1 + j]
 
-        self.n_steps += 1
-        self.elapsed_time += 1
+        shape0 = self._spikes.shape[0]
+        shape1 = self._spikes.shape[1]
+        for i in range(shape0):
+            for j in range(shape1):
+                self._spikes[i, j] = self._c_spikes[i * shape1 + j]
+
+        self.n_steps += self.n_steps
+        self.elapsed_time += self.dt * self.n_steps
 
         return self._output
 
     def probe_func(self, probe_key):
+        """
+        Return a function which gets the value of a probe in the associative
+        memory. The idea is to create a node whose output is this function,
+        and then to probe that node. That lets us hook the output of the GPU
+        simulation into the normal probe system.
+        """
+
         probe_index = self.probe_map[probe_key]
 
         def f(t):
@@ -260,6 +286,29 @@ class AssociativeMemoryGPU(object):
         def multi_step_f(t):
             time_index = int(t / self.dt)
             return self._probes[time_index, probe_index]
+
+        if self.num_steps == 1:
+            return f
+        else:
+            return multi_step_f
+
+    def spike_func(self, spike_key):
+        """
+        Same trick as with probe_func.
+        """
+
+        # can use probe map here, spikes are in same order as probes
+        spike_index = self.probe_map[spike_key]
+
+        lo_index = spike_index * self.neurons_per_item
+        hi_index = (spike_index + 1) * self.neurons_per_item
+
+        def f(t):
+            return self._spikes[lo_index:hi_index]
+
+        def multi_step_f(t):
+            time_index = int(t / self.dt)
+            return self._spikes[time_index, lo_index:hi_index]
 
         if self.num_steps == 1:
             return f

@@ -214,11 +214,12 @@ def task_tuning_curve_plot():
         }
 
 
-def task_hierarchical_simulation():
+def task_chain_simulation():
+    filename = 'chain_simulation.pdf'
     yield {
-        'name': 'hierarchical_simulation',
-        'actions': [(plot.plot_hierarchical_simulation, [])],
-        'targets': ['']
+        'name': 'chain_simulation',
+        'actions': [(plot.chain_simulation, [filename])],
+        'targets': [filename]
     }
 
 # if __name__ == '__main__':

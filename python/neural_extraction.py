@@ -44,7 +44,7 @@ class NeuralExtraction(Extraction):
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
                  dt=0.001, tau_rc=0.02, tau_ref=0.002, synapse=0.005,
                  output_dir=".", probe_keys=[], plot=False, show=False,
-                 ocl=[], gpus=[], identical=False):
+                 ocl=[], gpus=[], identical=False, collect_spikes=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -83,6 +83,7 @@ class NeuralExtraction(Extraction):
         self.probe_keys = probe_keys
         self.identical = identical
         self.seed = np.random.randint(npext.maxint)
+        self.collect_spikes = collect_spikes
 
         self.threshold = threshold
         self.threshold_func = lambda x: 1 if x > self.threshold else 0
@@ -225,7 +226,8 @@ class NeuralExtraction(Extraction):
                                          radius=radius, do_print=False,
                                          identical=self.identical,
                                          probe_keys=self.probe_keys,
-                                         seed=self.seed)
+                                         seed=self.seed,
+                                         collect_spikes=self.collect_spikes)
 
                 def gpu_function(t, input_vector):
                     output_vector = self.assoc_memory.step(input_vector)
@@ -239,10 +241,13 @@ class NeuralExtraction(Extraction):
                 nengo.Connection(assoc, self.output.input, synapse=synapse)
 
                 for k in self.probe_keys:
-                    n = nengo.Node(output=self.assoc_memory.probe_func(k))
-                    probe = nengo.Probe(n, synapse=synapse)
+                    node = nengo.Node(output=self.assoc_memory.probe_func(k))
+                    probe = nengo.Probe(node, synapse=synapse)
 
                     threshold_probes[k] = probe
+
+                    node = nengo.Node(output=self.assoc_memory.spike_func(k))
+                    assoc_spike_probes[k] = nengo.Probe(node, synapse=None)
 
             else:
                 encoders = np.ones((neurons_per_item, 1))

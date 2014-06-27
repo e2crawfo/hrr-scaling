@@ -1,9 +1,4 @@
-show = True
 import matplotlib as mpl
-if show:
-    mpl.use('Qt4Agg')
-else:
-    mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 from corpora_management import VectorizedCorpus
@@ -263,12 +258,14 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
             plt.show()
 
 
-def hierarchical_simulation_data(dimension=128, num_synsets=50, num_links=3):
+def chain_simulation_data(dimension=128, num_synsets=50, num_links=3):
     input_dir = '../wordnetData/'
     unitary_relations = False
     proportion = .001
 
     output_dir = '../results'
+
+    collect_spikes = True
 
     vc = VectorizedCorpus(
         dimension, input_dir, unitary_relations,
@@ -281,12 +278,14 @@ def hierarchical_simulation_data(dimension=128, num_synsets=50, num_links=3):
     id_vectors = vc.id_vectors
     semantic_pointers = vc.semantic_pointers
 
+    query_vector = vc.relation_type_vectors['@']
+
     extractor = NeuralExtraction(
         id_vectors, semantic_pointers, threshold=0.3,
         output_dir=output_dir, probe_keys=chain,
-        timesteps=500, synapse=0.005,
-        plot=False, show=False, ocl=False, gpus=[],
-        identical=True)
+        timesteps=100, synapse=0.005,
+        plot=False, show=False, ocl=False, gpus=[0],
+        identical=True, collect_spikes=collect_spikes)
 
     input_probe = extractor.input_probe
     D_probe = extractor.D_probe
@@ -294,13 +293,15 @@ def hierarchical_simulation_data(dimension=128, num_synsets=50, num_links=3):
 
     sim = extractor.simulator
 
-    query_vector = vc.relation_type_vectors['@']
-
     extractor.A_input_vector = semantic_pointers[chain[0]]
     extractor.B_input_vector = query_vector
 
     for i in range(num_links):
-        extractor.A_input_vector = semantic_pointers[chain[i]]
+        print "Starting link %d" % i
+
+        if i:
+            extractor.A_input_vector = sim.data[output_probe][-1, :]
+
         sim.run(0.1)
 
     t = sim.trange()
@@ -313,20 +314,26 @@ def hierarchical_simulation_data(dimension=128, num_synsets=50, num_links=3):
     before = np.dot(sim.data[D_probe], chain_id)
     after = np.dot(sim.data[output_probe], chain_sp)
 
-    spike_probes = extractor.assoc_spike_probes
-    spikes = [sim.data[spike_probes[key]] for key in chain]
-    spikes = np.concatenate(spikes, axis=1)
+    spikes = np.array([])
+    if collect_spikes:
+        spike_probes = extractor.assoc_spike_probes
+        spikes = [sim.data[spike_probes[key]] for key in chain]
+        spikes = np.concatenate(spikes, axis=1)
 
     return names, t, input_similarities, before, after, spikes
 
 
-def hierarchical_simulation_plot(names, t, input_similarities,
-                                 before, after, spikes, show=True):
+def chain_simulation_plot(names, t, input_similarities, before,
+                          after, spikes, filename=None):
+
+    print "Plotting"
+
     mpl.rc('font', size=13)
 
     gs = gridspec.GridSpec(4, 1)
 
     linestyles = ['-'] * 4
+    colors = ['b', 'g', 'r', 'y']
 
     linewidth = 2.0
 
@@ -335,8 +342,8 @@ def hierarchical_simulation_plot(names, t, input_similarities,
 
         lines = []
 
-        for s, ls, n in zip(sims.T, linestyles, names):
-            line = plt.plot(t, s, ls=ls, label=n, lw=linewidth)
+        for s, ls, n, c in zip(sims.T, linestyles, names, colors):
+            line = plt.plot(t, s, ls=ls, lw=linewidth, c=c)
             lines.extend(line)
 
         plt.ylabel(title)
@@ -362,15 +369,16 @@ def hierarchical_simulation_plot(names, t, input_similarities,
     # --------------------
     ax = plt.subplot(gs[2, 0])
 
-    n_assoc_neurons = int(spikes.shape[1] / len(names))
+    if spikes.size > 0:
+        n_assoc_neurons = int(spikes.shape[1] / len(names))
 
-    colors = [plt.getp(line, 'color') for line in lines]
-    spike_colors = [colors[int(i / n_assoc_neurons)]
-                    for i in range(spikes.shape[1])]
+        colors = [plt.getp(line, 'color') for line in lines]
+        spike_colors = [colors[int(i / n_assoc_neurons)]
+                        for i in range(spikes.shape[1])]
 
-    nengo.utils.matplotlib.rasterplot(t, spikes, ax, colors=spike_colors)
-    plt.setp(ax, xticks=[])
-    plt.ylabel('Association Spikes')
+        nengo.utils.matplotlib.rasterplot(t, spikes, ax, colors=spike_colors)
+        plt.setp(ax, xticks=[])
+        plt.ylabel('Association Spikes')
 
     # --------------------
     title = 'After Association'
@@ -378,10 +386,18 @@ def hierarchical_simulation_plot(names, t, input_similarities,
     plt.xlabel('Time (s)')
     plt.yticks(yticks)
 
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
+
+
+def chain_simulation(filename, dimension=128, num_synsets=50, num_links=3):
+    data = chain_simulation_data(dimension, num_synsets, num_links)
+    chain_simulation_plot(*data, filename=filename)
 
 
 if __name__ == "__main__":
 
-    data = hierarchical_simulation_data()
-    hierarchical_simulation_plot(*data, show=True)
+    data = chain_simulation_data()
+    chain_simulation_plot(*data, filename="chain_sim.pdf")
