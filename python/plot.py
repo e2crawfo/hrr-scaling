@@ -316,7 +316,7 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
     chain_sp = [semantic_pointers[c][:, np.newaxis] for c in chain]
     chain_sp = np.concatenate(chain_sp, axis=1)
 
-    input_similarities = np.dot(sim.data[input_probe], chain_sp)
+    synset = np.dot(sim.data[input_probe], chain_sp)
 
     chain_id = [id_vectors[c][:, np.newaxis] for c in chain]
     chain_id = np.concatenate(chain_id, axis=1)
@@ -336,13 +336,13 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
     # other_sp = [semantic_pointers[o][:, np.newaxis] for o in others]
     # other_sp = np.concatenate(other_sp, axis=1)
 
-    # other_input_similarities = np.dot(sim.data[input_probe], other_sp)
+    # other_synset = np.dot(sim.data[input_probe], other_sp)
 
     # other_after = np.dot(sim.data[output_probe], other_sp)
     # other_after = np.max(other_after, axis=1)[:, np.newaxis]
 
-    # input_similarities = np.concatenate(
-    #     (input_similarities, other_input_similarities), axis=1)
+    # synset = np.concatenate(
+    #     (synset, other_synset), axis=1)
     # after = np.concatenate((after, other_after), axis=1)
 
     names.append('Other')
@@ -354,15 +354,14 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
         spikes = [sim.data[spike_probes[key]] for key in chain]
         spikes = np.concatenate(spikes, axis=1)
 
-    return names, t, input_similarities, before, after, spikes
+    return {'names': names, 't': t, 'synset': synset,
+            'before': before, 'after': after, 'spikes': spikes}
 
 
-def chain_simulation_plot(names, t, input_similarities, before,
+def chain_simulation_plot(names, t, synset, before,
                           after, spikes, filename=None):
 
     print "Plotting"
-
-    #mpl.rc('font', size=13, family='Computer Modeen')
 
     plt.figure(figsize=(7, 8))
 
@@ -389,7 +388,7 @@ def chain_simulation_plot(names, t, input_similarities, before,
     # --------------------
     yticks = [0, 0.5, 1.0]
     title = 'Input'
-    ax, lines = do_plot(0, input_similarities, title)
+    ax, lines = do_plot(0, synset, title)
     plt.setp(ax, xticks=[])
     plt.yticks(yticks)
 
@@ -429,7 +428,7 @@ def chain_simulation_plot(names, t, input_similarities, before,
 
 def chain_simulation(filename, dimension=128, num_synsets=50, num_links=3):
     data = chain_simulation_data(dimension, num_synsets, num_links)
-    chain_simulation_plot(*data, filename=filename)
+    chain_simulation_plot(filename=filename, **data)
 
 
 if __name__ == "__main__":
