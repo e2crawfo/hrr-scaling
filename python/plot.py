@@ -1,6 +1,6 @@
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import random
+import string
 
 from corpora_management import VectorizedCorpus
 from neural_extraction import NeuralExtraction
@@ -361,6 +361,8 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
 def chain_simulation_plot(names, t, synset, before,
                           after, spikes, filename=None):
 
+    names = [string.replace(n, '_', ' ') for n in names]
+
     print "Plotting"
 
     plt.figure(figsize=(7, 8))
@@ -369,9 +371,14 @@ def chain_simulation_plot(names, t, synset, before,
 
     linestyles = ['-'] * (len(names) - 1) + ['--']
 
-    linewidth = 2.0
+    linewidth = 1.6
+    text_offset_x = 0.01
+    text_offset_y = 0.88
 
-    def do_plot(index, sims, title):
+    ylim = (-0.4, 1.3)
+    yticks = [0, 0.5, 1.0]
+
+    def do_plot(index, sims, y_label):
         ax = plt.subplot(gs[index, 0])
 
         lines = []
@@ -380,25 +387,29 @@ def chain_simulation_plot(names, t, synset, before,
             line = plt.plot(t, s, ls=ls, lw=linewidth)
             lines.extend(line)
 
-        plt.ylabel(title)
-        plt.ylim((-0.4, 1.1))
+        plt.ylim(ylim)
 
         return ax, lines
 
     # --------------------
-    yticks = [0, 0.5, 1.0]
-    title = 'Input'
-    ax, lines = do_plot(0, synset, title)
+    y_label = 'Dot Product'
+    ax, lines = do_plot(0, synset, y_label)
     plt.setp(ax, xticks=[])
     plt.yticks(yticks)
+    ax.text(
+        text_offset_x, text_offset_y, r'\textbf{A}',
+        transform=ax.transAxes)
 
-    plt.legend(lines, names, loc=4, fontsize='x-small')
+    plt.legend(lines, names, loc=4, fontsize='xx-small')
 
     # --------------------
-    title = 'Before Association'
-    ax, lines = do_plot(1, before, title)
+    y_label = 'Dot Product'
+    ax, lines = do_plot(1, before, y_label)
     plt.setp(ax, xticks=[])
     plt.yticks(yticks)
+    ax.text(
+        text_offset_x, text_offset_y, r'\textbf{B}',
+        transform=ax.transAxes)
 
     # --------------------
     ax = plt.subplot(gs[2, 0])
@@ -411,14 +422,27 @@ def chain_simulation_plot(names, t, synset, before,
                         for i in range(spikes.shape[1])]
 
         nengo.utils.matplotlib.rasterplot(t, spikes, ax, colors=spike_colors)
+
         plt.setp(ax, xticks=[])
-        plt.ylabel('Association Spikes')
+        spike_yticks = [i * n_assoc_neurons for i in range(len(names))]
+        plt.setp(ax, yticks=spike_yticks)
+
+        plt.ylabel('Neuron \#')
+        ax.text(
+            text_offset_x, text_offset_y, r'\textbf{C}',
+            transform=ax.transAxes)
 
     # --------------------
-    title = 'After Association'
-    ax, lines = do_plot(3, after, title)
+    y_label = 'Dot Product'
+    ax, lines = do_plot(3, after, y_label)
     plt.xlabel('Time (s)')
     plt.yticks(yticks)
+    ax.text(
+        text_offset_x, text_offset_y, r'\textbf{D}',
+        transform=ax.transAxes)
+
+    plt.subplots_adjust(
+        top=0.97, right=0.91, bottom=0.06, left=0.09, hspace=0.08)
 
     if filename:
         plt.savefig(filename)
