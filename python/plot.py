@@ -268,7 +268,7 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
 
 
 def chain_simulation_data(dimension=512, num_synsets=-1,
-                          num_links=4, num_others=5000):
+                          num_links=4, num_others=0):
     input_dir = '../wordnetData/'
     unitary_relations = False
     proportion = .001
@@ -284,10 +284,11 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
     chain = vc.find_chain(num_links, starting_keys=[]).next()
     names = [vc.key2name[c] for c in chain]
 
-    other_keys = vc.semantic_pointers.keys()
-    other_keys = filter(lambda o: o not in chain, other_keys)
-    num_others = min(num_others, len(other_keys))
-    others = random.sample(other_keys, num_others)
+    if num_others > 0:
+        other_keys = vc.semantic_pointers.keys()
+        other_keys = filter(lambda o: o not in chain, other_keys)
+        num_others = min(num_others, len(other_keys))
+        others = random.sample(other_keys, num_others)
 
     id_vectors = vc.id_vectors
     semantic_pointers = vc.semantic_pointers
@@ -333,27 +334,16 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
     after = np.dot(sim.data[output_probe], chain_sp)
 
     # -------------
-    other_id = [id_vectors[o][:, np.newaxis] for o in others]
-    other_id = np.concatenate(other_id, axis=1)
+    if num_others:
+        other_id = [id_vectors[o][:, np.newaxis] for o in others]
+        other_id = np.concatenate(other_id, axis=1)
 
-    other_before = np.dot(sim.data[D_probe], other_id)
-    other_before = np.max(other_before, axis=1)[:, np.newaxis]
+        other_before = np.dot(sim.data[D_probe], other_id)
+        other_before = np.max(other_before, axis=1)[:, np.newaxis]
 
-    before = np.concatenate((before, other_before), axis=1)
+        before = np.concatenate((before, other_before), axis=1)
 
-    # other_sp = [semantic_pointers[o][:, np.newaxis] for o in others]
-    # other_sp = np.concatenate(other_sp, axis=1)
-
-    # other_synset = np.dot(sim.data[input_probe], other_sp)
-
-    # other_after = np.dot(sim.data[output_probe], other_sp)
-    # other_after = np.max(other_after, axis=1)[:, np.newaxis]
-
-    # synset = np.concatenate(
-    #     (synset, other_synset), axis=1)
-    # after = np.concatenate((after, other_after), axis=1)
-
-    names.append('Other')
+        names.append('Other')
 
     # -------------
     spikes = np.array([])
@@ -367,21 +357,36 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
 
 
 def chain_simulation_plot(names, t, synset, before,
-                          after, spikes, filename=None):
+                          after, spikes, bw=True, filename=None):
+
+    if 'Other' in names:
+        raise ValueError("Plotting of 'Other' label not implemented")
 
     names = [string.replace(n, '_', ' ') for n in names]
 
+    timesteps = len(t)
+
+    synset = synset[:timesteps, :]
+    before = before[:timesteps, :]
+    after = after[:timesteps, :]
+    spikes = spikes[:timesteps, :]
+
     print "Plotting"
 
-    plt.figure(figsize=(7, 8))
+    plt.figure(figsize=(7, 6.5))
 
     gs = gridspec.GridSpec(4, 1)
 
-    linestyles = ['-'] * (len(names) - 1) + ['--']
+    if bw:
+        linestyles = ['-'] * len(names)
+        colors = map(lambda n: (n, n, n), np.linspace(0, 0.9, len(names)))
+    else:
+        linestyles = ['-'] * len(names)
+        colors = [None] * len(names)
 
     linewidth = 1.6
-    text_offset_x = 0.01
-    text_offset_y = 0.88
+    text_offset_x = -0.13
+    text_offset_y = 0.95
 
     ylim = (-0.4, 1.3)
     yticks = [0, 0.5, 1.0]
@@ -391,10 +396,11 @@ def chain_simulation_plot(names, t, synset, before,
 
         lines = []
 
-        for s, ls, n, in zip(sims.T, linestyles, names):
-            line = plt.plot(t, s, ls=ls, lw=linewidth)
+        for s, ls, n, c in zip(sims.T, linestyles, names, colors):
+            line = plt.plot(t, s, ls=ls, lw=linewidth, c=c)
             lines.extend(line)
 
+        plt.ylabel(y_label)
         plt.ylim(ylim)
 
         return ax, lines
@@ -405,7 +411,7 @@ def chain_simulation_plot(names, t, synset, before,
     plt.setp(ax, xticks=[])
     plt.yticks(yticks)
     ax.text(
-        text_offset_x, text_offset_y, r'\textbf{A}',
+        text_offset_x, text_offset_y, r'\textbf{a)}',
         transform=ax.transAxes)
 
     plt.legend(lines, names, loc=4, fontsize='xx-small')
@@ -416,28 +422,44 @@ def chain_simulation_plot(names, t, synset, before,
     plt.setp(ax, xticks=[])
     plt.yticks(yticks)
     ax.text(
-        text_offset_x, text_offset_y, r'\textbf{B}',
+        text_offset_x, text_offset_y, r'\textbf{b)}',
         transform=ax.transAxes)
 
     # --------------------
     ax = plt.subplot(gs[2, 0])
 
     if spikes.size > 0:
-        n_assoc_neurons = int(spikes.shape[1] / (len(names) - 1))
+        n_assoc_neurons = int(spikes.shape[1] / len(names))
 
-        colors = [plt.getp(line, 'color') for line in lines]
-        spike_colors = [colors[int(i / n_assoc_neurons)]
-                        for i in range(spikes.shape[1])]
+        if bw:
+            nengo.utils.matplotlib.rasterplot(t, spikes, ax, colors=['k'])
+        else:
+            colors = [plt.getp(line, 'color') for line in lines]
+            spike_colors = [colors[int(i / n_assoc_neurons)]
+                            for i in range(spikes.shape[1])]
 
-        nengo.utils.matplotlib.rasterplot(t, spikes, ax, colors=spike_colors)
+            nengo.utils.matplotlib.rasterplot(
+                t, spikes, ax, colors=spike_colors)
 
         plt.setp(ax, xticks=[])
-        spike_yticks = [i * n_assoc_neurons for i in range(len(names))]
-        plt.setp(ax, yticks=spike_yticks)
 
-        plt.ylabel('Neuron \#')
+        short_names = [string.replace(s, ' ', '\n') for s in names]
+        spike_ticks = n_assoc_neurons * np.arange(len(names))
+        spike_ticks += n_assoc_neurons / 2.0
+
+        plt.yticks(
+            spike_ticks, short_names, fontsize='xx-small')
+
+        light_gray = [0.95] * 3
+
+        for i in range(len(names)):
+            if i % 2 == 1:
+                plt.axhspan(i * n_assoc_neurons,
+                            (i + 1) * n_assoc_neurons,
+                            color=light_gray)
+
         ax.text(
-            text_offset_x, text_offset_y, r'\textbf{C}',
+            text_offset_x, text_offset_y, r'\textbf{c)}',
             transform=ax.transAxes)
 
     # --------------------
@@ -446,11 +468,11 @@ def chain_simulation_plot(names, t, synset, before,
     plt.xlabel('Time (s)')
     plt.yticks(yticks)
     ax.text(
-        text_offset_x, text_offset_y, r'\textbf{D}',
+        text_offset_x, text_offset_y, r'\textbf{d)}',
         transform=ax.transAxes)
 
     plt.subplots_adjust(
-        top=0.97, right=0.91, bottom=0.06, left=0.09, hspace=0.08)
+        top=0.97, right=0.89, bottom=0.07, left=0.11, hspace=0.08)
 
     if filename:
         plt.savefig(filename)
