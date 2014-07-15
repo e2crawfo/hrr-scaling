@@ -268,10 +268,11 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
 
 
 def chain_simulation_data(dimension=512, num_synsets=-1,
-                          num_links=4, num_others=0):
+                          num_links=4, num_others=0, starting_word=None):
+
     input_dir = '../wordnetData/'
     unitary_relations = False
-    proportion = .001
+    proportion = 1.0
 
     output_dir = '../results'
 
@@ -281,7 +282,11 @@ def chain_simulation_data(dimension=512, num_synsets=-1,
         dimension, input_dir, unitary_relations,
         proportion, num_synsets, create_namedict=True)
 
-    chain = vc.find_chain(num_links, starting_keys=[]).next()
+    starting_keys = []
+    if starting_word:
+        starting_keys = [starting_word]
+
+    chain = vc.find_chain(num_links, starting_keys=starting_keys).next()
     names = [vc.key2name[c] for c in chain]
 
     if num_others > 0:

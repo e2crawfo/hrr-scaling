@@ -10,7 +10,7 @@ class VectorizedCorpus:
 
     corpus_dict = None
 
-    def __init__(self, dimension=512, input_dir=".",
+    def __init__(self, dimension=512, input_dir="../wordnetData/",
                  unitary_relations=False, proportion=1.0, num_synsets=-1,
                  id_vecs=False, relation_symbols=[], create_namedict=False):
 
@@ -303,6 +303,19 @@ class VectorizedCorpus:
 
     def find_chain(self, chain_length, relation_symbol='@', exclusive=True,
                    starting_keys=None):
+
+        keys = []
+        for key in starting_keys:
+            if isinstance(key, str):
+                if self.create_namedict:
+                    keys.extend([t[0] for t in self.name2key[key]])
+                else:
+                    raise ValueError("starting_keys must be keys (not strings)"
+                                     "since no name dict was created")
+            else:
+                keys.append(key)
+
+        starting_keys = keys
 
         if not starting_keys:
             starting_keys = self.corpus_dict
