@@ -149,6 +149,7 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     subpopulation (of the neural extraction network).
     """
     import matplotlib as mpl
+    mpl.rcParams['font.size'] = '10'
 
     if show:
         mpl.use('Qt4Agg')
@@ -156,6 +157,8 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
         mpl.use('Agg')
 
     import matplotlib.pyplot as plt
+
+    plt.figure(figsize=(5, 3))
 
     neurons_per_item = 20
     neurons_per_dim = 50
@@ -167,7 +170,8 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     tau_rc = 0.034
     tau_ref = 0.0026
     radius = 1.0
-    encoders = np.ones((neurons_per_item, 1))
+    assoc_encoders = np.ones((neurons_per_item, 1))
+    standard_encoders = np.ones((neurons_per_dim, 1))
 
     threshold = 0.3
     threshold_func = lambda x: 1 if x > threshold else 0
@@ -176,26 +180,26 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
 
     model = nengo.Network("Associative Memory")
     with model:
-        neurons = nengo.LIF(neurons_per_item,
-                            tau_rc=tau_rc,
-                            tau_ref=tau_ref)
+        neuron_type = nengo.LIF(
+            tau_rc=tau_rc, tau_ref=tau_ref)
 
-        assoc = nengo.Ensemble(neurons, 1, intercepts=intercepts,
-                               encoders=encoders, label="assoc",
-                               radius=radius, max_rates=max_rates)
+        assoc = nengo.Ensemble(
+            n_neurons=neurons_per_item, dimensions=1, intercepts=intercepts,
+            encoders=assoc_encoders, label="assoc", radius=radius,
+            max_rates=max_rates, neuron_type=neuron_type)
 
         n_eval_points = 750
         eval_points = np.random.normal(0, 0.06, (n_eval_points, 1))
         eval_points.T[0].sort()
         radius = 5.0 / np.sqrt(512)
-        standard = nengo.Ensemble(nengo.LIF(neurons_per_dim), 1,
-                                  eval_points=eval_points,
-                                  radius=radius)
+        standard = nengo.Ensemble(n_neurons=neurons_per_dim, dimensions=1,
+                                  eval_points=eval_points, radius=radius,
+                                  encoders=standard_encoders)
 
         if plot_decoding:
-            dummy = nengo.Ensemble(nengo.LIF(1), 1)
+            dummy = nengo.Ensemble(1, 1)
             conn = nengo.Connection(assoc, dummy, function=threshold_func)
-            dummy2 = nengo.Ensemble(nengo.LIF(1), 1)
+            dummy2 = nengo.Ensemble(1, 1)
             conn2 = nengo.Connection(standard, dummy2)
 
     sim = nengo.Simulator(model)
@@ -211,12 +215,13 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
 
     for neuron in assoc_activities.T:
         plt.plot(assoc_eval_points.T[0], neuron)
-    plt.title("Association Subpopulation")
+    plt.title("Association")
     plt.ylabel("Firing Rate (spikes/s)")
-    plt.xlabel("ex")
+    plt.xlabel(r"$e_ix$")
     plt.ylim((0, 400))
+    plt.yticks([0, 100, 200, 300, 400])
 
-    plt.subplot(gs[0:2, 1])
+    ax = plt.subplot(gs[0:2, 1])
 
     # We want different eval points for display purposes than for
     # optimization purposes
@@ -229,10 +234,11 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     for neuron in activities.T:
         plt.plot(eval_points, neuron)
 
-    plt.title("Standard Subpopulation")
-    plt.xlabel("ex")
+    plt.title("Standard")
+    plt.xlabel(r"$e_ix$")
     plt.xlim((-radius, radius))
     plt.ylim((0, 400))
+    plt.setp(ax, yticks=[])
 
     if plot_decoding:
         plt.subplot(gs[2, 0])
@@ -252,6 +258,8 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
         plt.axvline(x=-radius, c='k', ls='--')
 
     plt.tight_layout()
+
+    plt.subplots_adjust(right=0.89, left=0.11)
 
     if filename:
             plt.savefig(filename)
