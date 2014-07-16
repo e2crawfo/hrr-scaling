@@ -6,19 +6,25 @@ import symbol_definitions
 import utilities as util
 
 
-class VectorizedCorpus:
+class VectorizedCorpus(object):
 
     corpus_dict = None
 
     def __init__(self, dimension=512, input_dir="../wordnetData/",
                  unitary_relations=False, proportion=1.0, num_synsets=-1,
-                 id_vecs=False, relation_symbols=[], create_namedict=False):
+                 id_vecs=False, relation_symbols=None, create_namedict=False,
+                 dry_run=False):
 
         self.dimension = dimension
         self.input_dir = input_dir
-        self.relation_symbols = symbol_definitions.uni_relation_symbols()
+
         self.unitary_relations = unitary_relations
         self.create_namedict = create_namedict
+
+        if relation_symbols is None:
+            self.relation_symbols = symbol_definitions.uni_relation_symbols()
+        else:
+            self.relation_symbols = relation_symbols
 
         self.parse_wordnet()
 
@@ -29,8 +35,12 @@ class VectorizedCorpus:
             self.create_corpus_subset(self.proportion)
 
         print "Wordnet data parsed."
-        self.form_knowledge_base(id_vecs, unitary_relations)
-        print "Knowledge base formed."
+
+        if dry_run:
+            print "Dry run. Skipping vectorization."
+        else:
+            self.form_knowledge_base(id_vecs, unitary_relations)
+            print "Vectorization of WordNet complete"
 
     def parse_wordnet(self):
 
@@ -336,6 +346,14 @@ class VectorizedCorpus:
 
             if len(chain) == chain_length + 1:
                 yield chain
+
+    def name2relations(self, name):
+        if self.create_namedict:
+            keys = (t[0] for t in self.name2key[name])
+            return {key: [(t[0], self.key2name[t[1]])
+                          for t in self.corpus_dict[key]
+                          if t[0] in self.relation_symbols]
+                    for key in keys}
 
     # File parsing utilities
     def skipNotice(self, f):
