@@ -48,6 +48,14 @@ def parse_args(print_args=False):
              'directly in terms of other semantic pointers')
 
     parser.add_argument(
+        '--no-normalize', dest='no_norm', action='store_true',
+        help='Supply this to skip normalizing semantic pointers')
+
+    parser.add_argument(
+        '--sp-noise', dest='sp_noise', default=0, type=int,
+        help='Number of noise terms to add to semantic pointers. Defaults to 0')
+
+    parser.add_argument(
         '-d', default=512, type=int,
         help='Specify the number of dimensions to use.')
 

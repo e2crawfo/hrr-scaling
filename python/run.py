@@ -26,9 +26,9 @@ from wordnet_tests import SentenceTest
 def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, id_vecs, abstract, synapse, timesteps,
-        threshold, probeall, identical, fast, plot, show, gpus, ocl,
-        output_file):
+        proportion, unitary_relations, id_vecs, sp_noise, normalize,
+        abstract, synapse, timesteps, threshold, probeall, identical,
+        fast, plot, show, gpus, ocl, output_file):
 
     input_dir, _ = utilities.read_config()
 
@@ -41,12 +41,13 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         ocl.sort()
 
     def make_corpus_factory(dimension, input_dir, unitary_relations, id_vecs,
-                            proportion, num_synsets):
+                            proportion, num_synsets, sp_noise, normalize):
 
         def make_corpus():
             corpus = VectorizedCorpus(
                 dimension=dimension, input_dir=input_dir,
                 unitary_relations=unitary_relations, id_vecs=id_vecs,
+                sp_noise=sp_noise, normalize=normalize,
                 num_synsets=num_synsets, proportion=proportion)
 
             return corpus
@@ -84,7 +85,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
 
     corpus_factory = make_corpus_factory(
         dimension, input_dir, unitary_relations, id_vecs,
-        proportion, num_synsets)
+        proportion, num_synsets, sp_noise, normalize)
 
     extractor_factory = make_extractor_factory(
         neural, fast, gpus, ocl, plot, show, threshold, timesteps, synapse)
@@ -185,6 +186,8 @@ if __name__ == "__main__":
     proportion = argvals.p
     unitary_relations = argvals.unitary_relations
     id_vecs = not argvals.no_ids
+    sp_noise = argvals.sp_noise
+    normalize = not argvals.no_norm
 
     # extractor args
     abstract = argvals.abstract
@@ -203,5 +206,6 @@ if __name__ == "__main__":
     run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, id_vecs, abstract, synapse, timesteps,
-        threshold, probeall, identical, fast, plot, show, gpus, ocl)
+        proportion, unitary_relations, id_vecs, sp_noise, normalize,
+        abstract, synapse, timesteps, threshold, probeall, identical, fast,
+        plot, show, gpus, ocl)

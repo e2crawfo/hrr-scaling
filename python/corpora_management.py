@@ -13,13 +13,18 @@ class VectorizedCorpus(object):
     def __init__(self, dimension=512, input_dir="../wordnetData/",
                  unitary_relations=False, proportion=1.0, num_synsets=-1,
                  id_vecs=True, relation_symbols=None, create_namedict=False,
-                 dry_run=False):
+                 dry_run=False, sp_noise=0, normalize=True):
 
         self.dimension = dimension
         self.input_dir = input_dir
 
         self.unitary_relations = unitary_relations
         self.create_namedict = create_namedict
+        self.normalize = normalize
+
+        if sp_noise < 0:
+            sp_noise = 0
+        self.sp_noise = sp_noise
 
         if relation_symbols is None:
             self.relation_symbols = symbol_definitions.uni_relation_symbols()
@@ -280,10 +285,10 @@ class VectorizedCorpus(object):
 
         print "Generating HRR vectors"
         for key in key_order:
-            if self.id_vectors:
-                semantic_pointer = hrr.HRR(np.zeros(self.dimension))
-            else:
-                semantic_pointer = hrr.HRR(self.dimension)
+            semantic_pointer = hrr.HRR(np.zeros(self.dimension))
+
+            for n in range(self.sp_noise):
+                semantic_pointer += hrr.HRR(self.dimension)
 
             for relation in self.corpus_dict[key]:
                 if relation[0] not in self.relation_type_vectors:
@@ -297,7 +302,8 @@ class VectorizedCorpus(object):
 
                 semantic_pointer += pair
 
-            semantic_pointer.normalize()
+            if self.normalize:
+                semantic_pointer.normalize()
 
             self.semantic_pointers[key] = semantic_pointer
 
