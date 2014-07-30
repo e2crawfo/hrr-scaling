@@ -6,6 +6,7 @@ import string
 import datetime
 from collections import OrderedDict, namedtuple
 import warnings
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -315,11 +316,11 @@ class NeuralExtraction(Extraction):
             self.output_probe = nengo.Probe(
                 output_output, 'output', synapse=0.02)
 
-    def extract(self, item, query, *args, **kwargs):
+    def extract(self, item, query, target_keys=None, *args, **kwargs):
         then = datetime.datetime.now()
 
-        if len(self.tester.current_target_keys) > 0:
-            self.print_instance_difficulty(item, query)
+        if target_keys:
+            self.print_instance_difficulty(item, query, target_keys)
 
         self.reset()
 
@@ -332,8 +333,9 @@ class NeuralExtraction(Extraction):
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "unbind")
 
+        print self.plot
         if self.plot:
-            self.plot_simulation()
+            self.plot_simulation(target_keys)
 
         vector = self.simulator.data[self.output_probe][-1, :]
         return [vector]
@@ -366,13 +368,12 @@ class NeuralExtraction(Extraction):
 
         return simulator
 
-    def plot_simulation(self):
-
+    def plot_simulation(self, target_keys):
         then = datetime.datetime.now()
 
         correct_key = None
-        if len(self.tester.current_target_keys) > 0:
-            correct_key = self.tester.current_target_keys[0]
+        if target_keys:
+            correct_key = target_keys[0]
 
         sim = self.simulator
         t = sim.trange()
@@ -486,7 +487,12 @@ class NeuralExtraction(Extraction):
         date_time_string = str(datetime.datetime.now()).split('.')[0]
         date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
                                   [date_time_string, ":", ".", " ", "-"])
-        plt.savefig('../graphs/extraction_'+date_time_string+".png")
+
+        plot_path = os.path.join(
+            self.output_dir, 'neural_extraction_'+date_time_string+".png")
+        print plot_path
+
+        plt.savefig(plot_path)
 
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "plot")
@@ -526,7 +532,6 @@ class NeuralExtraction(Extraction):
                           str(self.assoc_params.intercepts) + "\n")
 
         output_file.write("radius:" + str(self.radius) + "\n")
-        output_file.write("solver:" + str(self.solver) + "\n")
         output_file.write("synapse:" + str(self.synapse) + "\n")
 
         output_file.write("dimension:" + str(self.dimension) + "\n")

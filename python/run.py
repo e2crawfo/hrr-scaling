@@ -28,9 +28,9 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         extractor_seed, test_seed, seed, dimension, num_synsets,
         proportion, unitary_relations, id_vecs, abstract, synapse, timesteps,
         threshold, probeall, identical, fast, plot, show, gpus, ocl,
-        outfile_format=""):
+        output_file):
 
-    input_dir, output_dir = utilities.read_config()
+    input_dir, _ = utilities.read_config()
 
     neural = not abstract
 
@@ -54,30 +54,29 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         return make_corpus
 
     def make_extractor_factory(neural, fast, gpus, ocl, plot, show, threshold,
-                               output_dir, timesteps, synapse):
+                               timesteps, synapse):
 
         # pick an extraction algorithm
-        def make_extractor(id_vectors, semantic_pointers, probe_keys):
+        def make_extractor(id_vectors, semantic_pointers,
+                           probe_keys, output_dir):
             if neural:
                 if fast and gpus:
                     extractor = FastNeuralExtraction(
                         id_vectors, semantic_pointers,
-                        threshold=threshold,
-                        output_dir=output_dir,
-                        probe_keys=probe_keys,
+                        threshold=threshold, probe_keys=probe_keys,
                         timesteps=timesteps, synapse=synapse,
                         plot=plot, show=show, ocl=ocl,
-                        gpus=gpus, identical=identical)
+                        gpus=gpus, identical=identical, output_dir=output_dir)
                 else:
                     extractor = NeuralExtraction(
                         id_vectors, semantic_pointers, threshold=threshold,
-                        output_dir=output_dir, probe_keys=probe_keys,
-                        timesteps=timesteps, synapse=synapse,
-                        plot=plot, show=show, ocl=ocl, gpus=gpus,
-                        identical=identical)
+                        probe_keys=probe_keys, timesteps=timesteps,
+                        synapse=synapse, plot=plot, show=show, ocl=ocl,
+                        gpus=gpus, identical=identical, output_dir=output_dir)
             else:
                 extractor = Extraction(
-                    id_vectors, semantic_pointers, threshold)
+                    id_vectors, semantic_pointers,
+                    threshold, output_dir=output_dir)
 
             return extractor
 
@@ -88,11 +87,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         proportion, num_synsets)
 
     extractor_factory = make_extractor_factory(
-        neural, fast, gpus, ocl, plot, show, threshold,
-        output_dir, timesteps, synapse)
-
-    outfile_suffix = \
-        utilities.create_outfile_suffix(neural, unitary_relations)
+        neural, fast, gpus, ocl, plot, show, threshold, timesteps, synapse)
 
     if seed != -1:
         random.seed(seed)
@@ -114,33 +109,26 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
 
     test_runner = ExtractionTester(corpus_factory, extractor_factory,
                                    corpus_seed, extractor_seed, test_seed,
-                                   probeall, output_dir, outfile_suffix,
-                                   outfile_format)
+                                   probeall, output_file)
 
     if jump_trials > 0:
-
-        test = JumpTest(test_runner, jump_trials)
-
+        test = JumpTest(jump_trials)
         test_runner.add_test(test)
 
     if hier_trials > 0:
-
-        test = HierarchicalTest(test_runner, hier_trials, do_neg=do_neg)
-
+        test = HierarchicalTest(hier_trials, do_neg=do_neg)
         test_runner.add_test(test)
 
     if sent_trials > 0:
-
         test = SentenceTest(
-            test_runner, sent_trials, deep=False,
+            sent_trials, deep=False,
             unitary=unitary_roles, short=short_sentence)
 
         test_runner.add_test(test)
 
     if deep_trials > 0:
-
         test = SentenceTest(
-            test_runner, deep_trials, deep=True,
+            deep_trials, deep=True,
             unitary=unitary_roles, short=short_sentence)
 
         test_runner.add_test(test)
@@ -149,13 +137,27 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         expr_trials = expr[0]
         expr = expr[1]
 
-        test = ExpressionTest(test_runner, expr_trials, expression=expr)
-
+        test = ExpressionTest(expr_trials, expression=expr)
         test_runner.add_test(test)
 
     test_runner.run_bootstrap(num_runs)
 
 if __name__ == "__main__":
+    args = {'num_runs': 2, 'jump_trials': 2, 'hier_trials': 2,
+            'sent_trials': 0,
+            'deep_trials': 2, 'expr': 0, 'unitary_roles': True,
+            'short_sentence': False, 'do_neg': True, 'corpus_seed': -1,
+            'extractor_seed': -1, 'test_seed': -1, 'seed': 1000,
+            'dimension': 512, 'num_synsets': 5000, 'proportion': 1.0,
+            'unitary_relations': False, 'id_vecs': True, 'abstract': False,
+            'synapse': 0.005, 'timesteps': 75, 'threshold': 0.3,
+            'probeall': False, 'identical': True, 'fast': False, 'plot': True,
+            'show': False, 'gpus': [], 'ocl': [], 'output_file': ""}
+    if 1:
+        run(**args)
+        import sys
+        sys.exit()
+
     argvals = utilities.parse_args(True)
 
     # specify tests

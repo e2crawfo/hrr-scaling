@@ -7,13 +7,11 @@ import numpy as np
 
 class Extraction(object):
 
-    _type = "Direct"
-    tester = None
-
     # the associative memory maps from index_vectors to stored_vectors
     # index_vectors and stored_vectors must both be OrderedDicts whose values
     # are vectors
-    def __init__(self, index_vectors, stored_vectors, threshold=0.3):
+    def __init__(self, index_vectors, stored_vectors, bootstrapper,
+                 threshold=0.3, output_dir='.'):
 
         self.index_vectors = index_vectors
         self.stored_vectors = stored_vectors
@@ -29,20 +27,23 @@ class Extraction(object):
 
         self.return_vec = True
 
-    def set_tester(self, tester):
-        self.tester = tester
+        self.bootstrapper = bootstrapper
+        self.output_dir = output_dir
 
-    def extract(self, item, query, key=None):
+    def add_data(self, *args):
+        self.bootstrapper.add_data(*args)
 
-        if len(self.tester.current_target_keys) > 0:
+    def extract(self, item, query, target_keys=None):
+
+        if target_keys:
             self.print_instance_difficulty(item, query)
 
         item_hrr = hrr.HRR(data=item)
         query_hrr = hrr.HRR(data=query)
         noisy_hrr = item_hrr.convolve(~query_hrr)
-        return self.associate(noisy_hrr.v)
+        return self.associate(noisy_hrr.v, target_keys)
 
-    def associate(self, noisy_vector):
+    def associate(self, noisy_vector, target_keys=None):
 
         print("********In Associate*********")
 
@@ -62,31 +63,36 @@ class Extraction(object):
         results = [result]
 
         # Bookkeeping
-        target_keys = self.tester.current_target_keys
-        num_correct_relations = len(target_keys)
-        num_relations = self.tester.current_num_relations
+        if target_keys:
+            num_correct_relations = len(target_keys)
 
-        for key in target_keys:
-            self.tester.add_data(str(num_relations) + "_correct_dot_product",
-                                 self.similarities[key])
+            for key in target_keys:
+                self.add_data(
+                    "correct_dot_product", self.similarities[key])
 
-        nlargest = heapq.nlargest(num_correct_relations + 1,
-                                  self.similarities.iteritems(),
-                                  key=lambda x: x[1])
-        largest_incorrect = filter(lambda x: x[0] not in target_keys,
-                                   nlargest)[0]
+            nlargest = heapq.nlargest(
+                num_correct_relations + 1,
+                self.similarities.iteritems(),
+                key=lambda x: x[1])
 
-        self.tester.add_data(str(num_relations) + "_lrgst_incrrct_dot_product",
-                             largest_incorrect[1])
-        self.tester.add_data("num_reaching_threshold", len(results))
+            largest_incorrect = filter(
+                lambda x: x[0] not in target_keys, nlargest)[0]
+
+            self.add_data(
+                "lrgst_incrrct_dot_product", largest_incorrect[1])
+
+            reached_threshold = filter(
+                lambda x: self.similarities[key] > self.threshold, keys)
+
+            self.add_data("num_reaching_threshold", len(reached_threshold))
 
         return results
 
-    def print_instance_difficulty(self, item, query):
-        if len(self.tester.current_target_keys) > 0:
-            # Print data about how difficult the current instance is
+    def print_instance_difficulty(self, item, query, target_keys):
 
-            correct_key = self.tester.current_target_keys[0]
+        if target_keys:
+            # Print data about how difficult the current instance is
+            correct_key = target_keys[0]
 
             item_hrr = hrr.HRR(data=item)
             query_hrr = hrr.HRR(data=query)
@@ -136,9 +142,9 @@ class Extraction(object):
                 vec2 = self.hrr_vecs[idkey2]
 
                 similarity = vec1.compare(vec2)
-                self.tester.add_data(idkey1, similarity)
-                self.tester.add_data(idkey2, similarity)
-                self.tester.add_data("all", similarity)
+                self.add_data(idkey1, similarity)
+                self.add_data(idkey2, similarity)
+                self.add_data("all", similarity)
 
             i += 1
 
@@ -157,7 +163,7 @@ class Extraction(object):
             similarity = vec1.compare(vec2)
 
             if similarity > threshold:
-                self.tester.add_data("all", similarity)
+                self.add_data("all", similarity)
 
             if i % 1000 == 0:
                 print "Trial: ", i
@@ -176,9 +182,9 @@ class Extraction(object):
                 vec2 = self.hrr_vecs[idkey2]
 
                 similarity = vec1.compare(vec2)
-                self.tester.add_data(idkey1, similarity)
-                self.tester.add_data(idkey2, similarity)
-                self.tester.add_data("all", similarity)
+                self.add_data(idkey1, similarity)
+                self.add_data(idkey2, similarity)
+                self.add_data("all", similarity)
 
             remaining_keys.remove(idkey1)
 

@@ -1,14 +1,15 @@
-# wordnet extraction test_runner
+# wordnet extraction test runner
 
 import random
 import datetime
 import sys
 import shutil
+import os
 from collections import defaultdict
 
 import numpy as np
 
-from mytools import hrr, nf, bootstrap
+from mytools import hrr, nf
 
 import symbol_definitions
 import utilities as util
@@ -30,18 +31,16 @@ class WordnetTest(object):
     self.add_data with a unique index (i.e. performance on each hierarchal
     test is recorded by calling data data with "hierarchical_score" as the
     index)
+
+    Creates its own output file in the passed in output directory, and writes
+    a log of the test progress there.
+    TODO: do this with the logging module
     """
 
-    def __init__(self, test_runner, test_name, num_trials):
+    def __init__(self, test_name, num_trials):
 
+        self.test_name = test_name
         self.num_trials = num_trials
-
-        self.test_runner = test_runner
-
-        filename = test_runner.filename_format % test_name
-        mode = 'w'
-
-        self.output_file = open(filename, mode)
 
         self.current_start_key = None
         self.current_target_keys = None
@@ -52,8 +51,6 @@ class WordnetTest(object):
 
         self.num_jumps = 0
         self.bootstrapper = None
-
-        self.rng = random.Random(self.test_runner.test_seed)
 
     @property
     def extractor(self):
@@ -83,23 +80,39 @@ class WordnetTest(object):
 
         self._corpus = _corpus
 
+    @property
+    def output_dir(self):
+        return self._output_dir
+
+    @output_dir.setter
+    def output_dir(self, _output_dir):
+        self._output_dir = _output_dir
+        self.output_file = open(os.path.join(_output_dir, self.test_name), 'w')
+
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, _seed):
+        self._seed = _seed
+        self.rng = random.Random(_seed)
+
     def add_data(self, index, data):
         if self.bootstrapper:
             self.bootstrapper.add_data(index, data)
-
-    def start_run(self):
-        self.extractor.set_tester(self)
+        else:
+            raise Exception("No bootstrapper defined for test %s" % str(self))
 
     def bootstrap_start(self, num_runs):
-
-        self.bootstrapper = bootstrap.Bootstrapper(
-            verbose=True, write_raw_data=True)
-
         self.output_file.write("Begin series of " + str(num_runs)
                                + " runs with " + str(self.num_trials)
                                + " trials each.\n")
 
     def bootstrap_step(self, index):
+
+        if index == 0:
+            self.print_config()
 
         then = datetime.datetime.now()
 
@@ -116,12 +129,8 @@ class WordnetTest(object):
             "runtime_per_jump",
             to_seconds(delta_time) / float(self.num_jumps))
 
-        self.bootstrapper.print_summary(self.output_file)
-        self.output_file.flush()
-
     def bootstrap_end(self):
-        if self.output_file:
-            self.output_file.close()
+        pass
 
     def extract(self, item, query):
         self.num_jumps += 1
@@ -354,18 +363,15 @@ class WordnetTest(object):
 
 class ExpressionTest(WordnetTest):
 
-    def __init__(self, test_runner, num_trials, expression):
+    def __init__(self, num_trials, expression):
 
         test_name = 'expression'
 
-        super(ExpressionTest, self).__init__(
-            test_runner, test_name, num_trials)
+        super(ExpressionTest, self).__init__(test_name, num_trials)
 
         self.expression = expression
 
     def run(self):
-        self.start_run()
-
         expression = self.expression
 
         dimension = len(self.id_vectors.values()[0])
@@ -411,28 +417,21 @@ class ExpressionTest(WordnetTest):
             query_vector.v, test_vector.v, None, target_key,
             self.output_file, return_vec=False, answers=[target_key])
 
-    def print_config(self):
+    def _print_config(self):
         self.output_file.write("ExpressionTest config:\n")
-
-        super(ExpressionTest, self).print_config()
-
         self.output_file.write("expression : " +
                                str(self.expression) + "\n")
 
 
 class JumpTest(WordnetTest):
 
-    def __init__(self, test_runner, num_trials):
+    def __init__(self, num_trials):
 
         test_name = 'jump'
 
-        super(JumpTest, self).__init__(test_runner, test_name, num_trials)
+        super(JumpTest, self).__init__(test_name, num_trials)
 
     def run(self):
-        # select a key, follow a link, record success / failure
-
-        self.start_run()
-
         testNumber = 0
 
         correct_score = 0
@@ -492,24 +491,20 @@ class JumpTest(WordnetTest):
         self.add_data("jump_score_valid", valid_score)
         self.add_data("jump_score_exact", exact_score)
 
-    def print_config(self):
+    def _print_config(self):
         self.output_file.write("JumpTest config:\n")
-
-        super(JumpTest, self).print_config()
 
 
 class HierarchicalTest(WordnetTest):
 
-    def __init__(self, test_runner, num_trials, do_neg):
+    def __init__(self, num_trials, do_neg):
 
         test_name = 'hierarchical'
 
-        super(HierarchicalTest, self).__init__(
-            test_runner, test_name, num_trials)
+        super(HierarchicalTest, self).__init__(test_name, num_trials)
 
         self.relation_types = symbol_definitions.hierarchical_test_symbols()
 
-        self.stat_depth = 10
         self.do_neg = do_neg
         self.decision_threshold = 0.4
 
@@ -519,9 +514,6 @@ class HierarchicalTest(WordnetTest):
         A IS a descendent of word B. The rtype parameter specifies which
         relationships to use in the search (by default, only the isA
         relationships)."""
-
-        self.start_run()
-
         rtype = self.relation_types
 
         p = self.num_trials
@@ -546,7 +538,7 @@ class HierarchicalTest(WordnetTest):
             target = self.rng.sample(self.corpus_dict, 1)[0]
 
             parent_list = self.findAllParents(
-                start, None, rtype, False, stat_depth=0, print_output=False)
+                start, None, rtype, False, print_output=False)
 
             pair = (start, target)
             if target in parent_list and p_count < p:
@@ -559,7 +551,7 @@ class HierarchicalTest(WordnetTest):
         while p_count < p:
             start = self.rng.sample(self.corpus_dict, 1)[0]
             parent_list = self.findAllParents(
-                start, None, rtype, False, stat_depth=0, print_output=False)
+                start, None, rtype, False, print_output=False)
 
             if len(parent_list) == 0:
                 continue
@@ -575,12 +567,10 @@ class HierarchicalTest(WordnetTest):
 
             # do it symbolically first, for comparison
             self.findAllParents(
-                pair[0], pair[1], rtype, False, stat_depth=self.stat_depth,
-                print_output=True)
+                pair[0], pair[1], rtype, False, print_output=True)
 
             result = self.findAllParents(
-                pair[0], pair[1], rtype, True, stat_depth=self.stat_depth,
-                print_output=True)
+                pair[0], pair[1], rtype, True, print_output=True)
 
             if result == -1:
                 n_score += 1
@@ -591,12 +581,10 @@ class HierarchicalTest(WordnetTest):
 
             # do it symbolically first, for comparison
             self.findAllParents(
-                pair[0], pair[1], rtype, False, stat_depth=self.stat_depth,
-                print_output=True)
+                pair[0], pair[1], rtype, False, print_output=True)
 
             result = self.findAllParents(
-                pair[0], pair[1], rtype, True, stat_depth=self.stat_depth,
-                print_output=True)
+                pair[0], pair[1], rtype, True, print_output=True)
 
             if result > -1:
                 p_score += 1
@@ -630,7 +618,7 @@ class HierarchicalTest(WordnetTest):
         return result
 
     def findAllParents(self, start_key, target_key=None, rtype=[],
-                       use_HRR=False, stat_depth=0, print_output=False):
+                       use_HRR=False, print_output=False):
 
         if print_output:
             print >> self.output_file, \
@@ -748,14 +736,11 @@ class HierarchicalTest(WordnetTest):
         else:
             return -1
 
-    def print_config(self):
+    def _print_config(self):
         self.output_file.write("HierarchicalTest config:\n")
-
-        super(HierarchicalTest, self).print_config()
 
         self.output_file.write("relation_types : " +
                                str(self.relation_types) + "\n")
-        self.output_file.write("stat_depth : " + str(self.stat_depth) + "\n")
         self.output_file.write("do_neg : " + str(self.do_neg) + "\n")
         self.output_file.write("decision_threshold : " +
                                str(self.decision_threshold) + "\n")
@@ -763,11 +748,11 @@ class HierarchicalTest(WordnetTest):
 
 class SentenceTest(WordnetTest):
 
-    def __init__(self, test_runner, num_trials, deep, short, unitary):
+    def __init__(self, num_trials, deep, short, unitary):
 
         test_name = 'sentence' if not deep else 'deep'
 
-        super(SentenceTest, self).__init__(test_runner, test_name, num_trials)
+        super(SentenceTest, self).__init__(test_name, num_trials)
 
         self.deep = deep
         self.short = short
@@ -776,8 +761,6 @@ class SentenceTest(WordnetTest):
         self.sentence_symbols = symbol_definitions.sentence_role_symbols()
 
     def run(self):
-        self.start_run()
-
         self.dimension = len(self.id_vectors.values()[0])
 
         self.role_hrrs = self.create_role_hrrs()
@@ -935,7 +918,6 @@ class SentenceTest(WordnetTest):
         return sentence
 
     def _print_config(self):
-
         self.output_file.write("deep : " + str(self.deep) + "\n")
         self.output_file.write("unitary : " + str(self.unitary) + "\n")
         self.output_file.write("short : " + str(self.short) + "\n")

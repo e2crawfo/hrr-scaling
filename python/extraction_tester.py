@@ -1,20 +1,16 @@
-# extraction tester
 import numpy as np
-
-import datetime
-import string
 import random
 import gc
 import psutil
 import os
+from mytools import bootstrap
 
 
 class ExtractionTester(object):
 
     def __init__(self, corpus_factory, extractor_factory,
                  corpus_seed, extractor_seed, test_seed,
-                 probeall=False, output_dir=".", outfile_suffix="",
-                 outfile_format=""):
+                 probeall=False, output_file="."):
 
         self.corpus_factory = corpus_factory
         self.extractor_factory = extractor_factory
@@ -23,18 +19,13 @@ class ExtractionTester(object):
         self.extractor_seed = extractor_seed
         self.test_seed = test_seed
 
+        self.output_file = output_file
+
+        self.output_dir = output_file + "_data"
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+
         self.probeall = probeall
-
-        date_time_string = str(datetime.datetime.now()).split('.')[0]
-        date_time_string = reduce(
-            lambda y, z: string.replace(y, z, "_"),
-            [date_time_string, ":", " ", "-"])
-
-        if outfile_format:
-            self.filename_format = outfile_format
-        else:
-            self.filename_format = (output_dir + '/%s_results_' +
-                                    date_time_string + outfile_suffix)
 
         self.corpus_rng = random.Random()
         self.corpus_rng.seed(self.corpus_seed)
@@ -43,6 +34,8 @@ class ExtractionTester(object):
         self.extractor_rng.seed(self.extractor_seed)
 
         self.tests = []
+        self.bootstrapper = bootstrap.Bootstrapper(
+            verbose=True, write_raw_data=True)
 
     def next_extractor_seed(self):
         return self.extractor_rng.randint(0, np.iinfo(np.int32).max)
@@ -52,6 +45,9 @@ class ExtractionTester(object):
 
     def add_test(self, test):
         self.tests.append(test)
+        test.bootstrapper = self.bootstrapper
+        test.output_dir = self.output_dir
+        test.seed = self.test_seed
 
     def memory_usage_psutil(self):
         # return the memory usage in MB
@@ -79,7 +75,7 @@ class ExtractionTester(object):
         random.seed(extractor_seed)
 
         self.extractor = self.extractor_factory(
-            id_vectors, semantic_pointers, probe_keys)
+            id_vectors, semantic_pointers, probe_keys, self.output_dir)
 
         return self.corpus, self.extractor
 
@@ -100,9 +96,6 @@ class ExtractionTester(object):
                 test.extractor = extractor
 
             for test in self.tests:
-                if i == 0:
-                    test.print_config()
-
                 test.bootstrap_step(i)
 
             corpus = None
@@ -114,9 +107,11 @@ class ExtractionTester(object):
 
             gc.collect()
 
-            for test in self.tests:
-                test.add_data(
-                    'memory_usage_in_mb', self.memory_usage_psutil())
+            self.bootstrapper.add_data(
+                'memory_usage_in_mb',
+                self.memory_usage_psutil())
+
+            self.bootstrapper.print_summary(self.output_file, flush=True)
 
         for test in self.tests:
             test.bootstrap_end()
