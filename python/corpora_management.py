@@ -12,7 +12,7 @@ class VectorizedCorpus(object):
 
     def __init__(self, dimension=512, input_dir="../wordnetData/",
                  unitary_relations=False, proportion=1.0, num_synsets=-1,
-                 id_vecs=False, relation_symbols=None, create_namedict=False,
+                 id_vecs=True, relation_symbols=None, create_namedict=False,
                  dry_run=False):
 
         self.dimension = dimension
@@ -205,7 +205,7 @@ class VectorizedCorpus(object):
 
         processed.update(localProcessed)
 
-    def form_knowledge_base(self, identity_cleanup=False, unitary=False):
+    def form_knowledge_base(self, id_vecs=True, unitary=False):
 
         # Check existence of corpus
         if self.corpus_dict is None:
@@ -214,7 +214,7 @@ class VectorizedCorpus(object):
 
         print "Number of items in knowledge base:", len(self.corpus_dict)
 
-        if identity_cleanup:
+        if not id_vecs:
             print "Processing Corpus"
             self.processCorpus()
 
@@ -227,11 +227,11 @@ class VectorizedCorpus(object):
             for k, h in self.relation_type_vectors.iteritems():
                 h.make_unitary()
 
-        # Order words by the dependencies of their definitions
-        # Only have to do this if we're forming an identity cleanup
-        if not identity_cleanup:
+        if id_vecs:
             key_order = self.corpus_dict.keys()
         else:
+            # Order words by the dependencies of their definitions
+            # Only have to do this if we're not using ID-vectors
             key_order = []
             resolved = set(self.relation_symbols)
 
@@ -270,17 +270,20 @@ class VectorizedCorpus(object):
         self.semantic_pointers = collections.OrderedDict()
 
         print "Generating ID-vectors"
-        if identity_cleanup:
-            self.id_vectors = self.semantic_pointers
-        else:
+        if id_vecs:
             self.id_vectors = collections.OrderedDict()
 
             for key in key_order:
                 self.id_vectors[key] = hrr.HRR(self.dimension)
+        else:
+            self.id_vectors = self.semantic_pointers
 
         print "Generating HRR vectors"
         for key in key_order:
-            semantic_pointer = hrr.HRR(self.dimension)
+            if self.id_vectors:
+                semantic_pointer = hrr.HRR(np.zeros(self.dimension))
+            else:
+                semantic_pointer = hrr.HRR(self.dimension)
 
             for relation in self.corpus_dict[key]:
                 if relation[0] not in self.relation_type_vectors:
@@ -298,11 +301,12 @@ class VectorizedCorpus(object):
 
             self.semantic_pointers[key] = semantic_pointer
 
+        # convert all vectors from hrrs to numpy ndarrays
         for k in key_order:
             h = self.semantic_pointers[k]
             self.semantic_pointers[k] = h.v
 
-        if not identity_cleanup:
+        if id_vecs:
             for k in key_order:
                 h = self.id_vectors[k]
                 self.id_vectors[k] = h.v

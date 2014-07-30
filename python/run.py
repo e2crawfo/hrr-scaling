@@ -26,7 +26,7 @@ from wordnet_tests import SentenceTest
 def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, abstract, synapse, timesteps,
+        proportion, unitary_relations, id_vecs, abstract, synapse, timesteps,
         threshold, probeall, identical, fast, plot, show, gpus, ocl,
         outfile_format=""):
 
@@ -40,13 +40,14 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     if ocl is not None:
         ocl.sort()
 
-    def make_corpus_factory(dimension, input_dir, unitary_relations,
+    def make_corpus_factory(dimension, input_dir, unitary_relations, id_vecs,
                             proportion, num_synsets):
 
         def make_corpus():
             corpus = VectorizedCorpus(
-                dimension, input_dir, unitary_relations,
-                proportion, num_synsets)
+                dimension=dimension, input_dir=input_dir,
+                unitary_relations=unitary_relations, id_vecs=id_vecs,
+                num_synsets=num_synsets, proportion=proportion)
 
             return corpus
 
@@ -83,7 +84,8 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         return make_extractor
 
     corpus_factory = make_corpus_factory(
-        dimension, input_dir, unitary_relations, proportion, num_synsets)
+        dimension, input_dir, unitary_relations, id_vecs,
+        proportion, num_synsets)
 
     extractor_factory = make_extractor_factory(
         neural, fast, gpus, ocl, plot, show, threshold,
@@ -180,6 +182,7 @@ if __name__ == "__main__":
     num_synsets = argvals.num_synsets
     proportion = argvals.p
     unitary_relations = argvals.unitary_relations
+    id_vecs = not argvals.no_ids
 
     # extractor args
     abstract = argvals.abstract
@@ -198,5 +201,5 @@ if __name__ == "__main__":
     run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, abstract, synapse, timesteps,
+        proportion, unitary_relations, id_vecs, abstract, synapse, timesteps,
         threshold, probeall, identical, fast, plot, show, gpus, ocl)

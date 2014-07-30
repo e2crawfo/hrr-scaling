@@ -43,9 +43,9 @@ def parse_args(print_args=False):
         help='Supply this argument to make relation vectors unitary.')
 
     parser.add_argument(
-        '-i', action='store_true',
-        help='Supply this argument to require that the semantic pointers '
-             'be used as the index vectors.')
+        '--no-ids', dest='no_ids', action='store_true',
+        help='Supply this to omit ID-vectors. Define semantic pointers '
+             'directly in terms of other semantic pointers')
 
     parser.add_argument(
         '-d', default=512, type=int,
@@ -164,7 +164,7 @@ def parse_args(print_args=False):
     return argvals
 
 
-def create_outfile_suffix(neural, unitary, identity=False, bidir=False):
+def create_outfile_suffix(neural, unitary, id_vecs=True, bidir=False):
     suff = "_"
 
     if neural:
@@ -173,7 +173,7 @@ def create_outfile_suffix(neural, unitary, identity=False, bidir=False):
     if unitary:
         suff += "u"
 
-    if identity:
+    if id_vecs:
         suff += "i"
 
     if bidir:
