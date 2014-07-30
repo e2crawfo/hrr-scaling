@@ -3,12 +3,14 @@ import datetime
 import string
 import copy
 import os
+import itertools
 from doit import get_var
 from doit.tools import run_once
 
 import run
 import plot
 from mytools.bootstrap import Bootstrapper
+from mytools import git
 
 DOIT_CONFIG = {'verbosity': 2}
 
@@ -30,31 +32,28 @@ if not date_time_string:
 # experiment_directory = '/home/e2crawfo/hrr-scaling/experiments'
 experiment_directory = '/data/e2crawfo/hrr-scaling/experiments'
 
-directory = (experiment_directory+'/experiments_'
-             + date_time_string)
+directory = os.path.join(
+    experiment_directory, 'experiments_' + date_time_string)
 
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-args = {'num_runs': 5, 'jump_trials': 100, 'hier_trials': 20, 'sent_trials': 0,
-        'deep_trials': 30, 'expr': 0, 'unitary_roles': True,
+# arguments to the function run in run.py
+args = {'num_runs': 1, 'jump_trials': 10, 'hier_trials': 3, 'sent_trials': 0,
+        'deep_trials': 3, 'expr': 0, 'unitary_roles': True,
         'short_sentence': False, 'do_neg': True, 'corpus_seed': -1,
         'extractor_seed': -1, 'test_seed': -1, 'seed': 1000,
         'dimension': 512, 'num_synsets': -1, 'proportion': 1.0,
-        'unitary_relations': False, 'abstract': False,
-        'synapse': 0.005, 'timesteps': 75, 'threshold': 0.3,
+        'unitary_relations': False, 'id_vecs': True, 'abstract': False,
+        'synapse': 0.005, 'timesteps': 100, 'threshold': 0.3,
         'probeall': False, 'identical': True, 'fast': False, 'plot': True,
-        'show': False, 'gpus': [], 'ocl': [], 'outfile_format': ""}
+        'show': False, 'gpus': [], 'ocl': [], 'output_file': ""}
 
-neural_summary = directory + '/neural_summary'
-abstract_summary = directory + '/abstract_summary'
-
-results_files = []
-for s in ['abstract', 'neural']:
-    for st in range(num_subtasks):
-        for tn in test_names:
-            fn = '%s/%s_%s_subtask_%g' % (directory, s, tn, st)
-            results_files.append(fn)
+variables = [
+    ('abstract', [False]),  # , False]),
+    ('id_vecs', [False]),
+    ('unitary_relations', [True, False])
+]
 
 
 def consolidate_bootstraps(input_filenames, summary_filename):
@@ -67,69 +66,122 @@ def consolidate_bootstraps(input_filenames, summary_filename):
     bs.print_summary(summary_filename)
 
 
-def task_neural_experiments():
+def run_experiments(name, arg_func):
+    results_files = []
 
     for subtask in range(num_subtasks):
+        task_name = "%s_subtask_%d" % (name, subtask)
 
-        filename_format = '%s/neural_%%s_subtask_%g' % (directory, subtask)
+        results_file = os.path.join(directory, task_name)
+        results_files.append(results_file)
 
         subtask_args = copy.deepcopy(args)
-        subtask_args['outfile_format'] = filename_format
+        subtask_args['output_file'] = results_file
         subtask_args['seed'] += subtask * 1000
         subtask_args['gpus'] = [subtask]
-        subtask_args['abstract'] = False
 
-        targets = [filename_format % t for t in test_names]
-
-        print targets
+        # is assumed to modify the dictionary in place
+        arg_func(subtask_args)
 
         yield {
-            'name': 'Subtask %g' % subtask,
+            'name': task_name,
             'actions': [(run.run, [], subtask_args)],
             'file_dep': [],
-            'targets': targets,
+            'targets': [results_file],
             'uptodate': [run_once]
             }
 
-    neural_results_files = filter(lambda x: 'neural' in x, results_files)
+    summary_file = os.path.join(directory, name + "_summary")
 
     yield {
-        'name': 'Consolidate',
+        'name': 'Consolidate ' + name,
         'actions': [(consolidate_bootstraps,
-                     [neural_results_files, neural_summary])],
-        'file_dep': neural_results_files,
-        'targets': [neural_summary]
+                     [results_files, summary_file])],
+        'file_dep': results_files,
+        'targets': [summary_file]
         }
 
 
-def task_abstract_experiments():
-    for subtask in range(num_subtasks):
+def make_arg_func(names, values):
+    def arg_func(args):
+        """Assumes a copy of args is made externally"""
+        for n, v in zip(names, values):
+            args[n] = v
+    return arg_func
 
-        filename_format = '%s/abstract_%%s_subtask_%g' % (directory, subtask)
 
-        subtask_args = copy.deepcopy(args)
-        subtask_args['outfile_format'] = filename_format
-        subtask_args['seed'] += subtask * 1000
-        subtask_args['abstract'] = True
+def make_sym_link(source, name):
+    try:
+        os.remove(name)
+    except OSError:
+        pass
 
-        targets = [filename_format % t for t in test_names]
+    os.symlink(source, name)
 
-        yield {
-            'name': 'Subtask %g' % subtask,
-            'actions': [(run.run, [], subtask_args)],
-            'file_dep': [],
-            'targets': targets,
-            'uptodate': [run_once]
-            }
 
-    abstract_results_files = filter(lambda x: 'abstract' in x, results_files)
+def task_run_experiments():
+    """
+    The primary task. Runs experiments.
+
+    The tasks generated by this function are determined by `variables`.
+    """
+
+    product = itertools.product(*[vals for name, vals in variables])
+    tasks = []
+
+    names = [name for name, vals in variables]
+
+    for values in product:
+        arg_func = make_arg_func(names, values)
+
+        name = itertools.chain(*zip(names, values))
+        name = '_'.join(str(s) for s in name)
+
+        tasks.extend(run_experiments(name, arg_func))
+
+    for n in range(num_subtasks):
+        subtasks = filter(lambda x: str(n) in x['name'], tasks)
+
+        for i, subtask in enumerate(subtasks):
+            if i != 0:
+                prev_subtask = subtasks[i-1]
+                subtask['file_dep'].append(prev_subtask['targets'][0])
+
+    for task in tasks:
+        print task
+
+    for task in tasks:
+        yield task
+
+    summaries = []
+    for task in tasks:
+        if task['name'].startswith('Consolidate'):
+            summaries.extend(task['targets'])
+
+    def finish(filename, link_target, link_name, args):
+        make_sym_link(link_target, link_name)
+
+        f = open(filename, 'a')
+
+        h = git.get_git_revision_short_hash()
+
+        if h is not None:
+            h = h.strip()
+            f.write("Git revision hash: %s" % h)
+
+        f.write(str(args))
+
+        f.close()
+
+    complete_file = os.path.join(directory, 'complete')
+    latest = os.path.join(experiment_directory, 'latest')
+    latest_target = os.path.basename(directory)
 
     yield {
-        'name': 'Consolidate',
-        'actions': [(consolidate_bootstraps,
-                     [abstract_results_files, abstract_summary])],
-        'file_dep': abstract_results_files,
-        'targets': [abstract_summary]
+        'name': 'Complete. ',
+        'actions': [(finish, [complete_file, latest_target, latest, args])],
+        'file_dep': summaries,
+        'targets': [complete_file]
         }
 
 
@@ -178,11 +230,11 @@ def plot_results(summary_filenames, keys, **kwargs):
 
 
 def task_performance_plot():
-    summary_filenames = [abstract_summary, neural_summary]
+    summary_filenames = ['abstract_summary', 'neural_summary']
     plot_filename = directory + '/prgraph.pdf'
 
     kwargs = {
-        'summary_filenames': [abstract_summary, neural_summary],
+        'summary_filenames': summary_filenames,
 
         'keys': ['jump_score_correct', 'hierarchical_score',
                  'sentence_score_1', 'sentence_score_2'],
