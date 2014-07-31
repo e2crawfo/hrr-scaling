@@ -4,6 +4,7 @@ import collections
 from mytools import hrr
 import symbol_definitions
 import utilities as util
+import numpy as np
 
 
 class VectorizedCorpus(object):
@@ -285,14 +286,20 @@ class VectorizedCorpus(object):
 
         print "Generating HRR vectors"
         for key in key_order:
-            semantic_pointer = hrr.HRR(np.zeros(self.dimension))
+            relations = filter(
+                lambda x: x[0] in self.relation_symbols,
+                self.corpus_dict[key])
+
+            if len(relations) == 0:
+                self.semantic_pointers[key] = hrr.HRR(self.dimension)
+                continue
+
+            semantic_pointer = hrr.HRR(data=np.zeros(self.dimension))
 
             for n in range(self.sp_noise):
                 semantic_pointer += hrr.HRR(self.dimension)
 
-            for relation in self.corpus_dict[key]:
-                if relation[0] not in self.relation_type_vectors:
-                    continue
+            for relation in relations:
 
                 id_vector = self.id_vectors[relation[1]]
 
