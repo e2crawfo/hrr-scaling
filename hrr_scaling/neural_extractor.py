@@ -1,5 +1,5 @@
 # Neural Extractor Algorithm
-from hrr_scaling.extraction import Extractor
+from hrr_scaling.extractor import Extractor
 from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
 from hrr_scaling.tools import hrr
 

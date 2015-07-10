@@ -44,7 +44,7 @@ abstract = argvals.abstract
 synapse = argvals.synapse
 timesteps = argvals.steps
 threshold = argvals.t
-probeall = argvals.probeall
+probe_all = argvals.probe_all
 identical = argvals.identical
 fast = argvals.fast
 plot = argvals.plot and can_plot and not abstract
@@ -59,5 +59,5 @@ run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     unitary_roles, short_sentence, do_neg, corpus_seed,
     extractor_seed, test_seed, seed, dimension, num_synsets,
     proportion, unitary_relations, id_vecs, sp_noise, normalize,
-    abstract, synapse, timesteps, threshold, probeall, identical, fast,
+    abstract, synapse, timesteps, threshold, probe_all, identical, fast,
     plot, show, gpus, ocl, name)
