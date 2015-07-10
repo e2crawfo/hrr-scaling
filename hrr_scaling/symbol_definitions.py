@@ -1,7 +1,10 @@
+""" Definitions of symbols used for building the WordNet graph. """
+
+
 _isA_symbols = ['@', '@i']
 holonym_symbols = ['#p', '#s', '#m']
 inv_isA_symbols = ['~', '~i']
-_uni_symbols = _isA_symbols + holonym_symbols 
+_uni_symbols = _isA_symbols + holonym_symbols
 
 reflexive = {
     '@' : '~',
@@ -16,13 +19,13 @@ reflexive = {
     '%m': '#m'
     }
 
-entails= ['*']                      # ENTAILS
-ignore= ['^', '\\', '$', '<', '&'] # IGNORE
+entails = ['*']                      # ENTAILS
+ignore = ['^', '\\', '$', '<', '&'] # IGNORE
 hyponymy = ['~', '~i']                # HYPONYMY
 attribute = ['=']                      # ATTRIBUTE
 antonym = ['!']                      # ANTONYM
 causes = ['>']                      # CAUSES
-meronymy = ['%s','%m','%p']           # MERONYMY
+meronymy = ['%s', '%m', '%p']           # MERONYMY
 
 relationSymbols = [_isA_symbols,                # HYPERNYMY
                    holonym_symbols,            # HOLONYMY
@@ -45,24 +48,30 @@ _sentence_role_symbols = {    # (frequency of occurrence, part of speech)
     'ss_oadj'   : (0.3, 'a')  # object adjective
     }
 
+
 def hierarchical_test_symbols():
-  return ['@']
+    return ['@']
+
 
 def isA_symbols():
-  """Return isA relation symbols"""
-  return _isA_symbols
+    """Return isA relation symbols"""
+    return _isA_symbols
+
 
 def partOf_symbols():
-  return holonym_symbols
+    return holonym_symbols
+
 
 def uni_relation_symbols():
-  """Return unidirectional relation symbols"""
-  return _uni_symbols
+    """Return unidirectional relation symbols"""
+    return _uni_symbols
+
 
 def bi_relation_symbols():
-  """Return bidirectional relation symbols"""
-  return _bi_symbols
+    """Return bidirectional relation symbols"""
+    return _bi_symbols
+
 
 def sentence_role_symbols():
-  return _sentence_role_symbols
+    return _sentence_role_symbols
 

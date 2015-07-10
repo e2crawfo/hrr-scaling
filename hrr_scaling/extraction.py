@@ -1,4 +1,5 @@
-from mytools import hrr
+from hrr_scaling.tools import hrr
+
 import heapq
 import random
 import collections

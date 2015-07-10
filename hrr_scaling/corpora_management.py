@@ -1,9 +1,11 @@
+from hrr_scaling.tools import hrr
+from hrr_scaling import symbol_definitions
+from hrr_scaling import tools
+
 import random
 import Queue
 import collections
-from mytools import hrr
-import symbol_definitions
-import utilities as util
+
 import numpy as np
 
 
@@ -11,7 +13,7 @@ class VectorizedCorpus(object):
 
     corpus_dict = None
 
-    def __init__(self, dimension=512, input_dir="../wordnetData/",
+    def __init__(self, dimension=512, input_dir="wordnet_data",
                  unitary_relations=False, proportion=1.0, num_synsets=-1,
                  id_vecs=True, relation_symbols=None, create_namedict=False,
                  dry_run=False, sp_noise=0, normalize=True):
@@ -331,6 +333,9 @@ class VectorizedCorpus(object):
     def find_chain(self, chain_length, relation_symbol='@', exclusive=True,
                    starting_keys=None):
 
+        if isinstance(starting_keys, str):
+            starting_keys = [starting_keys]
+
         keys = []
         for key in starting_keys:
             if isinstance(key, str):
@@ -342,6 +347,7 @@ class VectorizedCorpus(object):
             else:
                 keys.append(key)
 
+        print keys
         starting_keys = keys
 
         if not starting_keys:
@@ -353,7 +359,7 @@ class VectorizedCorpus(object):
                 relations = filter(lambda x: x[0] == relation_symbol,
                                    self.corpus_dict[chain[-1]])
 
-                valid = not exclusive and len(relations) > 1
+                valid = not exclusive and len(relations) > 0
                 valid = valid or (exclusive and len(relations) == 1)
 
                 if valid:
@@ -413,12 +419,10 @@ class VectorizedCorpus(object):
                     relation_counts[relation[0]] += 1
 
         title = "Relation Distribution"
-        util.print_header(output_file, title)
+        tools.print_header(output_file, title)
 
         output_file.write("relation_counts: " + str(relation_counts) + " \n")
-
         output_file.write("relation_count: " + str(relation_count) + " \n")
-
         output_file.write("relation_hist: " + str(relation_hist) + " \n")
 
-        util.print_footer(output_file, title)
+        tools.print_footer(output_file, title)

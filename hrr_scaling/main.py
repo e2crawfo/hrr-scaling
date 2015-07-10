@@ -1,26 +1,20 @@
-try:
-    import matplotlib as mpl
-    # mpl.use('Qt4Agg')
-    mpl.use('Agg')
-    can_plot = True
-except ImportError:
-    can_plot = False
+
+from hrr_scaling.tools import read_config
+from hrr_scaling.extraction_tester import ExtractionTester
+from hrr_scaling.corpora_management import VectorizedCorpus
+
+from hrr_scaling.extraction import Extraction
+from hrr_scaling.neural_extraction import NeuralExtraction
+from hrr_scaling.fast_neural_extraction import FastNeuralExtraction
+
+from hrr_scaling.wordnet_tests import ExpressionTest, JumpTest
+from hrr_scaling.wordnet_tests import HierarchicalTest
+from hrr_scaling.wordnet_tests import SentenceTest
 
 import random
+import os
+
 import numpy as np
-
-from extraction_tester import ExtractionTester
-import utilities
-
-from corpora_management import VectorizedCorpus
-
-from extraction import Extraction
-from neural_extraction import NeuralExtraction
-from fast_neural_extraction import FastNeuralExtraction
-
-from wordnet_tests import ExpressionTest, JumpTest
-from wordnet_tests import HierarchicalTest
-from wordnet_tests import SentenceTest
 
 
 def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
@@ -28,9 +22,11 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         extractor_seed, test_seed, seed, dimension, num_synsets,
         proportion, unitary_relations, id_vecs, sp_noise, normalize,
         abstract, synapse, timesteps, threshold, probeall, identical,
-        fast, plot, show, gpus, ocl, output_file):
+        fast, plot, show, gpus, ocl, name):
 
-    input_dir, _ = utilities.read_config()
+    input_dir, output_dir = read_config()
+
+    output_file = os.path.join(output_dir, name)
 
     neural = not abstract
 
@@ -142,70 +138,3 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         test_runner.add_test(test)
 
     test_runner.run_bootstrap(num_runs)
-
-if __name__ == "__main__":
-    args = {'num_runs': 2, 'jump_trials': 2, 'hier_trials': 2,
-            'sent_trials': 0,
-            'deep_trials': 2, 'expr': 0, 'unitary_roles': True,
-            'short_sentence': False, 'do_neg': True, 'corpus_seed': -1,
-            'extractor_seed': -1, 'test_seed': -1, 'seed': 1000,
-            'dimension': 512, 'num_synsets': 5000, 'proportion': 1.0,
-            'unitary_relations': False, 'id_vecs': True, 'abstract': False,
-            'synapse': 0.005, 'timesteps': 75, 'threshold': 0.3,
-            'probeall': False, 'identical': True, 'fast': False, 'plot': True,
-            'show': False, 'gpus': [], 'ocl': [], 'output_file': ""}
-    if 1:
-        run(**args)
-        import sys
-        sys.exit()
-
-    argvals = utilities.parse_args(True)
-
-    # specify tests
-    num_runs = argvals.num_runs
-
-    jump_trials = argvals.jump
-    hier_trials = argvals.hier
-    sent_trials = argvals.sent
-    deep_trials = argvals.deep
-    expr = argvals.expr
-
-    unitary_roles = argvals.unitary_roles
-    short_sentence = argvals.shortsent
-    do_neg = not argvals.noneg
-
-    # seeds
-    corpus_seed = argvals.corpus_seed
-    extractor_seed = argvals.extractor_seed
-    test_seed = argvals.test_seed
-    seed = argvals.seed
-
-    # corpus args
-    dimension = argvals.d
-    num_synsets = argvals.num_synsets
-    proportion = argvals.p
-    unitary_relations = argvals.unitary_relations
-    id_vecs = not argvals.no_ids
-    sp_noise = argvals.sp_noise
-    normalize = not argvals.no_norm
-
-    # extractor args
-    abstract = argvals.abstract
-    synapse = argvals.synapse
-    timesteps = argvals.steps
-    threshold = argvals.t
-    probeall = argvals.probeall
-    identical = argvals.identical
-    fast = argvals.fast
-    plot = argvals.plot and can_plot and not abstract
-    show = argvals.show and plot
-
-    gpus = argvals.gpus
-    ocl = argvals.ocl
-
-    run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
-        unitary_roles, short_sentence, do_neg, corpus_seed,
-        extractor_seed, test_seed, seed, dimension, num_synsets,
-        proportion, unitary_relations, id_vecs, sp_noise, normalize,
-        abstract, synapse, timesteps, threshold, probeall, identical, fast,
-        plot, show, gpus, ocl)

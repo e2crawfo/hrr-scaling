@@ -1,4 +1,7 @@
 # wordnet extraction test runner
+from hrr_scaling.tools import hrr, nf
+from hrr_scaling import symbol_definitions
+from hrr_scaling import tools
 
 import random
 import datetime
@@ -8,11 +11,6 @@ import os
 from collections import defaultdict
 
 import numpy as np
-
-from mytools import hrr, nf
-
-import symbol_definitions
-import utilities as util
 
 
 def to_seconds(delta):
@@ -142,7 +140,7 @@ class WordnetTest(object):
                   output_file=None, return_vec=False, answers=[],
                   num_relations=-1, depth=0):
 
-        util.print_header(output_file, "Testing link", char='-')
+        tools.print_header(output_file, "Testing link", char='-')
 
         if word_vec is None:
             # should be an error here if neither is supplied
@@ -150,11 +148,11 @@ class WordnetTest(object):
 
         if word_key:
             print >> output_file, "start :", word_key
-            util.print_header(sys.stdout, "Start")
+            tools.print_header(sys.stdout, "Start")
             print(word_key)
 
         if goal:
-            util.print_header(sys.stdout, "Target")
+            tools.print_header(sys.stdout, "Target")
             print(goal)
 
         print >> output_file, "goal: ", goal
@@ -344,7 +342,7 @@ class WordnetTest(object):
 
     def print_config(self):
         title = "WordnetTest Config"
-        util.print_header(self.output_file, title)
+        tools.print_header(self.output_file, title)
 
         self.output_file.write("num_trials : " + str(self.num_trials) + "\n")
         self.output_file.write("test_threshold : " +
@@ -355,7 +353,7 @@ class WordnetTest(object):
         self.output_file.write(self.__class__.__name__)
         self._print_config()
 
-        util.print_footer(self.output_file, title)
+        tools.print_footer(self.output_file, title)
 
     def _print_config(self):
         pass
@@ -449,7 +447,7 @@ class JumpTest(WordnetTest):
                 if len(testableLinks) > 0:
                     prompt = self.rng.sample(testableLinks, 1)[0]
 
-                    util.print_header(self.output_file, "New Jump Test")
+                    tools.print_header(self.output_file, "New Jump Test")
 
                     answers = [r[1] for r in self.corpus_dict[word]
                                if r[0] == prompt[0]]
@@ -476,10 +474,10 @@ class JumpTest(WordnetTest):
 
         # print the score
         title = "Jump Test Summary"
-        util.print_header(self.output_file, title)
+        tools.print_header(self.output_file, title)
         self.output_file.write("valid_score,"+str(valid_score)+":\n")
         self.output_file.write("totaltests,"+str(testNumber)+":\n")
-        util.print_footer(self.output_file, title)
+        tools.print_footer(self.output_file, title)
 
         correct_score = float(correct_score) / float(testNumber)
         valid_score = float(valid_score) / float(testNumber)
@@ -563,7 +561,7 @@ class HierarchicalTest(WordnetTest):
         # now run the tests
         title = "New Hierarchical Test - Negative"
         for pair in negative_pairs:
-            util.print_header(self.output_file, title)
+            tools.print_header(self.output_file, title)
 
             # do it symbolically first, for comparison
             self.findAllParents(
@@ -577,7 +575,7 @@ class HierarchicalTest(WordnetTest):
 
         title = "New Hierarchical Test - Positive"
         for pair in positive_pairs:
-            util.print_header(self.output_file, title)
+            tools.print_header(self.output_file, title)
 
             # do it symbolically first, for comparison
             self.findAllParents(
@@ -591,7 +589,7 @@ class HierarchicalTest(WordnetTest):
 
         # print the score
         title = "Hierarchical Test Summary"
-        util.print_header(self.output_file, title)
+        tools.print_header(self.output_file, title)
         self.output_file.write("Start trial:\n")
         self.output_file.write("FP,"+str(n - n_score)+"\n")
         self.output_file.write("CR,"+str(n_score)+"\n")
@@ -601,7 +599,7 @@ class HierarchicalTest(WordnetTest):
             "TS,"+str(n_score + p_score)+" out of "+str(n+p)+"\n")
         self.output_file.write("NT,"+str(n)+"\n")
         self.output_file.write("PT,"+str(p)+"\n")
-        util.print_footer(self.output_file, title)
+        tools.print_footer(self.output_file, title)
 
         print "Start trial:\n"
         print "FP,"+str(n-n_score)+"\n"
@@ -773,7 +771,7 @@ class SentenceTest(WordnetTest):
             if self.deep:
                 title += "- Deep"
 
-            util.print_header(self.output_file, title)
+            tools.print_header(self.output_file, title)
 
             sentence = self.generate_sentence()
 
@@ -856,11 +854,11 @@ class SentenceTest(WordnetTest):
             percent = score[d] / self.num_trials
 
             title = "Sentence Test Summary - Depth = %d" % d
-            util.print_header(self.output_file, title)
+            tools.print_header(self.output_file, title)
             print >> self.output_file, "Correct: ", score[d]
             print >> self.output_file, "Total: ", self.num_trials
             print >> self.output_file, "Percent: ", percent
-            util.print_footer(self.output_file, title)
+            tools.print_footer(self.output_file, title)
 
             self.add_data("sentence_score_%d" % d, percent)
 

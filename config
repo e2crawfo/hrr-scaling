@@ -1,0 +1,3 @@
+[Directories]
+input_dir: wordnet_data
+output_dir: results

@@ -1,5 +1,3 @@
-__author__ = 'e2crawfo'
-
 import ConfigParser
 import argparse
 
@@ -53,7 +51,8 @@ def parse_args(print_args=False):
 
     parser.add_argument(
         '--sp-noise', dest='sp_noise', default=0, type=int,
-        help='Number of noise terms to add to semantic pointers. Defaults to 0')
+        help='Number of noise terms to add to semantic pointers. '
+             'Defaults to 0')
 
     parser.add_argument(
         '-d', default=512, type=int,
@@ -163,6 +162,10 @@ def parse_args(print_args=False):
     parser.add_argument(
         '--probeall', action='store_true',
         help='Probe all association nodes.')
+
+    parser.add_argument(
+        '--name', dest='name', type=str, default="results",
+        help='File to write results to.')
 
     argvals = parser.parse_args()
 

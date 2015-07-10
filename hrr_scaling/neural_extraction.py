@@ -1,6 +1,7 @@
 # Neural Extraction Algorithm
-from extraction import Extraction
-from gpu_assoc_memory import AssociativeMemoryGPU
+from hrr_scaling.extraction import Extraction
+from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
+from hrr_scaling.tools import hrr
 
 import string
 import datetime
@@ -12,10 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from mytools import hrr
-
 from nengo.networks import CircularConvolution, EnsembleArray
-from nengo.utils.distributions import Uniform
+from nengo.dists import Uniform
 import nengo.utils.numpy as npext
 import nengo
 
@@ -333,7 +332,6 @@ class NeuralExtraction(Extraction):
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "unbind")
 
-        print self.plot
         if self.plot:
             self.plot_simulation(target_keys)
 

@@ -2,7 +2,7 @@ from ctypes import POINTER, c_float, c_int, cast, CDLL
 
 import numpy as np
 import nengo
-from nengo.utils.distributions import Uniform
+from nengo.dists import Uniform
 from collections import OrderedDict
 
 

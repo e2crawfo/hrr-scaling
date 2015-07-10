@@ -1,15 +1,16 @@
-import matplotlib.pyplot as plt
+from hrr_scaling.corpora_management import VectorizedCorpus
+from hrr_scaling.neural_extraction import NeuralExtraction
+
 import random
 import string
 
-from corpora_management import VectorizedCorpus
-from neural_extraction import NeuralExtraction
-
-import nengo
-from nengo.utils.distributions import Uniform
-from nengo.utils.ensemble import tuning_curves
+import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
+
+import nengo
+from nengo.dists import Uniform
+from nengo.utils.ensemble import tuning_curves
 
 
 def plot_performance(y_vals, error_lo, error_hi, measure_labels,
@@ -64,9 +65,11 @@ def plot_performance(y_vals, error_lo, error_hi, measure_labels,
     assert(len(measure_labels) == num_measures)
     assert(len(condition_labels) == num_conditions)
 
+    print num_measures, num_conditions
+
     # hatch = ['/', '|||||', '\\', 'xxx', '||', '--', '+', 'OO', '...', '**']
     if not colors:
-        colors = [[0.33] * 3, [0.5] * 3, [0.66] * 3]
+        colors = [np.ones(3) * l for l in np.linspace(.1, .9, num_conditions)]
 
     cross_measurement_spacing = 0.4
     within_measurement_spacing = 0.0
@@ -85,7 +88,7 @@ def plot_performance(y_vals, error_lo, error_hi, measure_labels,
     mpl.rcParams.update({'font.size': 7})
 
     # plt.title("Model Performance")
-    plt.ylabel("% Correct")
+    plt.ylabel("\% Correct")
 
     bar_left_positions = [[] for b in range(num_conditions)]
     val_offset = 0
@@ -119,7 +122,7 @@ def plot_performance(y_vals, error_lo, error_hi, measure_labels,
             error_kw={"linewidth": 0.5, "capsize": 2.0})
 
     plt.legend(
-        loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': 9},
+        loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': 7},
         handlelength=.75, handletextpad=.5, shadow=False, frameon=False)
 
     ax = fig.axes[0]
@@ -270,11 +273,11 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
 def chain_simulation_data(dimension=512, num_synsets=-1,
                           num_links=4, num_others=0, starting_word=None):
 
-    input_dir = '../wordnetData/'
+    input_dir = 'wordnet_data'
+    output_dir = 'results'
+
     unitary_relations = False
     proportion = 1.0
-
-    output_dir = '../results'
 
     collect_spikes = True
 

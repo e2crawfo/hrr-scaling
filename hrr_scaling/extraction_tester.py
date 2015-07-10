@@ -1,9 +1,11 @@
-import numpy as np
+from hrr_scaling.tools import bootstrap
+
 import random
 import gc
 import psutil
 import os
-from mytools import bootstrap
+
+import numpy as np
 
 
 class ExtractionTester(object):

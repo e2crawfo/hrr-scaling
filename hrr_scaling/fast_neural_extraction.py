@@ -1,6 +1,6 @@
 # Neural Extraction Algorithm
-from gpu_assoc_memory import AssociativeMemoryGPU
-from neural_extraction import NeuralExtraction
+from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
+from hrr_scaling.neural_extraction import NeuralExtraction
 
 import datetime
 from collections import OrderedDict

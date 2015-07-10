@@ -11,6 +11,7 @@ import run
 import plot
 from mytools.bootstrap import Bootstrapper
 from mytools import git
+import numpy as np
 
 DOIT_CONFIG = {'verbosity': 2}
 
@@ -30,7 +31,8 @@ if not date_time_string:
         [date_time_string, ":", " ", "-"])
 
 # experiment_directory = '/home/e2crawfo/hrr-scaling/experiments'
-experiment_directory = '/data/e2crawfo/hrr-scaling/experiments'
+#experiment_directory = '/data/e2crawfo/hrr-scaling/experiments'
+experiment_directory = '/home/eric/hrr-scaling/experiments'
 
 directory = os.path.join(
     experiment_directory, 'experiments_' + date_time_string)
@@ -47,7 +49,7 @@ args = {'num_runs': 1, 'jump_trials': 10, 'hier_trials': 3, 'sent_trials': 0,
         'unitary_relations': False, 'id_vecs': True, 'abstract': False,
         'synapse': 0.005, 'timesteps': 100, 'threshold': 0.3,
         'probeall': False, 'identical': True, 'fast': False, 'plot': True,
-        'show': False, 'gpus': [], 'ocl': [], 'output_file': ""}
+        'show': False, 'gpus': [], 'ocl': [], 'name': "temp"}
 
 variables = [
     ('abstract', [False]),  # , False]),
@@ -76,7 +78,7 @@ def run_experiments(name, arg_func):
         results_files.append(results_file)
 
         subtask_args = copy.deepcopy(args)
-        subtask_args['output_file'] = results_file
+        subtask_args['name'] = results_file
         subtask_args['seed'] += subtask * 1000
         subtask_args['gpus'] = [subtask]
 
@@ -202,13 +204,12 @@ def plot_results(summary_filenames, keys, **kwargs):
 
     """
 
-    bs = Bootstrapper(write_raw_data=True)
-
     means = []
     low_cis = []
     high_cis = []
 
     for fn in summary_filenames:
+        bs = Bootstrapper(write_raw_data=True)
         bs.read_bootstrap_file(fn)
 
         mean = []
@@ -226,12 +227,39 @@ def plot_results(summary_filenames, keys, **kwargs):
         low_cis.append(low_ci)
         high_cis.append(high_ci)
 
+    print means, low_cis, high_cis
+
     plot.plot_performance(means, low_cis, high_cis, **kwargs)
 
 
 def task_performance_plot():
-    summary_filenames = ['abstract_summary', 'neural_summary']
-    plot_filename = directory + '/prgraph.pdf'
+
+    def filt(x):
+        return 'abstract' in x
+        #return 'unitary_relations_' in x
+
+    summary_directory = '/data/hrr-scaling/srvg-gpu-experiments/summaries_for_unitary_no_idvec'
+    plot_filename = os.path.join(summary_directory, 'unitary_prgraph.pdf')
+
+    #labels = [f for f in os.listdir(summary_directory) if 'summary' in f]
+    #labels = [f for f in labels if filt(f)]
+    #labels = sorted(labels)
+    summary_filenames = [os.path.join(summary_directory, f) for f in os.listdir(summary_directory) if filt(f)]
+    summary_filenames = sorted(summary_filenames)
+    summary_filenames = summary_filenames[::-1]
+    print summary_filenames
+    labels = ['ID-vectors',
+              'no ID-vectors,\n non-unitary',
+              'no ID-vectors,\n unitary']
+
+    #labels = [l.split('_') for l in labels]
+    #labels = ['n = %d' % int(l[12]) for l in labels]
+    labels = [string.replace(l, '_', '\_') for l in labels]
+    labels = sorted(labels)
+    print "LABELS"
+    print labels
+
+    colors = [np.ones(3) * l for l in [0.35, 0.5, 0.65]]
 
     kwargs = {
         'summary_filenames': summary_filenames,
@@ -243,15 +271,16 @@ def task_performance_plot():
                            "Sentence\n(Surface)",
                            "Sentence\n(Embedded)"],
 
-        'condition_labels': ["Abstract", "Neural"],
+        'condition_labels': labels,
 
-        'filename': plot_filename
+        'filename': plot_filename,
+        'colors': colors
         }
 
     yield {
         'name': 'performance_graph',
         'actions': [(plot_results, [], kwargs)],
-        'file_dep': summary_filenames,
+        'file_dep': [],
         'targets': [plot_filename]
         }
 
