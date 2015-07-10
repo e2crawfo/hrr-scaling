@@ -1,4 +1,4 @@
-from hrr_scaling.tools import hrr
+from hrr_scaling.tools.hrr import HRR
 
 import heapq
 import random
@@ -20,7 +20,7 @@ class Extraction(object):
         self.dimension = len(index_vectors.values()[0])
         self.num_items = len(index_vectors)
         self.hrr_vecs = collections.OrderedDict(
-            [(key, hrr.HRR(data=self.index_vectors[key]))
+            [(key, HRR(data=self.index_vectors[key]))
              for key in self.index_vectors])
 
         self.similarities = collections.OrderedDict(
@@ -39,14 +39,12 @@ class Extraction(object):
         if target_keys:
             self.print_instance_difficulty(item, query)
 
-        item_hrr = hrr.HRR(data=item)
-        query_hrr = hrr.HRR(data=query)
+        item_hrr = HRR(data=item)
+        query_hrr = HRR(data=query)
         noisy_hrr = item_hrr.convolve(~query_hrr)
         return self.associate(noisy_hrr.v, target_keys)
 
     def associate(self, noisy_vector, target_keys=None):
-
-        print("********In Associate*********")
 
         keys = self.index_vectors.keys()
 
@@ -80,12 +78,12 @@ class Extraction(object):
                 lambda x: x[0] not in target_keys, nlargest)[0]
 
             self.add_data(
-                "lrgst_incrrct_dot_product", largest_incorrect[1])
+                "largest_incorrect_dot_product", largest_incorrect[1])
 
             reached_threshold = filter(
                 lambda x: self.similarities[key] > self.threshold, keys)
 
-            self.add_data("num_reaching_threshold", len(reached_threshold))
+            self.add_data("n_reaching_threshold", len(reached_threshold))
 
         return results
 
@@ -95,11 +93,11 @@ class Extraction(object):
             # Print data about how difficult the current instance is
             correct_key = target_keys[0]
 
-            item_hrr = hrr.HRR(data=item)
-            query_hrr = hrr.HRR(data=query)
+            item_hrr = HRR(data=item)
+            query_hrr = HRR(data=query)
             noisy_hrr = item_hrr.convolve(~query_hrr)
 
-            correct_hrr = hrr.HRR(data=self.index_vectors[correct_key])
+            correct_hrr = HRR(data=self.index_vectors[correct_key])
             sim = noisy_hrr.compare(correct_hrr)
             dot = np.dot(noisy_hrr.v, correct_hrr.v)
             norm = np.linalg.norm(noisy_hrr.v)
@@ -109,7 +107,7 @@ class Extraction(object):
 
             self.ideal_dot = dot
 
-            hrrs = [(key, hrr.HRR(data=iv))
+            hrrs = [(key, HRR(data=iv))
                     for key, iv in self.index_vectors.iteritems()
                     if key != correct_key]
 

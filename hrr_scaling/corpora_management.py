@@ -278,6 +278,7 @@ class VectorizedCorpus(object):
         self.semantic_pointers = collections.OrderedDict()
 
         print "Generating ID-vectors"
+
         if id_vecs:
             self.id_vectors = collections.OrderedDict()
 
@@ -315,6 +316,9 @@ class VectorizedCorpus(object):
                 semantic_pointer.normalize()
 
             self.semantic_pointers[key] = semantic_pointer
+
+        from itertools import product
+        print max([a.compare(b) for a, b in product(self.semantic_pointers.values(), self.semantic_pointers.values()) if a is not b])
 
         # convert all vectors from hrrs to numpy ndarrays
         for k in key_order:

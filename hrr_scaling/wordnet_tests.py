@@ -1,5 +1,6 @@
 # wordnet extraction test runner
-from hrr_scaling.tools import hrr, nf
+from hrr_scaling.tools import nf
+from hrr_scaling.tools.hrr import HRR, Vocabulary
 from hrr_scaling import symbol_definitions
 from hrr_scaling import tools
 
@@ -273,11 +274,11 @@ class WordnetTest(object):
             return None
 
     def find_matches(self, vector, vector_dict, exempt=[]):
-        hrr_vec = hrr.HRR(data=vector)
+        hrr_vec = HRR(data=vector)
 
         for key in vector_dict.keys():
             if key not in exempt:
-                yield (key, hrr_vec.compare(hrr.HRR(data=vector_dict[key])))
+                yield (key, hrr_vec.compare(HRR(data=vector_dict[key])))
 
     def get_stats(self, clean_result_vector, goal, other_answers, fp):
         size = np.linalg.norm(clean_result_vector)
@@ -289,9 +290,8 @@ class WordnetTest(object):
             largest_match = max(comparisons, key=lambda x: x[1])
             return (largest_match[0], largest_match[1], size)
         else:
-            comparisons = self.find_matches(clean_result_vector,
-                                            self.semantic_pointers,
-                                            exempt=[goal])
+            comparisons = self.find_matches(
+                clean_result_vector, self.semantic_pointers, exempt=[goal])
 
             if other_answers:
                 invalids = []
@@ -320,8 +320,8 @@ class WordnetTest(object):
                 second_key, second_match = max(comparisons, key=lambda x: x[1])
                 max_invalid_match = second_match
 
-            hrr_vec = hrr.HRR(data=self.semantic_pointers[goal])
-            target_match = hrr_vec.compare(hrr.HRR(data=clean_result_vector))
+            hrr_vec = HRR(data=self.semantic_pointers[goal])
+            target_match = hrr_vec.compare(HRR(data=clean_result_vector))
 
             if target_match > second_match:
                 clean_result = goal
@@ -380,10 +380,11 @@ class ExpressionTest(WordnetTest):
         temp_names = ['id'+str(i) for i in range(num_ids)]
         expression = expression % tuple(temp_names)
 
-        chosen_id_keys = self.rng.sample(self.id_vectors,
-                                         expression.count('id') + 1)
-        chosen_id_vectors = [hrr.HRR(data=self.id_vectors[key])
-                             for key in chosen_id_keys]
+        chosen_id_keys = self.rng.sample(
+            self.id_vectors, expression.count('id') + 1)
+
+        chosen_id_vectors = [
+            HRR(data=self.id_vectors[key]) for key in chosen_id_keys]
         target_key = chosen_id_keys[0]
 
         names_dict = dict(zip(['p0'] + temp_names, chosen_id_vectors))
@@ -396,7 +397,7 @@ class ExpressionTest(WordnetTest):
         temp_names = [tn.strip() for tn in temp_names]
         unitary_names = [u for u in temp_names if u[-1:] == "u"]
 
-        vocab = hrr.Vocabulary(dimension, unitary=unitary_names)
+        vocab = Vocabulary(dimension, unitary=unitary_names)
         for n, v in names_dict.iteritems():
             vocab.add(n, v)
 
@@ -635,7 +636,7 @@ class HierarchicalTest(WordnetTest):
 
             if target_key:
                 target_vector = self.semantic_pointers[target_key]
-                target_hrr = hrr.HRR(data=target_vector)
+                target_hrr = HRR(data=target_vector)
         else:
             layerA = [start_key]
 
@@ -648,7 +649,7 @@ class HierarchicalTest(WordnetTest):
             # test whether we've found the target
             found = False
             if use_vecs:
-                word_hrr = hrr.HRR(data=word)
+                word_hrr = HRR(data=word)
                 found = target_hrr.compare(word_hrr) > self.decision_threshold
             else:
                 found = word == target_key
@@ -786,7 +787,7 @@ class SentenceTest(WordnetTest):
                     sentence[embed + role] = embedded_sentence[role]
 
             tag_vectors = {}
-            sentence_hrr = hrr.HRR(data=np.zeros(self.dimension))
+            sentence_hrr = HRR(data=np.zeros(self.dimension))
 
             # Pick role-fillers and create HRR representing the sentence
             # Also store the hrr to use as the query to extract each synset
@@ -797,7 +798,7 @@ class SentenceTest(WordnetTest):
 
                 synset = sentence[role]
 
-                sentence_hrr += tag_hrr * hrr.HRR(data=self.id_vectors[synset])
+                sentence_hrr += tag_hrr * HRR(data=self.id_vectors[synset])
 
                 tag_vectors[role] = tag_hrr.v
 
@@ -892,7 +893,7 @@ class SentenceTest(WordnetTest):
         role_hrrs = {}
         for role in self.sentence_symbols:
 
-            role_hrrs[role] = hrr.HRR(self.dimension)
+            role_hrrs[role] = HRR(self.dimension)
 
             if self.unitary:
                 role_hrrs[role].make_unitary()

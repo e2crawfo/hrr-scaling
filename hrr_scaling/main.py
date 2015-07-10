@@ -1,4 +1,3 @@
-
 from hrr_scaling.tools import read_config
 from hrr_scaling.extraction_tester import ExtractionTester
 from hrr_scaling.corpora_management import VectorizedCorpus

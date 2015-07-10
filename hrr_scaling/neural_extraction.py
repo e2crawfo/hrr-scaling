@@ -13,10 +13,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+import nengo
+from nengo.dists import Gaussian
 from nengo.networks import CircularConvolution, EnsembleArray
+from nengo.spa import AssociativeMemory
 from nengo.dists import Uniform
 import nengo.utils.numpy as npext
-import nengo
 
 ocl_imported = True
 try:
@@ -107,7 +109,9 @@ class NeuralExtraction(Extraction):
 
         # other population parameters
         n_eval_points = 750
-        self.eval_points = np.random.normal(0, 0.06, (n_eval_points, 1))
+
+        # TODO: potentially use SubvectorLength distribution here.
+        self.eval_points = Gaussian(0, 0.06)
         self.radius = 5.0 / np.sqrt(self.dimension)
         self.synapse = synapse
 
@@ -156,7 +160,7 @@ class NeuralExtraction(Extraction):
 
             cconv = CircularConvolution(
                 n_neurons=int(2 * neurons_per_dim), dimensions=dimension,
-                invert_b=True, radius=0.2)
+                invert_b=True)
 
             D = EnsembleArray(
                 n_neurons=neurons_per_dim, n_ensembles=dimension, label="D",
@@ -215,7 +219,7 @@ class NeuralExtraction(Extraction):
 
                 # Add a nengo.Node which calls out to a GPU library for
                 # simulating the associative memory
-                self.assoc_memory = \
+                self.assoc_mem = \
                     AssociativeMemoryGPU(self.gpus, self.index_vectors,
                                          self.stored_vectors,
                                          threshold=threshold,
@@ -230,7 +234,7 @@ class NeuralExtraction(Extraction):
                                          collect_spikes=self.collect_spikes)
 
                 def gpu_function(t, input_vector):
-                    output_vector = self.assoc_memory.step(input_vector)
+                    output_vector = self.assoc_mem.step(input_vector)
                     return output_vector
 
                 assoc = nengo.Node(
@@ -241,63 +245,41 @@ class NeuralExtraction(Extraction):
                 nengo.Connection(assoc, self.output.input, synapse=synapse)
 
                 for k in self.probe_keys:
-                    node = nengo.Node(output=self.assoc_memory.probe_func(k))
+                    node = nengo.Node(output=self.assoc_mem.probe_func(k))
                     probe = nengo.Probe(node, synapse=synapse)
 
                     threshold_probes[k] = probe
 
-                    node = nengo.Node(output=self.assoc_memory.spike_func(k))
+                    node = nengo.Node(output=self.assoc_mem.spike_func(k))
                     assoc_spike_probes[k] = nengo.Probe(node, synapse=None)
 
             else:
-                encoders = np.ones((neurons_per_item, 1))
+                self.assoc_mem = AssociativeMemory(
+                    input_vocab=np.array(self.index_vectors.values()),
+                    output_vocab=np.array(self.stored_vectors.values()),
+                    threshold=self.threshold,
+                    neuron_type=nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref),
+                    n_neurons_per_ensemble=neurons_per_item)
 
-                # Cuts down on synapse computation
-                assoc_in = nengo.Node(
-                    size_in=self.dimension, label="Assoc Input")
+                nengo.Connection(
+                    self.D_output, self.assoc_mem.input, synapse=synapse)
+                nengo.Connection(
+                    self.assoc_mem.output, self.output.input, synapse=synapse)
 
-                assoc_out = nengo.Node(
-                    size_in=self.dimension, label="Assoc Output")
+                # for k in self.index_vectors:
+                #     if k in self.probe_keys:
 
-                nengo.Connection(self.D_output, assoc_in, synapse=synapse)
-                nengo.Connection(assoc_out, self.output.input, synapse=synapse)
+                #         assoc_probes[k] = nengo.Probe(
+                #             assoc, 'decoded_output', synapse=synapse)
 
-                for k in self.index_vectors:
-                    iv = self.index_vectors[k].reshape((1, self.dimension))
-                    sv = self.stored_vectors[k].reshape((self.dimension, 1))
+                #         threshold_probes[k] = nengo.Probe(
+                #             assoc, 'decoded_output',
+                #             synapse=synapse,
+                #             function=self.threshold_func,
+                #             seed=self.seed)
 
-                    label = "Associate: " + str(k)
-                    neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
-
-                    assoc = nengo.Ensemble(n_neurons=self.neurons_per_item,
-                                           dimensions=1,
-                                           intercepts=intercepts,
-                                           encoders=encoders,
-                                           label=label, seed=self.seed,
-                                           radius=radius,
-                                           max_rates=Uniform(200, 350),
-                                           neuron_type=neuron_type,)
-
-                    nengo.Connection(assoc_in, assoc,
-                                     transform=iv, synapse=None)
-
-                    nengo.Connection(assoc, assoc_out, transform=sv,
-                                     function=self.threshold_func,
-                                     synapse=None, seed=self.seed)
-
-                    if k in self.probe_keys:
-
-                        assoc_probes[k] = nengo.Probe(
-                            assoc, 'decoded_output', synapse=synapse)
-
-                        threshold_probes[k] = nengo.Probe(
-                            assoc, 'decoded_output',
-                            synapse=synapse,
-                            function=self.threshold_func,
-                            seed=self.seed)
-
-                        assoc_spike_probes[k] = nengo.Probe(
-                            assoc, 'spikes', synapse=None)
+                #         assoc_spike_probes[k] = nengo.Probe(
+                #             assoc, 'spikes', synapse=None)
 
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
@@ -339,7 +321,8 @@ class NeuralExtraction(Extraction):
         return [vector]
 
     def reset(self):
-        self.assoc_memory.reset()
+        if hasattr(self.assoc_mem, 'reset'):
+            self.assoc_mem.reset()
 
         if hasattr(self.simulator, 'reset'):
             self.simulator.reset()
@@ -488,7 +471,6 @@ class NeuralExtraction(Extraction):
 
         plot_path = os.path.join(
             self.output_dir, 'neural_extraction_'+date_time_string+".png")
-        print plot_path
 
         plt.savefig(plot_path)
 

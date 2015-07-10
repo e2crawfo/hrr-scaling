@@ -195,7 +195,7 @@ class Bootstrapper:
         self.data[index].append(data)
 
         if self.verbose:
-            print ("Bootstrapper adding data ..."
+            print ("Bootstrapper adding data... "
                    "name: %s, data: %s" % (index, data))
 
     def get_stats(self, index):
