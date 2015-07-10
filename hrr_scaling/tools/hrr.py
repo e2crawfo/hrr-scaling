@@ -1,8 +1,9 @@
 import numpy as np
-from numpy import array,sqrt,dot
+from numpy import array, sqrt, dot
 from numpy.linalg import norm
 from numpy.fft import fft, ifft
 import random
+from math import sin,pi,acos
 
 def circconv(a, b):
     return np.real(ifft(fft(a)*fft(b)))
@@ -116,10 +117,6 @@ class HRR:
         return np.array(T)
 
 
-
-                       
-                       
-from math import sin,pi,acos
 class Vocabulary:
     defaults={}
     registered={}

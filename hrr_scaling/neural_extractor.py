@@ -1,7 +1,7 @@
 # Neural Extractor Algorithm
 from hrr_scaling.extractor import Extractor
 from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
-from hrr_scaling.tools import hrr
+from hrr_scaling.tools.hrr import HRR
 
 import string
 import datetime
@@ -444,13 +444,13 @@ class NeuralExtractor(Extractor):
         plt.plot(t, after_norms, after_ls, c='g', label='Norm - After')
 
         if correct_key is not None:
-            correct_index_hrr = hrr.HRR(data=self.index_vectors[correct_key])
-            correct_stored_hrr = hrr.HRR(data=self.stored_vectors[correct_key])
+            correct_index_hrr = HRR(data=self.index_vectors[correct_key])
+            correct_stored_hrr = HRR(data=self.stored_vectors[correct_key])
 
-            before_sims = [correct_index_hrr.compare(hrr.HRR(data=i))
+            before_sims = [correct_index_hrr.compare(HRR(data=i))
                            for i in self.data[self.D_probe]]
 
-            after_sims = [correct_stored_hrr.compare(hrr.HRR(data=o))
+            after_sims = [correct_stored_hrr.compare(HRR(data=o))
                           for o in self.data[self.output_probe]]
 
             plt.plot(t, before_sims, before_ls, c='b',

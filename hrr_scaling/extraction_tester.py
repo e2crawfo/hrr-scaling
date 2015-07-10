@@ -12,7 +12,7 @@ class ExtractionTester(object):
 
     def __init__(self, corpus_factory, extractor_factory,
                  corpus_seed, extractor_seed, test_seed,
-                 probe_all=False, output_file="."):
+                 probe_all=False, output_dir="."):
 
         self.corpus_factory = corpus_factory
         self.extractor_factory = extractor_factory
@@ -21,9 +21,9 @@ class ExtractionTester(object):
         self.extractor_seed = extractor_seed
         self.test_seed = test_seed
 
-        self.output_file = output_file
+        self.output_dir = output_dir
+        self.output_file = os.path.join(output_dir, 'results')
 
-        self.output_dir = output_file + "_data"
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 

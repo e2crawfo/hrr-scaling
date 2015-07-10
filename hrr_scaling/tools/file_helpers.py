@@ -4,6 +4,15 @@ import string
 import numpy as np
 
 
+def make_sym_link(source, name):
+    try:
+        os.remove(name)
+    except OSError:
+        pass
+
+    os.symlink(source, name)
+
+
 def make_filename(main_title, directory='.', config_dict={}, use_time=True,
                   sep='_', extension='', omit=[]):
     """

@@ -1,4 +1,4 @@
-from hrr_scaling.tools import hrr
+from hrr_scaling.tools.hrr import HRR
 from hrr_scaling import symbol_definitions
 from hrr_scaling import tools
 
@@ -229,7 +229,7 @@ class VectorizedCorpus(object):
         print "Generating relation type vectors"
         print "Using relation types: ", self.relation_symbols
 
-        self.relation_type_vectors = {symbol: hrr.HRR(self.dimension)
+        self.relation_type_vectors = {symbol: HRR(self.dimension)
                                       for symbol in self.relation_symbols}
         if unitary:
             for k, h in self.relation_type_vectors.iteritems():
@@ -283,7 +283,7 @@ class VectorizedCorpus(object):
             self.id_vectors = collections.OrderedDict()
 
             for key in key_order:
-                self.id_vectors[key] = hrr.HRR(self.dimension)
+                self.id_vectors[key] = HRR(self.dimension)
         else:
             self.id_vectors = self.semantic_pointers
 
@@ -294,13 +294,13 @@ class VectorizedCorpus(object):
                 self.corpus_dict[key])
 
             if len(relations) == 0:
-                self.semantic_pointers[key] = hrr.HRR(self.dimension)
+                self.semantic_pointers[key] = HRR(self.dimension)
                 continue
 
-            semantic_pointer = hrr.HRR(data=np.zeros(self.dimension))
+            semantic_pointer = HRR(data=np.zeros(self.dimension))
 
             for n in range(self.sp_noise):
-                semantic_pointer += hrr.HRR(self.dimension)
+                semantic_pointer += HRR(self.dimension)
 
             for relation in relations:
 

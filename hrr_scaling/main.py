@@ -1,4 +1,5 @@
 from hrr_scaling.tools import read_config
+from hrr_scaling.tools.file_helpers import make_filename, make_sym_link
 from hrr_scaling.extraction_tester import ExtractionTester
 from hrr_scaling.corpora_management import VectorizedCorpus
 
@@ -25,7 +26,13 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
 
     input_dir, output_dir = read_config()
 
-    output_file = os.path.join(output_dir, name)
+    if not name:
+        name = "hrr_scaling_results"
+
+    directory = make_filename(name, output_dir)
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+    make_sym_link(os.path.split(directory)[1], os.path.join(output_dir, 'latest'))
 
     neural = not abstract
 
@@ -103,9 +110,9 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     np.random.seed(test_seed)
     random.seed(test_seed)
 
-    test_runner = ExtractionTester(corpus_factory, extractor_factory,
-                                   corpus_seed, extractor_seed, test_seed,
-                                   probe_all, output_file)
+    test_runner = ExtractionTester(
+        corpus_factory, extractor_factory, corpus_seed,
+        extractor_seed, test_seed, probe_all, directory)
 
     if jump_trials > 0:
         test = JumpTest(jump_trials)
