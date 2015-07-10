@@ -2,9 +2,9 @@ from hrr_scaling.tools import read_config
 from hrr_scaling.extraction_tester import ExtractionTester
 from hrr_scaling.corpora_management import VectorizedCorpus
 
-from hrr_scaling.extraction import Extraction
-from hrr_scaling.neural_extraction import NeuralExtraction
-from hrr_scaling.fast_neural_extraction import FastNeuralExtraction
+from hrr_scaling.extractor import Extractor
+from hrr_scaling.neural_extractor import NeuralExtractor
+from hrr_scaling.fast_neural_extractor import FastNeuralExtractor
 
 from hrr_scaling.wordnet_tests import ExpressionTest, JumpTest
 from hrr_scaling.wordnet_tests import HierarchicalTest
@@ -20,7 +20,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         unitary_roles, short_sentence, do_neg, corpus_seed,
         extractor_seed, test_seed, seed, dimension, num_synsets,
         proportion, unitary_relations, id_vecs, sp_noise, normalize,
-        abstract, synapse, timesteps, threshold, probeall, identical,
+        abstract, synapse, timesteps, threshold, probe_all, identical,
         fast, plot, show, gpus, ocl, name):
 
     input_dir, output_dir = read_config()
@@ -57,20 +57,20 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
                            probe_keys, output_dir):
             if neural:
                 if fast and gpus:
-                    extractor = FastNeuralExtraction(
+                    extractor = FastNeuralExtractor(
                         id_vectors, semantic_pointers,
                         threshold=threshold, probe_keys=probe_keys,
                         timesteps=timesteps, synapse=synapse,
                         plot=plot, show=show, ocl=ocl,
                         gpus=gpus, identical=identical, output_dir=output_dir)
                 else:
-                    extractor = NeuralExtraction(
+                    extractor = NeuralExtractor(
                         id_vectors, semantic_pointers, threshold=threshold,
                         probe_keys=probe_keys, timesteps=timesteps,
                         synapse=synapse, plot=plot, show=show, ocl=ocl,
                         gpus=gpus, identical=identical, output_dir=output_dir)
             else:
-                extractor = Extraction(
+                extractor = Extractor(
                     id_vectors, semantic_pointers,
                     threshold, output_dir=output_dir)
 
@@ -105,7 +105,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
 
     test_runner = ExtractionTester(corpus_factory, extractor_factory,
                                    corpus_seed, extractor_seed, test_seed,
-                                   probeall, output_file)
+                                   probe_all, output_file)
 
     if jump_trials > 0:
         test = JumpTest(jump_trials)

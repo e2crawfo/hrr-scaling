@@ -6,7 +6,7 @@ import collections
 import numpy as np
 
 
-class Extraction(object):
+class Extractor(object):
 
     # the associative memory maps from index_vectors to stored_vectors
     # index_vectors and stored_vectors must both be OrderedDicts whose values
@@ -188,7 +188,7 @@ class Extraction(object):
             remaining_keys.remove(idkey1)
 
     def print_config(self, output_file):
-        output_file.write("Extractor config:")
+        output_file.write("Extractor config:\n")
         output_file.write("Num items: " + str(self.num_items) + "\n")
         output_file.write("Dimension: " + str(self.dimension) + "\n")
         output_file.write("Threshold: " + str(self.threshold) + "\n")

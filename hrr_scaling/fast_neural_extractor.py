@@ -1,6 +1,6 @@
 # Neural Extraction Algorithm
 from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
-from hrr_scaling.neural_extraction import NeuralExtraction
+from hrr_scaling.neural_extractor import NeuralExtractor
 
 import datetime
 from collections import OrderedDict
@@ -17,7 +17,7 @@ def make_func(cls, attr):
     return f
 
 
-class FastNeuralExtraction(NeuralExtraction):
+class FastNeuralExtractor(NeuralExtractor):
 
     _type = "Neural"
 
@@ -164,4 +164,4 @@ class FastNeuralExtraction(NeuralExtraction):
 
     def print_config(self, output_file):
         super(FastNeuralExtraction, self).print_config(output_file)
-        output_file.write("Fast neural extractor config:")
+        output_file.write("Fast neural extractor config:\n")

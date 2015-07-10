@@ -12,7 +12,7 @@ class ExtractionTester(object):
 
     def __init__(self, corpus_factory, extractor_factory,
                  corpus_seed, extractor_seed, test_seed,
-                 probeall=False, output_file="."):
+                 probe_all=False, output_file="."):
 
         self.corpus_factory = corpus_factory
         self.extractor_factory = extractor_factory
@@ -27,7 +27,7 @@ class ExtractionTester(object):
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-        self.probeall = probeall
+        self.probe_all = probe_all
 
         self.corpus_rng = random.Random()
         self.corpus_rng.seed(self.corpus_seed)
@@ -67,7 +67,7 @@ class ExtractionTester(object):
         id_vectors = self.corpus.id_vectors
         semantic_pointers = self.corpus.semantic_pointers
 
-        if self.probeall:
+        if self.probe_all:
             probe_keys = id_vectors.keys()
         else:
             probe_keys = []

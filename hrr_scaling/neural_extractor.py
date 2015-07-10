@@ -1,5 +1,5 @@
-# Neural Extraction Algorithm
-from hrr_scaling.extraction import Extraction
+# Neural Extractor Algorithm
+from hrr_scaling.extraction import Extractor
 from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
 from hrr_scaling.tools import hrr
 
@@ -38,7 +38,7 @@ AssocParams = namedtuple('AssocParams',
                           'radius', 'eval_points', 'intercepts'])
 
 
-class NeuralExtraction(Extraction):
+class NeuralExtractor(Extractor):
 
     _type = "Neural"
 
@@ -124,7 +124,7 @@ class NeuralExtraction(Extraction):
         self.write_to_runtime_file(now - then, "setup")
 
     def setup_simulator(self):
-        self.model = nengo.Network(label="Extraction", seed=self.seed)
+        self.model = nengo.Network(label="Extractor", seed=self.seed)
 
         print "Specifiying model"
         # The order is important here
@@ -491,9 +491,9 @@ class NeuralExtraction(Extraction):
             ": " ",".join([str(tp) for tp in to_print])
 
     def print_config(self, output_file):
-        super(NeuralExtraction, self).print_config(output_file)
+        super(NeuralExtractor, self).print_config(output_file)
 
-        output_file.write("Neural extractor config:")
+        output_file.write("Neural extractor config:\n")
 
         output_file.write("Neurons per item: " +
                           str(self.neurons_per_item) + "\n")

@@ -160,7 +160,7 @@ def parse_args(print_args=False):
         help='Set the number of synsets to use.')
 
     parser.add_argument(
-        '--probeall', action='store_true',
+        '--probe-all', action='store_true', dest="probe_all",
         help='Probe all association nodes.')
 
     parser.add_argument(

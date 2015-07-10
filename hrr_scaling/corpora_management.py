@@ -317,9 +317,6 @@ class VectorizedCorpus(object):
 
             self.semantic_pointers[key] = semantic_pointer
 
-        from itertools import product
-        print max([a.compare(b) for a, b in product(self.semantic_pointers.values(), self.semantic_pointers.values()) if a is not b])
-
         # convert all vectors from hrrs to numpy ndarrays
         for k in key_order:
             h = self.semantic_pointers[k]
@@ -393,6 +390,7 @@ class VectorizedCorpus(object):
         f.seek(-1, 1)
 
     def print_config(self, output_file):
+        output_file.write("VectorizedCorpus config:\n")
         output_file.write("Dimension: " + str(self.dimension) + "\n")
         output_file.write("Unitary relations: " +
                           str(self.unitary_relations) + "\n")
