@@ -45,8 +45,8 @@ class NeuralExtractor(Extractor):
     def __init__(self, index_vectors, stored_vectors, threshold=0.3,
                  neurons_per_item=20, neurons_per_dim=50, timesteps=100,
                  dt=0.001, tau_rc=0.02, tau_ref=0.002, synapse=0.005,
-                 output_dir=".", probe_keys=[], plot=False, show=False,
-                 ocl=[], gpus=[], identical=False, collect_spikes=False):
+                 output_dir=".", probe_keys=[], plot=False, ocl=[],
+                 gpus=[], identical=False, collect_spikes=False):
         """
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
@@ -79,7 +79,6 @@ class NeuralExtractor(Extractor):
         self.dt = dt
         self.timesteps = timesteps
         self.plot = plot
-        self.show = show
         self.gpus = gpus
         self.ocl = ocl
         self.probe_keys = probe_keys
@@ -477,9 +476,6 @@ class NeuralExtractor(Extractor):
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "plot")
 
-        if self.show:
-            plt.show()
-
         plt.close(fig)
 
     def write_to_runtime_file(self, delta, label=''):
@@ -523,7 +519,6 @@ class NeuralExtractor(Extractor):
         output_file.write("dt:" + str(self.dt) + "\n")
         output_file.write("timesteps:" + str(self.timesteps) + "\n")
         output_file.write("plot:" + str(self.plot) + "\n")
-        output_file.write("show:" + str(self.show) + "\n")
         output_file.write("gpus:" + str(self.gpus) + "\n")
         output_file.write("ocl:" + str(self.ocl) + "\n")
         output_file.write("probe_keys:" + str(self.probe_keys) + "\n")

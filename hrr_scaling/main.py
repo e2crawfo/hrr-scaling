@@ -22,7 +22,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         extractor_seed, test_seed, seed, dimension, num_synsets,
         proportion, unitary_relations, id_vecs, sp_noise, normalize,
         abstract, synapse, timesteps, threshold, probe_all, identical,
-        fast, plot, show, gpus, ocl, name):
+        fast, plot, gpus, ocl, name):
 
     input_dir, output_dir = read_config()
 
@@ -32,7 +32,8 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     directory = make_filename(name, output_dir)
     if not os.path.isdir(directory):
         os.makedirs(directory)
-    make_sym_link(os.path.split(directory)[1], os.path.join(output_dir, 'latest'))
+    make_sym_link(
+        os.path.split(directory)[1], os.path.join(output_dir, 'latest'))
 
     neural = not abstract
 
@@ -56,7 +57,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
 
         return make_corpus
 
-    def make_extractor_factory(neural, fast, gpus, ocl, plot, show, threshold,
+    def make_extractor_factory(neural, fast, gpus, ocl, plot, threshold,
                                timesteps, synapse):
 
         # pick an extraction algorithm
@@ -68,13 +69,13 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
                         id_vectors, semantic_pointers,
                         threshold=threshold, probe_keys=probe_keys,
                         timesteps=timesteps, synapse=synapse,
-                        plot=plot, show=show, ocl=ocl,
+                        plot=plot, ocl=ocl,
                         gpus=gpus, identical=identical, output_dir=output_dir)
                 else:
                     extractor = NeuralExtractor(
                         id_vectors, semantic_pointers, threshold=threshold,
                         probe_keys=probe_keys, timesteps=timesteps,
-                        synapse=synapse, plot=plot, show=show, ocl=ocl,
+                        synapse=synapse, plot=plot, ocl=ocl,
                         gpus=gpus, identical=identical, output_dir=output_dir)
             else:
                 extractor = Extractor(
@@ -90,7 +91,7 @@ def run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
         proportion, num_synsets, sp_noise, normalize)
 
     extractor_factory = make_extractor_factory(
-        neural, fast, gpus, ocl, plot, show, threshold, timesteps, synapse)
+        neural, fast, gpus, ocl, plot, threshold, timesteps, synapse)
 
     if seed != -1:
         random.seed(seed)

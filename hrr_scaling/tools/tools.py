@@ -1,6 +1,5 @@
 import ConfigParser
 import argparse
-import os
 
 
 def parse_args(print_args=False):
@@ -137,16 +136,10 @@ def parse_args(print_args=False):
         help='Supply this argument to use bidirectional relations.')
 
     parser.add_argument(
-        '--plot', action='store_true',
+        '--plot', action='store_false',
         help='Supply this argument to create and save plots of the '
              'activities of the cleanup populations (only works in '
              'neural mode). The graphs are stored in the "graphs" directory.')
-
-    parser.add_argument(
-        '--show', action='store_true',
-        help='Supply this argument to display plots of the activities '
-             'of the association populations (only works in neural mode). '
-             'Only has an effect if --plot is also supplied')
 
     parser.add_argument(
         '--noneg', action='store_true',

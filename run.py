@@ -48,7 +48,6 @@ probe_all = argvals.probe_all
 identical = argvals.identical
 fast = argvals.fast
 plot = argvals.plot and can_plot and not abstract
-show = argvals.show and plot
 
 gpus = argvals.gpus
 ocl = argvals.ocl
@@ -60,4 +59,4 @@ run(num_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     extractor_seed, test_seed, seed, dimension, num_synsets,
     proportion, unitary_relations, id_vecs, sp_noise, normalize,
     abstract, synapse, timesteps, threshold, probe_all, identical, fast,
-    plot, show, gpus, ocl, name)
+    plot, gpus, ocl, name)

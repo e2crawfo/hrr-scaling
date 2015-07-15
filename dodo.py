@@ -49,7 +49,7 @@ args = {'num_runs': 1, 'jump_trials': 10, 'hier_trials': 3, 'sent_trials': 0,
         'unitary_relations': False, 'id_vecs': True, 'abstract': False,
         'synapse': 0.005, 'timesteps': 100, 'threshold': 0.3,
         'probeall': False, 'identical': True, 'fast': False, 'plot': True,
-        'show': False, 'gpus': [], 'ocl': [], 'name': "temp"}
+        'gpus': [], 'ocl': [], 'name': "temp"}
 
 variables = [
     ('abstract', [False]),  # , False]),

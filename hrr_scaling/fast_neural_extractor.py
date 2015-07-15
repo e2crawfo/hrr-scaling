@@ -36,7 +36,7 @@ class FastNeuralExtractor(NeuralExtractor):
         tuples of the form (POS, number), indicating a synset, to numpy
         ndarrays containing the assigned vector
         """
-        super(FastNeuralExtraction, self).__init__(*args, **kwargs)
+        super(FastNeuralExtractor, self).__init__(*args, **kwargs)
 
     def setup_simulator(self):
         self.unbind_model = nengo.Network(label="Unbind", seed=self.seed)
@@ -163,5 +163,5 @@ class FastNeuralExtractor(NeuralExtractor):
             ": " ",".join([str(tp) for tp in to_print])
 
     def print_config(self, output_file):
-        super(FastNeuralExtraction, self).print_config(output_file)
+        super(FastNeuralExtractor, self).print_config(output_file)
         output_file.write("Fast neural extractor config:\n")
