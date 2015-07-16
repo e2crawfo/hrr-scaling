@@ -28,7 +28,7 @@ def parse_args(print_args=False):
     parser.add_argument(
         '--expr', nargs=2,
         help="(num trials, expression). Run num trials tests generated "
-        "from the give HRR expression).")
+        "from the given HRR expression).")
 
     # parameters of the experiment
     parser.add_argument(
