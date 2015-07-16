@@ -101,9 +101,10 @@ class Extractor(object):
             sim = noisy_hrr.compare(correct_hrr)
             dot = np.dot(noisy_hrr.v, correct_hrr.v)
             norm = np.linalg.norm(noisy_hrr.v)
-            print "Ideal similarity: ", sim
-            print "Ideal dot: ", dot
-            print "Ideal norm: ", norm
+            print "Statistics when extraction computed exactly:"
+            print "Cosine Similarity: ", sim
+            print "Dot product: ", dot
+            print "Norm: ", norm
 
             self.ideal_dot = dot
 

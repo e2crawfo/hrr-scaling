@@ -6,8 +6,8 @@ def parse_args(print_args=False):
     parser = argparse.ArgumentParser(description='Test an HRR extractor.')
 
     parser.add_argument(
-        'num_runs', type=int,
-        help="Run a jump test with this number of trials")
+        '--runs', type=int, default=1,
+        help="Thes number of runs to execute.")
 
     parser.add_argument(
         '--jump', default=0, type=int,
@@ -50,7 +50,7 @@ def parse_args(print_args=False):
         help='Supply this to skip normalizing semantic pointers')
 
     parser.add_argument(
-        '--sp-noise', dest='sp_noise', default=0, type=int,
+        '--sp-noise', dest='sp_noise', default=1, type=int,
         help='Number of noise terms to add to semantic pointers. '
              'Defaults to 0')
 
@@ -89,11 +89,11 @@ def parse_args(print_args=False):
 
     # parameters for the neural network
     parser.add_argument(
-        '-t', default=0.3, type=float,
+        '--threshold', default=0.3, type=float,
         help='Specify the cleanup threshold. A float between 0 and 1.')
 
     parser.add_argument(
-        '--synapse', default=0.02, type=float,
+        '--synapse', default=0.005, type=float,
         help='Post-synaptic time constant. Controls the shape of the '
              'post-synaptic current.')
 
@@ -127,26 +127,21 @@ def parse_args(print_args=False):
         help='Whether to use fast gpu algorithm with new nengo code')
 
     parser.add_argument(
-        '--numwords', default=0, type=int,
-        help='Number of planned words. Only has an effect on jump tests.')
-
-    # not used very often
-    parser.add_argument(
         '-b', action='store_true',
         help='Supply this argument to use bidirectional relations.')
 
     parser.add_argument(
-        '--plot', action='store_false',
-        help='Supply this argument to create and save plots of the '
-             'activities of the cleanup populations (only works in '
-             'neural mode). The graphs are stored in the "graphs" directory.')
+        '--no-plot', action='store_true', dest='no_plot',
+        help='Supply this argument to avoid creating plots of the '
+             'activities of the neural network as it traverses links in the '
+             'WordNet graph.')
 
     parser.add_argument(
-        '--noneg', action='store_true',
+        '--no-neg', action='store_true', dest='no_neg',
         help='Supply this argument to only do positive runs on hier test.')
 
     parser.add_argument(
-        '--shortsent', action='store_true',
+        '--short-sent', action='store_true', dest='short_sent',
         help='Supply this arg to only do a single run of a sentence test.')
 
     parser.add_argument(

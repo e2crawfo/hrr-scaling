@@ -2,6 +2,7 @@
 from hrr_scaling.extractor import Extractor
 from hrr_scaling.gpu_assoc_memory import AssociativeMemoryGPU
 from hrr_scaling.tools.hrr import HRR
+from hrr_scaling.tools.file_helpers import make_sym_link
 
 import string
 import datetime
@@ -14,7 +15,6 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 import nengo
-from nengo.dists import Gaussian
 from nengo.networks import CircularConvolution, EnsembleArray
 from nengo.spa import AssociativeMemory
 from nengo.dists import Uniform
@@ -51,11 +51,6 @@ class NeuralExtractor(Extractor):
         index_vectors and stored_vectors are both dictionaries mapping from
         tuples of the form (POS, number), indicating a synset, to numpy
         ndarrays containing the assigned vector
-
-        Synapses: synapse arg controls synapses between connections that do
-        not involve association populations. The input and output probes use
-        synapses of 0.02. Connections involving association populations have
-        their own synapse, which is set in the init function.
         """
 
         then = datetime.datetime.now()
@@ -110,7 +105,6 @@ class NeuralExtractor(Extractor):
         n_eval_points = 750
 
         # TODO: potentially use SubvectorLength distribution here.
-        self.eval_points = Gaussian(0, 0.06)
         self.radius = 5.0 / np.sqrt(self.dimension)
         self.synapse = synapse
 
@@ -141,7 +135,6 @@ class NeuralExtractor(Extractor):
 
         neurons_per_dim = self.neurons_per_dim
         radius = self.radius
-        eval_points = self.eval_points
         synapse = self.synapse
         dimension = self.dimension
 
@@ -151,11 +144,11 @@ class NeuralExtractor(Extractor):
 
             A = EnsembleArray(
                 n_neurons=neurons_per_dim, n_ensembles=dimension, label="A",
-                radius=radius, eval_points=eval_points)
+                radius=radius)
 
             B = EnsembleArray(
                 n_neurons=neurons_per_dim, n_ensembles=dimension, label="B",
-                radius=radius, eval_points=eval_points)
+                radius=radius)
 
             cconv = CircularConvolution(
                 n_neurons=int(2 * neurons_per_dim), dimensions=dimension,
@@ -163,7 +156,7 @@ class NeuralExtractor(Extractor):
 
             D = EnsembleArray(
                 n_neurons=neurons_per_dim, n_ensembles=dimension, label="D",
-                radius=radius, eval_points=eval_points)
+                radius=radius)
 
             A_output = A.output
             B_output = B.output
@@ -179,8 +172,8 @@ class NeuralExtractor(Extractor):
 
             assoc_synapse = self.assoc_params.synapse
 
-            self.D_probe = nengo.Probe(D_output, 'output',
-                                       synapse=assoc_synapse)
+            self.D_probe = nengo.Probe(
+                D_output, 'output', synapse=assoc_synapse)
 
             self.input_probe = nengo.Probe(
                 A_output, 'output', synapse=synapse)
@@ -213,8 +206,8 @@ class NeuralExtractor(Extractor):
 
                 if not self.identical:
                     raise NotImplementedError(
-                        "Currently, can only use gpu if --identical"
-                        " is also specified")
+                        "Currently, can only use gpu if --identical "
+                        "is also specified")
 
                 # Add a nengo.Node which calls out to a GPU library for
                 # simulating the associative memory
@@ -265,20 +258,15 @@ class NeuralExtractor(Extractor):
                 nengo.Connection(
                     self.assoc_mem.output, self.output.input, synapse=synapse)
 
-                # for k in self.index_vectors:
-                #     if k in self.probe_keys:
+                assoc_ensembles = (
+                    self.assoc_mem.thresholded_ens_array.ea_ensembles)
 
-                #         assoc_probes[k] = nengo.Probe(
-                #             assoc, 'decoded_output', synapse=synapse)
-
-                #         threshold_probes[k] = nengo.Probe(
-                #             assoc, 'decoded_output',
-                #             synapse=synapse,
-                #             function=self.threshold_func,
-                #             seed=self.seed)
-
-                #         assoc_spike_probes[k] = nengo.Probe(
-                #             assoc, 'spikes', synapse=None)
+                for ens, k in zip(assoc_ensembles, self.index_vectors):
+                    if k in self.probe_keys:
+                        assoc_probes[k] = nengo.Probe(
+                            ens, 'decoded_output', synapse=synapse)
+                        assoc_spike_probes[k] = nengo.Probe(
+                            ens.neurons, 'spikes', synapse=None)
 
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
@@ -360,20 +348,20 @@ class NeuralExtractor(Extractor):
 
         max_val = 5.0 / np.sqrt(self.dimension)
 
-        gs = gridspec.GridSpec(9, 2)
+        gs = gridspec.GridSpec(7, 2)
         fig = plt.figure(figsize=(10, 10))
 
         ax = plt.subplot(gs[0, 0])
 
         plt.plot(t, self.data[self.D_probe], label='D')
-        title = 'Before Association: Vector'
+        title = 'Input to associative memory'
         ax.text(.01, 1.20, title, horizontalalignment='left',
                 transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
 
         ax = plt.subplot(gs[0, 1])
         plt.plot(t, self.data[self.output_probe], label='Output')
-        title = 'After Association: Vector'
+        title = 'Output of associative memory'
         ax.text(.01, 1.20, title, horizontalalignment='left',
                 transform=ax.transAxes)
         plt.ylim((-max_val, max_val))
@@ -389,8 +377,9 @@ class NeuralExtractor(Extractor):
                 else:
                     plt.plot(t, input_sims, label=label)
 
-            title = ('Dot Products Before Association.\n'
-                     'Target is dashed line.\n')
+            title = (
+                'Dot product between id vectors and input to assoc memory.\n'
+                'Target %s is dashed line.' % str(correct_key))
 
             ax.text(.01, 0.80, title, horizontalalignment='left',
                     transform=ax.transAxes)
@@ -412,28 +401,16 @@ class NeuralExtractor(Extractor):
             else:
                 plt.plot(t, self.data[p])
 
-        title = 'Association Activation. \nTarget:' + str(correct_key)
+        title = (
+            'Decoded values of association populations.\n' +
+            'Target %s is dashed line.' % str(correct_key))
+
         ax.text(.01, 0.80, title, horizontalalignment='left',
                 transform=ax.transAxes)
         plt.ylim((-0.2, 1.5))
         plt.axhline(y=1.0, ls=':', c='k')
 
         ax = plt.subplot(gs[5:7, :])
-
-        for key, p in self.threshold_probes.iteritems():
-            if key == correct_key:
-                plt.plot(t, self.data[p], '--', label=str(key))
-            else:
-                plt.plot(t, self.data[p], label=str(key))
-
-        title = 'Assoc. Transfer Activation. \nTarget:' + str(correct_key)
-        ax.text(.01, 0.80, title, horizontalalignment='left',
-                transform=ax.transAxes)
-
-        plt.ylim((-0.2, 1.5))
-        plt.axhline(y=1.0, ls=':', c='k')
-
-        ax = plt.subplot(gs[7:9, :])
         before_ls = '--'
         after_ls = '-'
         before_norms = [np.linalg.norm(v) for v in self.data[self.D_probe]]
@@ -457,21 +434,26 @@ class NeuralExtractor(Extractor):
             plt.plot(t, after_sims, after_ls, c='b',
                      label='Cosine Sim - After')
 
-        title = 'Before/After'
+        title = 'Before and After Associative Memory'
         ax.text(.01, 0.90, title, horizontalalignment='left',
                 transform=ax.transAxes)
         plt.ylim((-1.0, 1.5))
-        plt.legend(loc=3)
+        plt.legend(loc=4, prop={'size': 6})
         plt.axhline(y=1.0, ls=':', c='k')
+        ax.set_xlabel('Time (s)')
 
         date_time_string = str(datetime.datetime.now()).split('.')[0]
         date_time_string = reduce(lambda y, z: string.replace(y, z, "_"),
                                   [date_time_string, ":", ".", " ", "-"])
 
-        plot_path = os.path.join(
-            self.output_dir, 'neural_extraction_'+date_time_string+".png")
+        plot_name = 'neural_extraction_' + date_time_string + ".png"
+        plot_path = os.path.join(self.output_dir, plot_name)
 
         plt.savefig(plot_path)
+
+        symlink_name = os.path.join(
+            self.output_dir, 'latest_neural_extraction')
+        make_sym_link(plot_name, symlink_name)
 
         now = datetime.datetime.now()
         self.write_to_runtime_file(now - then, "plot")

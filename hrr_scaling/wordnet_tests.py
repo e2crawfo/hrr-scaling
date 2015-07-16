@@ -131,9 +131,9 @@ class WordnetTest(object):
     def bootstrap_end(self):
         pass
 
-    def extract(self, item, query):
+    def extract(self, item, query, target_keys):
         self.num_jumps += 1
-        result = self.extractor.extract(item, query)
+        result = self.extractor.extract(item, query, target_keys)
 
         return result
 
@@ -162,7 +162,8 @@ class WordnetTest(object):
         self.current_target_keys = answers
         self.current_num_relations = num_relations
 
-        clean_result = self.extract(word_vec, query_vector)
+        clean_result = self.extract(
+            word_vec, query_vector, self.current_target_keys)
 
         if goal:
             if self.extractor.return_vec:
