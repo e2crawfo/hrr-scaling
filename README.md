@@ -1,6 +1,6 @@
 ## Purpose
 
-**hrr-scaling** is intended to demonstrate the scaling capabilities of the Semantic Pointer Architecture (SPA) and its approach to connectionist knowledge representation [(Eliasmith 2013)](http://compneuro.uwaterloo.ca/research/spa.html). We accomplish this by creating a spiking neural network capable of encoding WordNet, a lexical database consisting of ~117,000 items, and traversing the primary relations therein. We show that our technique can encode this human-scale structured knowledge base using much fewer neural resources than any previous approach would require. Our results were outlined in a [paper presented at CogSci 2013](http://mindmodeling.org/cogsci2013/papers/0099/paper0099.pdf) (Crawford 2013). A longer, more detailed version has been published in *Cognitive Science* (Crawford 2015).
+**hrr-scaling** is intended to demonstrate the scaling capabilities of the Semantic Pointer Architecture (SPA) and its approach to connectionist knowledge representation [(Eliasmith 2013)](http://compneuro.uwaterloo.ca/research/spa.html). We accomplish this by creating a spiking neural network capable of encoding WordNet, a lexical database consisting of ~117,000 items, and traversing the primary relations therein. We show that our technique can encode this human-scale structured knowledge base using much fewer neural resources than any previous approach would require. Our results were first outlined in a [paper presented at CogSci 2013](http://mindmodeling.org/cogsci2013/papers/0099/paper0099.pdf) (Crawford 2013), and a more detailed version has been published in *Cognitive Science* (Crawford 2015).
 
 ## Methods
 See either of the above papers for a detailed overview of our methods. Briefly, we use a particular vector symbolic architecture, called the Semantic Pointer Architecture (which can be viewed as a neural variant of Holographic Reduced Representations (Plate, 2003)), to encode the WordNet graph in vectorial form. We then employ the [Neural Engineering Framework](http://compneuro.uwaterloo.ca/research/nef.html), a principled approach to creating populations of spiking neurons that represent and transform vectors (Eliasmith and Anderson, 2003), to create a spiking neural network capable of traversing this vectorial representation of the WordNet graph in a biologically plausible number of neurons.
@@ -32,7 +32,36 @@ python run.py --jump 1 -p 0.001 -d 128 --probe-all
 
 This command picks out a subgraph of WordNet containing only 0.1% of the ~117,000 concepts in WordNet (``--p 0.001``), creates a vectorized representation of that subgraph using vectors with 128 dimensions (``-d 128``), and then uses that vectorized representation to create a spiking neural network capable of traversing the edges in that sub-graph. ``--probe-all`` instructs the code to attach a probe to each of the ensembles inside the associative memory so that the activations of those populations can be recorded and plotted. ``--jump 1`` instructs the code to perform one instance of the jump test on the network, randomly picking an edge in the subgraph and testing the ability of the network to traverse (or jump along) it.
 
-Each time the ``run.py`` script is executed, a subdirectory marked with the time of execution is created in the ``results`` directory. A convenience symbolic link called ``latest`` is also created to point at the most recently created subdirectory. Inside the ``results`` directory are a number of different files. One file will be created for each type of test that was executed, containing details from the execution of that type of test. If the neural model was used (i.e. the --abstract keyword was not supplied), and plotting was not turned off, then plots of neural activity will be stored here as well. The file called ``results`` contains most data gathered through the simulation. In there, fields containing the word "score" give the overall results on each test. E.g. the field called 'jump_score_correct' contains the overall scores for the jump test.
+Running this command should print out something like:
+
+```
+Statistics when extraction computed exactly:
+Cosine Similarity:  0.514186532333
+Dot product:  0.58601802586
+Norm:  1.13969929006
+Similarity of closest incorrect index vector  0.240294982159
+Dot product of closest incorrect index vector  0.273864020573
+
+Simulation finished in 0:00:21.
+Bootstrapper adding data... name: d_0_target_match, data: 0.99786516112
+Bootstrapper adding data... name: d_0_second_match, data: 0.257622935043
+Bootstrapper adding data... name: d_0_size, data: 0.94307340516
+Bootstrapper adding data... name: d_0_hinv_match, data: 0.257622935043
+Bootstrapper adding data... name: r_2_target_match, data: 0.99786516112
+Bootstrapper adding data... name: r_2_second_match, data: 0.257622935043
+Bootstrapper adding data... name: r_2_size, data: 0.94307340516
+Bootstrapper adding data... name: r_2_hinv_match, data: 0.257622935043
+score,1.0
+Bootstrapper adding data... name: jump_score_correct, data: 1.0
+Bootstrapper adding data... name: jump_score_valid, data: 0.0
+Bootstrapper adding data... name: jump_score_exact, data: 0.0
+Bootstrapper adding data... name: runtime_per_jump, data: 26.691
+Bootstrapper adding data... name: memory_usage_in_mb, data: 184.0703125
+```
+
+The first section gives statistics on the difficulty of the example. The next section gives stats recorded throughout the testing. The most important one is the `jump_score_correct` field, which in this case, says that the network got all the jump tests (only 1 in this case) correct. Other relevant fields are ``target_match``, the dot product between the output vector and the target vector, and ``second match``, the maximum dot product between the output vector and a non-target vector.
+
+Each time the ``run.py`` script is executed, a subdirectory marked with the time of execution is created in the ``results`` directory. A convenience symbolic link called ``latest`` is also created to point at the most recently created subdirectory. Inside the ``results`` directory are a number of different files. One file will be created for each type of test that was executed, containing details from the execution of that type of test. If the neural model was used (i.e. the ``--abstract`` keyword was not supplied), and plotting was not turned off, then plots of neural activity will be stored here as well (files storing plots of neural data have names beginning with *neural_extraction*). The file called ``results`` contains most data gathered through the simulation. In there, fields containing the word "score" give the overall results on each test. E.g. the field called 'jump_score_correct' contains the overall scores for the jump test.
 
 
 #### Experiments from our papers
