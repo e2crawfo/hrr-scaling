@@ -366,7 +366,7 @@ void initializeNengoGPUData(NengoGPUData* new)
   }
 
   char filename[50];
-  sprintf(filename, "../neuralCleanupGPU/gpuOutput/gpuOutput%d.txt", new->device);
+  sprintf(filename, "gpuOutput%d.txt", new->device);
   new->fp = fopen(filename, "w");
 
   char* name; 
@@ -483,7 +483,6 @@ void printVecs(NengoGPUData* nengo_data)
 // print the NengoGPUData. Should only be called once the data has been set.
 void printNengoGPUData(NengoGPUData* nengo_data, int printArrays)
 {
-  
   nengo_data->fp ? fprintf(nengo_data->fp, "printing NengoGPUData:\n") : printf("printing NengoGPUData:\n");
 
   nengo_data->fp ? fprintf(nengo_data->fp, "start_time; %f\n", nengo_data->start_time) : printf("start_time; %f\n", nengo_data->start_time);
@@ -505,11 +504,9 @@ void printNengoGPUData(NengoGPUData* nengo_data, int printArrays)
   if(printArrays)
   {
     printFloatArray(nengo_data->fp, nengo_data->input_host, nengo_data->dimension, 1);
-
     printFloatArray(nengo_data->fp, nengo_data->input_device, nengo_data->dimension, 1);
-
     printFloatArray(nengo_data->fp, nengo_data->encode_result, nengo_data->num_items, 1);
-    printFloatArrayFromDevice(nengo_data->fp, nengo_data->decoded_values, 1, nengo_data->num_items, 1);
+    printFloatArray(nengo_data->fp, nengo_data->decoded_values, nengo_data->num_items, 1);
     printFloatArray(nengo_data->fp, nengo_data->output_host, nengo_data->dimension, 1);
     printFloatArray(nengo_data->fp, nengo_data->output_device, nengo_data->dimension, 1);
 

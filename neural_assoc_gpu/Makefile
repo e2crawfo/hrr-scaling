@@ -33,4 +33,4 @@ NengoGPU_CUDA.o: NengoGPU_CUDA.cu NengoGPU_CUDA.h NengoGPU.h
 	${CUDA_CC} ${CUDAFLAGS} -o NengoGPU_CUDA.o NengoGPU_CUDA.cu
 
 clean:
-	rm -rf libNengoGPU.so.1.0 *.o
+	rm -rf libNeuralAssocGPU.so.1.0 *.o

@@ -102,9 +102,11 @@ class Extractor(object):
             dot = np.dot(noisy_hrr.v, correct_hrr.v)
             norm = np.linalg.norm(noisy_hrr.v)
             print "Statistics when extraction computed exactly:"
-            print "Cosine Similarity: ", sim
-            print "Dot product: ", dot
-            print "Norm: ", norm
+            print ("Cosine Similarity between extracted vector "
+                   "(before assoc) and correct index vector: "), sim
+            print ("Dot product between extracted vector (before assoc) "
+                   "and correct index vector: "), dot
+            print "Norm of extracted vector (before assoc): ", norm
 
             self.ideal_dot = dot
 
@@ -117,7 +119,7 @@ class Extractor(object):
             sim = max(sims)
             dot = max(dots)
 
-            print "Similarity of closest incorrect index vector ", sim
+            print "Cosine Similarity of closest incorrect index vector ", sim
             print "Dot product of closest incorrect index vector ", dot
 
             self.second_dot = dot

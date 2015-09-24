@@ -38,7 +38,7 @@ class AssociativeMemoryGPU(object):
                  neurons_per_item=20, dt=0.001, pstc=0.02, tau_rc=0.02,
                  tau_ref=0.002, radius=1.0, intercepts=Uniform(0.0, 0.3),
                  max_rates=Uniform(200, 350), identical=False,
-                 probe_keys=[], do_print=False, seed=None, num_steps=1,
+                 probe_keys=[], do_print=True, seed=None, num_steps=1,
                  eval_points=None, collect_spikes=False):
 
         if not isinstance(index_vectors, OrderedDict):
@@ -65,8 +65,9 @@ class AssociativeMemoryGPU(object):
         self.neurons_per_item = neurons_per_item
         num_devices = len(devices)
 
+        # Get the parameters for the associative memory ensemble(s)
         if identical:
-            model = nengo.Network("Associative Memory")
+            model = nengo.Network()
             with model:
                 neuron_type = nengo.LIF(
                     tau_rc=tau_rc, tau_ref=tau_ref)
@@ -80,20 +81,21 @@ class AssociativeMemoryGPU(object):
 
                 dummy = nengo.Ensemble(1, 1)
 
-                conn = nengo.Connection(assoc, dummy,
-                                        function=threshold_func, seed=seed)
+                conn = nengo.Connection(
+                    assoc, dummy, function=threshold_func, seed=seed)
 
             sim = nengo.Simulator(model)
 
             gain = sim.data[assoc].gain
             bias = sim.data[assoc].bias
-            decoders = sim.data[conn].decoders[0]
+            decoders = sim.data[conn].weights[0]
         else:
             raise NotImplementedError(
-                "GPU can currently only be used if identical is also supplied")
+                "GPU can currently only be used if "
+                "--identical is also supplied")
 
             # Currently does not work
-            model = nengo.Network("Associative Memory")
+            model = nengo.Network()
             with model:
                 dummy = nengo.Ensemble(1, 1)
 
@@ -120,7 +122,7 @@ class AssociativeMemoryGPU(object):
             for i in range(self.num_items):
                 gain.append(sim.data[assoc].gain)
                 bias.append(sim.data[assoc].bias)
-                decoders.append(sim.data[conn].decoders[0])
+                decoders.append(sim.data[conn].weights[0])
 
             gain = np.array(gain).T
             bias = np.array(bias).T
@@ -142,7 +144,8 @@ class AssociativeMemoryGPU(object):
         keys = index_vectors.keys()
 
         probe_map = {pk: keys.index(pk) for pk in probe_keys}
-        sorted(probe_keys, key=lambda x: probe_map[x])
+        probe_keys = probe_keys[:]
+        probe_keys.sort(key=lambda x: probe_map[x])
         self.probe_map = dict(zip(probe_keys, range(len(probe_keys))))
         probe_indices = [probe_map[pk] for pk in probe_keys]
 
@@ -204,6 +207,8 @@ class AssociativeMemoryGPU(object):
             self._c_spikes = convert_to_carray(_spikes, c_float, 1)
 
     def step(self, input_vector):
+        print "Max activation: ", max(
+            iv.dot(input_vector) for iv in self.index_vectors.values())
 
         if self.num_steps > 1:
             return self.multi_step(input_vector)

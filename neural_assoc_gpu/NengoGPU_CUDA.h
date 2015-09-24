@@ -25,8 +25,8 @@ void initGPUDevice(int device);
 
 void shutdownGPUDevice();
 
-void checkCudaErrorWithDevice(cudaError_t err, int device, char* message);
-void checkCudaError(cudaError_t err, char* message);
+void checkCudaErrorWithDevice(cudaError_t err, int device, const char* message);
+void checkCudaError(cudaError_t err, const char* message);
 
 __global__ void lif_math(int numNeurons, int neurons_per_item, float dt, float* encode_result,
                          float* voltage_array, float* reftime_array, float tau_rc,
