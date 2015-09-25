@@ -261,9 +261,6 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
   nengo_data->start_time = start_time;
   nengo_data->end_time = end_time;
 
-  printf("start time: %f, end time %f, device: %d\n",
-         start_time, end_time, nengo_data->device);
-
   cudaError_t err;
 
   dim3 dimBlock(1, 1);
@@ -284,7 +281,6 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
 
   for(step = 0; step < nengo_data->num_steps; step++)
   {
-      printf("NeuralAssocGPU running a step!");
       if(nengo_data->do_print && step % 10 == 0)
       {
           printf("NeuralAssocGPU: STEP %d\n", step);
@@ -317,7 +313,6 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
 
       if(nengo_data->identical_ensembles)
       {
-          printf("Ensembles are identical!");
           // decoded_values(num_items, 1) =
           //    lif_output(num_items, neurons_per_item) x decoder(neurons_per_item, 1)
           op = CUBLAS_OP_T;
@@ -328,7 +323,6 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
       }
       else
       {
-          printf("Ensembles are NOT! identical!");
           dimBlock.x = 256;
           dimGrid.x = nengo_data->num_items / dimBlock.x + 1;
 
@@ -384,7 +378,7 @@ void run_neural_associative_memory(NengoGPUData* nengo_data, float start_time, f
                                "run_neural_associative_memory: copying cpu input to device");
   }
 
-  printNengoGPUData(nengo_data, 1);
+  //printNengoGPUData(nengo_data, 1);
 
   // Move output and probes to host
   cudaMemcpy(nengo_data->output_host->array, nengo_data->output_device->array,

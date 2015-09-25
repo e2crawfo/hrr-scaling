@@ -45,12 +45,16 @@ synapse = argvals.synapse
 timesteps = argvals.steps
 threshold = argvals.threshold
 probe_all = argvals.probe_all
-identical = argvals.identical
 fast = argvals.fast
 plot = not argvals.no_plot and can_plot and not abstract
 
-gpus = argvals.gpus
-ocl = argvals.ocl
+gpu = argvals.gpu
+use_gpus = argvals.use_gpus
+
+if gpu and not use_gpus:
+    use_gpus = [0]
+
+identical = bool(use_gpus)
 
 name = argvals.name
 
@@ -59,4 +63,4 @@ run(n_runs, jump_trials, hier_trials, sent_trials, deep_trials, expr,
     extractor_seed, test_seed, seed, dimension, n_synsets,
     proportion, unitary_relations, id_vecs, sp_noise, normalize,
     abstract, synapse, timesteps, threshold, probe_all, identical, fast,
-    plot, gpus, ocl, name)
+    plot, use_gpus, name)

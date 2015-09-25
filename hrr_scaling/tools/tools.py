@@ -11,19 +11,19 @@ def parse_args(print_args=False):
 
     parser.add_argument(
         '--jump', default=0, type=int,
-        help="Run a jump test with this number of trials")
+        help="Run a jump test with this number of trials.")
 
     parser.add_argument(
         '--hier', default=0, type=int,
-        help="Run a hierarchical test with this number of trials")
+        help="Run a hierarchical test with this number of trials.")
 
     parser.add_argument(
         '--sent', default=0, type=int,
-        help="Run a sentence test with this number of trials")
+        help="Run a sentence test with this number of trials.")
 
     parser.add_argument(
         '--deep', default=0, type=int,
-        help="Run a deep sentence test with this number of trials")
+        help="Run a deep sentence test with this number of trials.")
 
     parser.add_argument(
         '--expr', nargs=2,
@@ -52,7 +52,7 @@ def parse_args(print_args=False):
     parser.add_argument(
         '--sp-noise', dest='sp_noise', default=1, type=int,
         help='Number of noise terms to add to semantic pointers. '
-             'Defaults to 0')
+             'Defaults to 1.')
 
     parser.add_argument(
         '-d', default=512, type=int,
@@ -99,28 +99,20 @@ def parse_args(print_args=False):
 
     parser.add_argument(
         '--steps', default=100, type=int,
-        help='Number of steps to run the neural model for.')
+        help='Number of steps to run the neural model for per extraction.')
 
-    # configuring gpus
     parser.add_argument(
-        '--gpus', nargs='+', type=int,
+        '--gpu', action='store_true',
+        help='Supply this to have the code run on the GPU. Will only use '
+             '1 GPU, the GPU with index 0 on the system. To use multiple '
+             'GPUs, use the --use-gpus argument.')
+
+    parser.add_argument(
+        '--use-gpus', nargs='+', type=int, dest='use_gpus',
         help='Specify the devices (gpus) to use. Specified as a list '
-             'of integers. e.g. "python run.py j 10 100 --gpus 0 2 3" '
-             'would use 3 devices, skipping the device with index 1.')
-
-    parser.add_argument(
-        '--ocl', nargs='+', type=int,
-        help='Specify the devices (gpus) to use for the ocl simulator '
-             'if using the new nengo code (i.e. if --new is supplied). '
-             'Specified as a list of integers. (e.g. "python run.py j 10 '
-             '100 --ocl 0 2 3" would use 3 devices for the ocl simulators, '
-             'skipping the device with index 1). --ocl and --gpus'
-             'can be combined, but their intersection should be empty.')
-
-    parser.add_argument(
-        '--identical', action='store_true',
-        help='To make all association ensembles identical when using '
-             'gpu assoc with new nengo')
+             'of integers. e.g. "python run.py --jump 1 --gpus 0 2 3" '
+             'would use 3 devices, skipping the device with index 1. '
+             'This overrides the --gpu argument.')
 
     parser.add_argument(
         '--fast', action='store_true',

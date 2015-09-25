@@ -207,9 +207,6 @@ class AssociativeMemoryGPU(object):
             self._c_spikes = convert_to_carray(_spikes, c_float, 1)
 
     def step(self, input_vector):
-        print "Max activation: ", max(
-            iv.dot(input_vector) for iv in self.index_vectors.values())
-
         if self.num_steps > 1:
             return self.multi_step(input_vector)
 
@@ -235,7 +232,7 @@ class AssociativeMemoryGPU(object):
             self._spikes[i] = self._c_spikes[i]
 
         self.n_steps += 1
-        self.elapsed_time += 1
+        self.elapsed_time += self.dt
 
         return self._output
 

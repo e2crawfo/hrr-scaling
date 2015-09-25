@@ -10,7 +10,7 @@ Running this package requires [python 2.7](http://www.python.org/getit/) and [nu
 
 The model supports GPU acceleration through nVidia's CUDA API, and indeed this is all but required for running the model with all ~117,000 concepts in WordNet. However, if you don't have access to a CUDA-capable GPU, you can still run the model with a reduced number of concepts using the -p command line argument (see below).
 
-To obtain the package, simply clone this repository onto your machine using the ``git clone`` command.
+To obtain the package, clone this repository onto your machine using the ``git clone`` command.
 
 #### GPU Setup
 If you don't intend to use a GPU to run simulations, this section can be safely skipped. Otherwise read on, and in just a few simple steps you can be running simulations at GPU-accelerated speeds
@@ -86,10 +86,10 @@ python run.py --abstract --jump 100 --hier 20 --deep 30 --runs 20 --unitary-role
 ```
 
 #### GPU Notes
-To tell the package to use GPU acceleration when running experiments, supply the --gpus command line argument, followed by the number of GPU's you want to use to run the model (e.g. --gpus 1). For example, to run the Deep Sentence Test experiment from the paper using 1 GPU (assuming the the GPU library has been installed properly), one would type:
+To tell the package to use GPU acceleration when running experiments, supply the --gpu command line argument. This will use a single GPU, the GPU with index 0 on the machine. To use multiple GPUs (to have the associative memory spread out over multiple GPUs), instead supply the --use-gpus command line argument followed by the indices of the GPUs you want to use to run the model. For example, to run the Deep Sentence Test experiment from the paper using GPUs 0, 2 and 3 (assuming the GPU library has been installed properly), one would type:
 
 ```
-python run.py --deep 30 --runs 20 --gpus 1
+python run.py --deep 30 --runs 20 --use-gpus 0 2 3
 ```
 
 ## Additional Command Line Options
