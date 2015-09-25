@@ -97,8 +97,6 @@ This section provides more complete descriptions of some of the most useful comm
 
 ``-p P`` : P is a float between 0 and 1. Permits specification of the fraction of the total number of WordNet synsets to use. Defaults to 1.0. Useful for running smaller versions of the model, particularly if you don't have access to a GPU.
 
-``--gpus G`` : G is a non-negative integer. Defaults to 0. Specifies the number of CUDA-capable GPU's to use in executing the neural simulation. At least one is required to run the full model in a reasonable amount of time.
-
 ``-d D`` : D is a positive integer. Permits specification of the dimensions of the vectors used to encode WordNet. Defaults to 512. With smaller values, the average similarity of any two randomly chosen vectors increases, making the associative memory less accurate. Extraction, using the combination of approximate inverse and circular convolution, also becomes less noisy as the dimensionality increases.
 
 ``--no-ids`` : Specifies that id vectors should not be used. Instead, both the index vectors and the stored vectors in the associative memory are semantic pointers. This tends to reduce the performance of the associative memory (because the average similarity of two semantic pointers is much higher than that of two randomly chosen vectors). However, it frees us from having to keep track of two vectors per WordNet concept, simplifying the model somewhat.
