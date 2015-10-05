@@ -86,11 +86,11 @@ python run.py --abstract --jump 100 --hier 20 --deep 30 --runs 20 --unitary-role
 ```
 
 #### GPU Notes
-To tell the package to use GPU acceleration when running experiments, supply the --gpu command line argument. This will use a single GPU, the GPU with index 0 on the machine. To use multiple GPUs (to have the associative memory spread out over multiple GPUs), instead supply the --use-gpus command line argument followed by the indices of the GPUs you want to use to run the model. For example, to run the Deep Sentence Test experiment from the paper using GPUs 0, 2 and 3 (assuming the GPU library has been installed properly), one would type:
-
+To tell the package to use GPU acceleration when running experiments, supply the --gpu command line argument. For example, to run the Deep Sentence Test experiment from the paper using a gpu, run the command:
 ```
-python run.py --deep 30 --runs 20 --use-gpus 0 2 3
+python run.py --deep 30 --runs 20 --gpu
 ```
+This will use a single GPU, the GPU with index 0 on the machine.
 
 ## Additional Command Line Options
 This section provides more complete descriptions of some of the most useful command line options. An exhaustive list can be obtained by running ``python run.py -h``.
