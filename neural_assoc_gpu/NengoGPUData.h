@@ -1,12 +1,12 @@
 #ifndef NENGO_GPU_DATA_H
 #define NENGO_GPU_DATA_H
-#ifdef __cplusplus
-extern "C"{
-#endif
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 /*
   Float and int array objects that facilitate safe array accessing.

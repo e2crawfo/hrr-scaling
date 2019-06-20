@@ -24,7 +24,7 @@ debug: SO_DEBUG=-g
 debug: libNeuralAssocGPU.so
 
 libNeuralAssocGPU.so: ${OBJ}
-	${CC} ${SO_DEBUG} -shared -Wl,-soname,libNeuralAssocGPU.so -o libNeuralAssocGPU.so.1.0 ${OBJ} ${LIBPATH} ${LIBS}
+	${CC} ${SO_DEBUG} -shared -Wl,-soname,libNeuralAssocGPU.so -o libNeuralAssocGPU.so ${OBJ} ${LIBPATH} ${LIBS}
 
 NengoGPUData.o: NengoGPUData.h
 NengoGPU.o : NengoGPU.h NengoGPU_CUDA.h
@@ -33,4 +33,4 @@ NengoGPU_CUDA.o: NengoGPU_CUDA.cu NengoGPU_CUDA.h NengoGPU.h
 	${CUDA_CC} ${CUDAFLAGS} -o NengoGPU_CUDA.o NengoGPU_CUDA.cu
 
 clean:
-	rm -rf libNeuralAssocGPU.so.1.0 *.o
+	rm -rf libNeuralAssocGPU.so *.o

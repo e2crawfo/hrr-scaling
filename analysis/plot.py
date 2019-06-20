@@ -1,4 +1,3 @@
-from hrr_scaling.corpora_management import VectorizedCorpus
 from hrr_scaling.neural_extraction import NeuralExtraction
 
 import random
@@ -171,7 +170,7 @@ def plot_tuning_curves(filename, plot_decoding=False, show=False):
     intercepts = Uniform(intercepts_low, intercepts_low + intercepts_range)
 
     tau_rc = 0.034
-    tau_ref = 0.0026
+    tau_ref = 0.0025
     radius = 1.0
     assoc_encoders = np.ones((neurons_per_item, 1))
     standard_encoders = np.ones((neurons_per_dim, 1))

@@ -1,7 +1,3 @@
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -14,6 +10,10 @@ extern "C"{
 #include "NengoGPU.h"
 #include "NengoGPU_CUDA.h"
 #include "NengoGPUData.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 NengoGPUData** nengo_data_array;
 float start_time = 0, end_time = 0;

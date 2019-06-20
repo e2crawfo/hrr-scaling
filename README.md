@@ -6,19 +6,25 @@
 See either of the above papers for a detailed overview of our methods. Briefly, we use a particular vector symbolic architecture, called the Semantic Pointer Architecture (which can be viewed as a neural variant of Holographic Reduced Representations (Plate 2003)), to encode the WordNet graph in vectorial form. We then employ the [Neural Engineering Framework](http://compneuro.uwaterloo.ca/research/nef.html), a principled approach to creating populations of spiking neurons that represent and transform vectors (Eliasmith & Anderson 2003), to create a spiking neural network capable of traversing this vectorial representation of the WordNet graph in a biologically plausible number of neurons.
 
 ## Setup
-Running this package requires [python 2.7](http://www.python.org/getit/) and [numpy/scipy](http://www.scipy.org/install.html). For displaying graphical views of neural data, [matplotlib](http://matplotlib.org/users/installing.html) is required, though it can be omitted if you just want to view the performance.
+Running this package requires [python 2.7](http://www.python.org/getit/). To install dependencies run `pip install -r requirements.txt`.
 
 The model supports GPU acceleration through nVidia's CUDA API, and indeed this is all but required for running the model with all ~117,000 concepts in WordNet. However, if you don't have access to a CUDA-capable GPU, you can still run the model with a reduced number of concepts using the -p command line argument (see below).
 
-To obtain the package, clone this repository onto your machine using the ``git clone`` command.
-
 #### GPU Setup
-If you don't intend to use a GPU to run simulations, this section can be safely skipped. Otherwise read on, and in just a few simple steps you can be running simulations at GPU-accelerated speeds
-on your CUDA-capable GPU(s). Note that this has only been tested on Ubuntu. 
+If you don't intend to use a GPU to run simulations, this section can be safely skipped. To enable model execution on a CUDA-capable GPU, perform the following steps (note that this has only been tested on Ubuntu):
 
 1. Install the [CUDA toolkit](https://developer.nvidia.com/cuda-downloads).
 
-2. Compile the *neuralGPUCleanup* shared library. The source code for this library can be found in the *neuralGPUCleanup* subdirectory of this repository. If step 1 was completed properly, it should be as simple as typing ``make``, though one does sometimes run into pitfalls. More info on this coming soon, in particular, a FAQ addressing common errors encountered in the process of compiling CUDA libraries.
+2. Compile *libNeuralAssocGPU.so* inside the `neural_assoc_gpu` sub-directory.
+```
+cd neural_assoc_gpu
+make
+```
+
+3. Finally, add the following line to your .bashrc or .zshrc so that the library will be found at runtime:
+```
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<path to repo>/neural_assoc_gpu
+```
 
 ## Running Experiments
 Users interact with the package through the ``run.py`` script. ``run.py`` handles all the heavy lifting of loading the WordNet graph into memory, converting it into a vectorial representation, and creating a spiking neural network capable of traversing the edges in the WordNet graph encoded by those vectors. A number of command line options are provided which provide control over which experiments are run and under what conditions.
@@ -101,7 +107,7 @@ This section provides more complete descriptions of some of the most useful comm
 
 ``--no-ids`` : Specifies that id vectors should not be used. Instead, both the index vectors and the stored vectors in the associative memory are semantic pointers. This tends to reduce the performance of the associative memory (because the average similarity of two semantic pointers is much higher than that of two randomly chosen vectors). However, it frees us from having to keep track of two vectors per WordNet concept, simplifying the model somewhat.
 
-``--unitary-rels`` : Specifies that the relation-type vectors that are used to create semantic pointers should be unitary vectors. For initary vectors, circular convolution is the exact inverse instead of the approximate inverse, so performance typically improves.
+``--unitary-rels`` : Specifies that the relation-type vectors that are used to create semantic pointers should be unitary vectors. For unitary vectors, circular convolution is the exact inverse instead of the approximate inverse, so performance typically improves.
 
 
 ## References

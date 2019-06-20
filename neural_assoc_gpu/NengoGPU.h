@@ -2,12 +2,13 @@
 #ifndef NENGO_GPU_H
 #define NENGO_GPU_H
 
+#include <stdio.h>
+
+#include "NengoGPUData.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif
-
-#include <stdio.h>
-#include "NengoGPUData.h"
 
 extern NengoGPUData** nengo_data_array;
 extern int num_devices;

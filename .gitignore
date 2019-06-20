@@ -16,6 +16,7 @@ goodData
 #wordnetData
 nef_data
 neural_runtimes
+gpu_output_*
 
 # images (graphs mostly) #
 #########

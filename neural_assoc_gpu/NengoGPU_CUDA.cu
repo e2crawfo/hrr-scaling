@@ -1,15 +1,13 @@
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
-//#include <cuda_runtime.h>
-//#include <cublas.h>
 
 #include "NengoGPU.h"
 #include "NengoGPU_CUDA.h"
 #include "NengoGPUData.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 # define MAX_SHARED_MEM_SIZE 16000
 

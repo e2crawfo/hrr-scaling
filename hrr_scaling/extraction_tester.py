@@ -54,8 +54,7 @@ class ExtractionTester(object):
     def memory_usage_psutil(self):
         # return the memory usage in MB
         process = psutil.Process(os.getpid())
-        mem = process.get_memory_info()[0] / float(2 ** 20)
-        return mem
+        return process.memory_info().rss / float(2 ** 20)
 
     def initialize(self):
         corpus_seed = self.next_corpus_seed()

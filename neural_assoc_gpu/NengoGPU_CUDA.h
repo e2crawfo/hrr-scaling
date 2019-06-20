@@ -2,14 +2,14 @@
 #ifndef NENGO_GPU_CUDA_H
 #define NENGO_GPU_CUDA_H
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
 #include "NengoGPUData.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 void printIntArrayFromDevice(FILE* fp, intArray* array, int m, int n, int labels);
 void printFloatArrayFromDevice(FILE* fp, floatArray* array, int m, int n, int labels);

@@ -1,16 +1,17 @@
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 //#include <cuda_runtime.h>
 //#include <cublas.h>
 
 #include "NengoGPUData.h"
 #include "NengoGPU_CUDA.h"
 #include "NengoGPU.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 extern FILE* fp;
 
@@ -366,7 +367,7 @@ void initializeNengoGPUData(NengoGPUData* new)
   }
 
   char filename[50];
-  sprintf(filename, "gpuOutput%d.txt", new->device);
+  sprintf(filename, "gpu_output_%d.txt", new->device);
   new->fp = fopen(filename, "w");
 
   char* name; 

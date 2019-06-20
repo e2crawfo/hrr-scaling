@@ -15,8 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 import nengo
-from nengo.networks import CircularConvolution, EnsembleArray
-from nengo.spa import AssociativeMemory
+from nengo.networks import CircularConvolution, EnsembleArray, AssociativeMemory
 from nengo.dists import Uniform
 import nengo.utils.numpy as npext
 
@@ -32,6 +31,7 @@ def make_func(obj, attr):
     def f(t):
         return getattr(obj, attr)
     return f
+
 
 AssocParams = namedtuple('AssocParams',
                          ['tau_rc', 'tau_ref', 'synapse',
@@ -96,7 +96,7 @@ class NeuralExtractor(Extractor):
                                        eval_point_std,
                                        (n_eval_points, 1))
 
-        self.assoc_params = AssocParams(tau_rc=0.034, tau_ref=0.0026,
+        self.assoc_params = AssocParams(tau_rc=0.034, tau_ref=0.0025,
                                         synapse=0.005, radius=1.0,
                                         eval_points=eval_points,
                                         intercepts=intercepts)
@@ -246,27 +246,27 @@ class NeuralExtractor(Extractor):
                     assoc_spike_probes[k] = nengo.Probe(node, synapse=None)
 
             else:
-                self.assoc_mem = AssociativeMemory(
-                    input_vocab=np.array(self.index_vectors.values()),
-                    output_vocab=np.array(self.stored_vectors.values()),
-                    threshold=self.threshold,
-                    neuron_type=nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref),
-                    n_neurons_per_ensemble=neurons_per_item)
+                cfg = nengo.Config(nengo.Ensemble)
+                cfg[nengo.Ensemble].neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
+                with cfg:
+                    self.assoc_mem = AssociativeMemory(
+                        input_vectors=np.array(self.index_vectors.values()),
+                        output_vectors=np.array(self.stored_vectors.values()),
+                        threshold=self.threshold,
+                        n_neurons=neurons_per_item
+                    )
 
                 nengo.Connection(
                     self.D_output, self.assoc_mem.input, synapse=synapse)
                 nengo.Connection(
                     self.assoc_mem.output, self.output.input, synapse=synapse)
 
-                assoc_ensembles = (
-                    self.assoc_mem.thresholded_ens_array.ea_ensembles)
+                assoc_ensembles = self.assoc_mem.am_ensembles
 
                 for ens, k in zip(assoc_ensembles, self.index_vectors):
                     if k in self.probe_keys:
-                        assoc_probes[k] = nengo.Probe(
-                            ens, 'decoded_output', synapse=synapse)
-                        assoc_spike_probes[k] = nengo.Probe(
-                            ens.neurons, 'spikes', synapse=None)
+                        assoc_probes[k] = nengo.Probe(ens, 'decoded_output', synapse=synapse)
+                        assoc_spike_probes[k] = nengo.Probe(ens.neurons, 'spikes', synapse=None)
 
         self.assoc_probes = assoc_probes
         self.threshold_probes = threshold_probes
